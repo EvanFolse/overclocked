@@ -4,36 +4,46 @@ export const ACHIEVEMENTS: AchievementDefinition[] = [
   {
     id: "first-upgrade",
     name: "First Upgrade",
-    description: "Purchase your first CPU component upgrade.",
+    description: "Install your first CPU component upgrade.",
   },
   {
     id: "earned-1k",
-    name: "$1,000 Earned",
-    description: "Accumulate $1,000 in total earnings.",
+    name: "1K Compute",
+    description: "Accumulate 1,000 Compute Points.",
   },
   {
     id: "earned-1m",
-    name: "$1M Earned",
-    description: "Accumulate $1,000,000 in total earnings.",
+    name: "1M Compute",
+    description: "Accumulate 1,000,000 Compute Points.",
   },
   {
     id: "correct-10",
-    name: "10 Correct Answers",
-    description: "Answer 10 quiz questions correctly.",
+    name: "10 Challenges Solved",
+    description: "Correctly diagnose 10 CPU architecture challenges.",
   },
   {
     id: "correct-100",
-    name: "100 Correct Answers",
-    description: "Answer 100 quiz questions correctly.",
+    name: "100 Challenges Solved",
+    description: "Correctly diagnose 100 CPU architecture challenges.",
   },
   {
     id: "cpu-expert",
-    name: "CPU Expert",
+    name: "Architecture Expert",
     description: "Unlock every advanced component and reach build level 40.",
   },
   {
     id: "flagship-2026",
     name: "2026 Flagship",
-    description: "Reach build level 80 — Venice / Diamond Rapids class silicon.",
+    description: "Reach build level 80 — modern flagship-class silicon.",
+  },
+  {
+    id: "pipeline-master",
+    name: "Pipeline Master",
+    description: "Unlock pipelining, forwarding, and branch prediction.",
+  },
+  {
+    id: "bottleneck-5",
+    name: "Bottleneck Hunter",
+    description: "Resolve 5 live CPU bottleneck events.",
   },
 ];

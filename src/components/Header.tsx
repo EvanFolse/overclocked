@@ -1,16 +1,27 @@
 "use client";
 
-import { formatMoney, formatRate } from "@/lib/format";
+import { formatMoney, formatPercent, formatRate } from "@/lib/format";
+import { formatIps } from "@/lib/cpuStats";
 import { useTheme } from "@/lib/theme";
+import type { CpuPerformance } from "@/types/game";
 
 interface HeaderProps {
   money: number;
   incomePerSecond: number;
+  cpuStats: CpuPerformance;
+  hasBottleneck: boolean;
   onOpenQuiz: () => void;
   onReset: () => void;
 }
 
-export function Header({ money, incomePerSecond, onOpenQuiz, onReset }: HeaderProps) {
+export function Header({
+  money,
+  incomePerSecond,
+  cpuStats,
+  hasBottleneck,
+  onOpenQuiz,
+  onReset,
+}: HeaderProps) {
   const { theme, toggleTheme } = useTheme();
 
   return (
@@ -24,21 +35,38 @@ export function Header({ money, incomePerSecond, onOpenQuiz, onReset }: HeaderPr
             <h1 className="font-mono text-xl font-bold tracking-wide text-accent-text sm:text-2xl">
               Overclocked
             </h1>
-            <p className="text-xs text-muted">From 4004 to 2026 flagships.</p>
+            <p className="text-xs text-muted">
+              Computer Organization idle lab · {cpuStats.clockLabel} ·{" "}
+              {formatIps(cpuStats.ips)}
+            </p>
           </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3 sm:gap-4">
           <div className="rounded-lg border border-success/30 bg-success-soft px-3 py-2">
-            <p className="text-[10px] uppercase tracking-widest text-success/80">Money</p>
+            <p className="text-[10px] uppercase tracking-widest text-success/80">
+              Compute Points
+            </p>
             <p className="font-mono text-lg font-semibold text-success tabular-nums">
               {formatMoney(money)}
             </p>
           </div>
           <div className="rounded-lg border border-edge bg-accent-soft px-3 py-2">
-            <p className="text-[10px] uppercase tracking-widest text-accent-text/80">Income</p>
+            <p className="text-[10px] uppercase tracking-widest text-accent-text/80">
+              Throughput
+            </p>
             <p className="font-mono text-lg font-semibold text-accent-text tabular-nums">
               {formatRate(incomePerSecond)}
+            </p>
+          </div>
+          <div className="hidden rounded-lg border border-edge bg-panel-muted px-3 py-2 sm:block">
+            <p className="text-[10px] uppercase tracking-widest text-muted">CPI</p>
+            <p className="font-mono text-sm font-semibold tabular-nums">{cpuStats.cpi}</p>
+          </div>
+          <div className="hidden rounded-lg border border-edge bg-panel-muted px-3 py-2 md:block">
+            <p className="text-[10px] uppercase tracking-widest text-muted">Hit Rate</p>
+            <p className="font-mono text-sm font-semibold tabular-nums">
+              {formatPercent(cpuStats.cacheHitRate)}
             </p>
           </div>
           <button
@@ -52,9 +80,13 @@ export function Header({ money, incomePerSecond, onOpenQuiz, onReset }: HeaderPr
           <button
             type="button"
             onClick={onOpenQuiz}
-            className="rounded-lg border border-violet/40 bg-violet-soft px-4 py-2 font-mono text-sm font-semibold text-violet transition hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-violet/50"
+            className={`rounded-lg border px-4 py-2 font-mono text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-violet/50 ${
+              hasBottleneck
+                ? "animate-pulse border-warning/60 bg-warning/15 text-warning"
+                : "border-violet/40 bg-violet-soft text-violet hover:opacity-90"
+            }`}
           >
-            Knowledge Quiz
+            {hasBottleneck ? "Fix Bottleneck" : "CPU Challenge"}
           </button>
           <button
             type="button"

@@ -300,11 +300,18 @@ export function CpuModel({ levels, upgradeFlash }: CpuModelProps) {
   const total = Object.values(levels).reduce((a, b) => a + b, 0);
   const baseScale = Math.min(1.55, 1 + total * 0.008 + levels.cores * 0.01);
   const packageSize =
-    1.35 + Math.min(levels.cores, 12) * 0.015 + Math.min(levels.generation, 8) * 0.02;
+    1.35 +
+    Math.min(levels.cores, 12) * 0.015 +
+    Math.min(levels.forwarding, 8) * 0.02;
   const dieSize =
-    0.62 + Math.min(levels.cache, 10) * 0.015 + Math.min(levels.isa, 6) * 0.01;
-  const pinDensity = Math.min(18, 10 + levels.socket + Math.floor(levels.cores / 2));
-  const ihsColor = levels.generation >= 5 ? "#d7c49a" : MATERIALS.ihs;
+    0.62 +
+    Math.min(levels.cache, 10) * 0.015 +
+    Math.min(levels.pipeline, 6) * 0.01;
+  const pinDensity = Math.min(
+    18,
+    10 + levels.branchPrediction + Math.floor(levels.cores / 2)
+  );
+  const ihsColor = levels.pipeline >= 4 ? "#d7c49a" : MATERIALS.ihs;
   const showDetail = levels.cooling < 2;
 
   useFrame((_, delta) => {

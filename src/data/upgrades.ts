@@ -42,7 +42,7 @@ function cuLabel(level: number): string {
     "Basic fetch/decode sequencer",
     "Pipelined control paths",
     "Out-of-order issue control",
-    "Wide decode + branch prediction",
+    "Wide decode + branch prediction assist",
     "Multi-thread aware CU",
     "Chiplet / multi-tile orchestration",
   ];
@@ -90,29 +90,39 @@ function busLabel(level: number): string {
   return tiers[Math.min(level - 1, tiers.length - 1)]!;
 }
 
-function isaLabel(level: number): string {
-  if (level <= 0) return "Tiny custom 4-bit ISA";
+function pipelineLabel(level: number): string {
+  if (level <= 0) return "Multi-cycle (no pipeline)";
   const tiers = [
-    "Early CISC (8086-class x86)",
-    "Mature x86 CISC + extensions",
-    "ARM RISC (mobile → laptop)",
-    "RISC-V open modular ISA",
-    "Multi-ISA design fluency (x86/ARM/RISC-V)",
-    "Custom accelerators + ISA extensions",
+    "5-stage: IF → ID → EX → MEM → WB",
+    "Deeper pipe + better balancing",
+    "Superscalar dual-issue",
+    "Wider issue / more stages",
+    "OOO pipeline with rename",
+    "Modern deep speculative pipeline",
   ];
   return tiers[Math.min(level - 1, tiers.length - 1)]!;
 }
 
-function generationLabel(level: number): string {
-  if (level <= 0) return "Gen 0 — 4004 pioneer (1971)";
+function forwardingLabel(level: number): string {
+  if (level <= 0) return "No forwarding (full stalls on RAW)";
   const tiers = [
-    "Early PC generation",
-    "Pentium / superscalar gen",
-    "NetBurst / Athlon gen",
-    "Core / Phenom multi-core gen",
-    "Zen / modern client gen",
-    "Chiplet datacenter gen",
-    "2026 Venice / Diamond Rapids class",
+    "EX→EX ALU forwarding",
+    "MEM→EX forwarding paths",
+    "Full bypass network",
+    "Load-use hazard mitigation",
+    "Aggressive bypass + early resolve",
+  ];
+  return tiers[Math.min(level - 1, tiers.length - 1)]!;
+}
+
+function branchLabel(level: number): string {
+  if (level <= 0) return "Always-not-taken / stall on branch";
+  const tiers = [
+    "1-bit local predictor",
+    "2-bit saturating counters",
+    "Two-level / correlating predictor",
+    "Tournament predictor",
+    "Modern TAGE-class predictor",
   ];
   return tiers[Math.min(level - 1, tiers.length - 1)]!;
 }
@@ -125,20 +135,7 @@ function overclockLabel(level: number): string {
     "XMP/EXPO-friendly platform",
     "Aggressive boost algorithms",
     "Liquid-cooled OC profile",
-    "Extreme bench / LN2 capable",
-  ];
-  return tiers[Math.min(level - 1, tiers.length - 1)]!;
-}
-
-function socketLabel(level: number): string {
-  if (level <= 0) return "Early DIP / proprietary package";
-  const tiers = [
-    "PGA / early desktop socket",
-    "LGA 775 / AM2 class",
-    "LGA 115x / AM3+",
-    "LGA 1700 / AM4",
-    "LGA 1851 / AM5",
-    "SP5 / SP7 server socket class",
+    "Extreme bench capable",
   ];
   return tiers[Math.min(level - 1, tiers.length - 1)]!;
 }
@@ -155,19 +152,31 @@ function coolingLabel(level: number): string {
   return tiers[Math.min(level - 1, tiers.length - 1)]!;
 }
 
+export const STAGE_LABELS: Record<string, string> = {
+  basic: "Stage 1 · Basic CPU",
+  memory: "Stage 2 · Memory Performance",
+  pipeline: "Stage 3 · Pipelining",
+  hazards: "Stage 4 · Pipeline Hazards",
+  branch: "Stage 5 · Branch Prediction",
+  multicore: "Stage 6 · Multicore",
+};
+
 export const UPGRADES: UpgradeDefinition[] = [
   {
     id: "controlUnit",
     name: "Control Unit (CU)",
     shortName: "CU",
     category: "Fetch · decode · direct",
+    stage: "basic",
     description:
-      "The director of the processor. It fetches instructions from memory, decodes them, and directs the rest of the CPU to execute those commands.",
+      "The director of the processor. It fetches instructions, decodes them, and coordinates the rest of the CPU.",
     baseCost: 12,
     costMultiplier: 1.15,
     incomePerLevel: 0.4,
     requiresUnlock: false,
     unlockHint: "Available from the start.",
+    educationalNote:
+      "A stronger CU improves instruction sequencing and slightly helps pipeline control and branch handling.",
     formatSpec: cuLabel,
   },
   {
@@ -175,13 +184,16 @@ export const UPGRADES: UpgradeDefinition[] = [
     name: "Arithmetic Logic Unit (ALU)",
     shortName: "ALU",
     category: "Math · logic · comparisons",
+    stage: "basic",
     description:
-      "The computational engine. It performs arithmetic (add/sub/mul/div) and logical operations (comparisons, AND/OR/NOT).",
+      "Performs arithmetic and logical operations. A wider, faster ALU reduces cycles spent in execute.",
     baseCost: 18,
     costMultiplier: 1.15,
     incomePerLevel: 0.55,
     requiresUnlock: false,
     unlockHint: "Available from the start.",
+    educationalNote:
+      "ALU upgrades lower effective CPI on compute-heavy work by finishing EX-stage work sooner.",
     formatSpec: aluLabel,
   },
   {
@@ -189,13 +201,16 @@ export const UPGRADES: UpgradeDefinition[] = [
     name: "Registers",
     shortName: "Regs",
     category: "On-chip ultra-fast storage",
+    stage: "basic",
     description:
-      "Tiny, ultra-fast storage locations inside the CPU. They temporarily hold the data, instructions, or addresses the processor is actively using.",
+      "Tiny, ultra-fast storage inside the CPU for the data and addresses the processor is using right now.",
     baseCost: 25,
     costMultiplier: 1.15,
     incomePerLevel: 0.7,
     requiresUnlock: false,
     unlockHint: "Available from the start.",
+    educationalNote:
+      "More/faster registers reduce spills to memory and slightly improve cache hit behavior.",
     formatSpec: registerLabel,
   },
   {
@@ -203,28 +218,34 @@ export const UPGRADES: UpgradeDefinition[] = [
     name: "Internal Clock",
     shortName: "Clock",
     category: "Timing · hertz · sync",
+    stage: "basic",
     description:
-      "Generates steady electrical pulses (hertz) that synchronize every operation inside the processor — from 4004-era kHz to multi-GHz boost.",
+      "Generates timing pulses that synchronize CPU operations. Higher clock → more cycles per second.",
     baseCost: 80,
     costMultiplier: 1.15,
     incomePerLevel: 1.4,
     requiresUnlock: false,
     unlockHint: "Available from the start.",
+    educationalNote:
+      "Clock speed raises cycles/sec. Throughput still depends on CPI: IPS ≈ clock / CPI × cores.",
     formatSpec: clockLabel,
   },
   {
     id: "cache",
     name: "Cache Memory",
     shortName: "Cache",
-    category: "L1 / L2 / L3 · on-die SRAM",
+    category: "L1 / L2 / L3 · hit rate",
+    stage: "memory",
     description:
-      "Extremely fast memory on or near the CPU that keeps copies of frequently used data and instructions so you wait less on slower RAM.",
+      "Fast on-chip memory that stores recently used data/instructions so the CPU waits less on main memory.",
     baseCost: 400,
     costMultiplier: 1.15,
     incomePerLevel: 3.5,
     requiresUnlock: true,
     unlockTag: "cache",
-    unlockHint: "Answer a cache question correctly to unlock.",
+    unlockHint: "Diagnose a memory-latency bottleneck to unlock.",
+    educationalNote:
+      "Higher cache hit rate cuts expensive DRAM accesses, lowering effective CPI and raising IPS.",
     formatSpec: cacheLabel,
   },
   {
@@ -232,104 +253,125 @@ export const UPGRADES: UpgradeDefinition[] = [
     name: "System Buses",
     shortName: "Buses",
     category: "Data · address · control paths",
+    stage: "memory",
     description:
-      "Internal electrical pathways that transport data, instructions, and control signals between the CPU and other components.",
+      "Pathways that move data between the CPU, cache, and memory. Wider/faster buses reduce miss penalties.",
     baseCost: 1_200,
     costMultiplier: 1.14,
     incomePerLevel: 8,
     requiresUnlock: true,
     unlockTag: "buses",
-    unlockHint: "Answer a buses question correctly to unlock.",
+    unlockHint: "Solve a memory-access challenge to unlock.",
+    educationalNote:
+      "Better buses shrink the cycle cost of a cache miss, improving memory-bound CPI.",
     formatSpec: busLabel,
+  },
+  {
+    id: "pipeline",
+    name: "Instruction Pipeline",
+    shortName: "Pipe",
+    category: "IF · ID · EX · MEM · WB",
+    stage: "pipeline",
+    description:
+      "Overlaps fetch, decode, execute, memory, and write-back so multiple instructions are in flight.",
+    baseCost: 3_500,
+    costMultiplier: 1.14,
+    incomePerLevel: 20,
+    requiresUnlock: true,
+    unlockTag: "pipeline",
+    unlockHint: "Solve a low-throughput / pipeline challenge to unlock.",
+    educationalNote:
+      "Pipelining drives ideal CPI toward ~1 and raises pipeline efficiency — until hazards appear.",
+    formatSpec: pipelineLabel,
+  },
+  {
+    id: "forwarding",
+    name: "Data Forwarding",
+    shortName: "Fwd",
+    category: "RAW hazards · stalls · bypass",
+    stage: "hazards",
+    description:
+      "Bypasses results from later pipeline stages back to earlier ones so dependent instructions stall less.",
+    baseCost: 9_000,
+    costMultiplier: 1.13,
+    incomePerLevel: 40,
+    requiresUnlock: true,
+    unlockTag: "forwarding",
+    unlockHint: "Diagnose a data-hazard bottleneck to unlock.",
+    educationalNote:
+      "Forwarding reduces RAW-hazard stalls, cutting extra CPI that a naive pipeline would otherwise pay.",
+    formatSpec: forwardingLabel,
+  },
+  {
+    id: "branchPrediction",
+    name: "Branch Prediction",
+    shortName: "Branch",
+    category: "Control hazards · speculation",
+    stage: "branch",
+    description:
+      "Guesses branch outcomes so the pipeline keeps fetching useful instructions instead of flushing.",
+    baseCost: 22_000,
+    costMultiplier: 1.13,
+    incomePerLevel: 75,
+    requiresUnlock: true,
+    unlockTag: "branch",
+    unlockHint: "Diagnose frequent pipeline flushes to unlock.",
+    educationalNote:
+      "Higher prediction accuracy wastes fewer cycles on mispredict flushes, improving CPI and IPS.",
+    formatSpec: branchLabel,
   },
   {
     id: "cores",
     name: "Processing Cores",
     shortName: "Cores",
     category: "Parallel execution engines",
+    stage: "multicore",
     description:
-      "Independent processing engines on the package — from a single 4004-style path to 96–256 core 2026 flagship designs.",
-    baseCost: 3_000,
-    costMultiplier: 1.14,
-    incomePerLevel: 18,
+      "Independent cores that run threads in parallel — from one 4004-style path to many-core flagships.",
+    baseCost: 50_000,
+    costMultiplier: 1.13,
+    incomePerLevel: 120,
     requiresUnlock: true,
     unlockTag: "cores",
-    unlockHint: "Answer a multi-core CPU question correctly to unlock.",
+    unlockHint: "Solve a parallel-workload challenge to unlock.",
+    educationalNote:
+      "More cores multiply throughput for parallel work: IPS scales roughly with core count.",
     formatSpec: (level) => `${coreCount(level)} core${coreCount(level) === 1 ? "" : "s"}`,
-  },
-  {
-    id: "isa",
-    name: "Instruction Set (ISA)",
-    shortName: "ISA",
-    category: "x86 · ARM · RISC-V · MIPS · AVR",
-    description:
-      "Defines the instructions a CPU can execute. Progress through CISC x86, efficient ARM RISC, open RISC-V, and other families used in PCs, phones, and embedded systems.",
-    baseCost: 8_000,
-    costMultiplier: 1.13,
-    incomePerLevel: 35,
-    requiresUnlock: true,
-    unlockTag: "isa",
-    unlockHint: "Answer an ISA question correctly to unlock.",
-    formatSpec: isaLabel,
-  },
-  {
-    id: "generation",
-    name: "CPU Generation",
-    shortName: "Gen",
-    category: "Architectural era",
-    description:
-      "Advances the CPU’s architectural generation — affecting performance, efficiency, features, and compatibility as you move from 1971 pioneers to 2026 flagships.",
-    baseCost: 20_000,
-    costMultiplier: 1.13,
-    incomePerLevel: 70,
-    requiresUnlock: true,
-    unlockTag: "generation",
-    unlockHint: "Answer a CPU generation question correctly to unlock.",
-    formatSpec: generationLabel,
   },
   {
     id: "overclocking",
     name: "Overclocking Support",
     shortName: "OC",
     category: "Unlocked multipliers · boost",
+    stage: "basic",
     description:
-      "The ability to raise clock speed beyond factory settings for higher performance — from locked chips to extreme OC platforms.",
-    baseCost: 45_000,
+      "Raises clock beyond stock settings. Needs thermal headroom to stay stable.",
+    baseCost: 80_000,
     costMultiplier: 1.12,
-    incomePerLevel: 110,
+    incomePerLevel: 150,
     requiresUnlock: true,
     unlockTag: "overclocking",
-    unlockHint: "Answer an overclocking question correctly to unlock.",
+    unlockHint: "Solve a clock-speed challenge to unlock.",
+    educationalNote:
+      "Overclocking increases cycles/sec. Without cooling and solid CPI, gains are limited.",
     formatSpec: overclockLabel,
-  },
-  {
-    id: "socket",
-    name: "Socket Type",
-    shortName: "Socket",
-    category: "CPU ↔ motherboard interface",
-    description:
-      "The physical interface connecting the CPU to the motherboard — from early packages to modern AM5 / LGA / SP7-class server sockets.",
-    baseCost: 90_000,
-    costMultiplier: 1.12,
-    incomePerLevel: 180,
-    requiresUnlock: true,
-    unlockTag: "socket",
-    unlockHint: "Answer a socket/platform question correctly to unlock.",
-    formatSpec: socketLabel,
   },
   {
     id: "cooling",
     name: "Thermal Solution",
     shortName: "Cooling",
     category: "Heatsink · AIO · custom loop",
+    stage: "basic",
     description:
-      "Keeps the silicon in its boost window. Essential once clocks and core counts climb toward 2026 flagship power levels.",
-    baseCost: 150_000,
+      "Removes heat so higher clocks and core counts can sustain boost.",
+    baseCost: 120_000,
     costMultiplier: 1.12,
-    incomePerLevel: 250,
+    incomePerLevel: 200,
     requiresUnlock: true,
     unlockTag: "cooling",
-    unlockHint: "Answer a cooling/thermal question correctly to unlock.",
+    unlockHint: "Solve a thermal / sustained-clock challenge to unlock.",
+    educationalNote:
+      "Cooling unlocks sustained clock boosts from overclocking — more stable cycles/sec.",
     formatSpec: coolingLabel,
   },
 ];
@@ -342,7 +384,8 @@ export const UPGRADE_MAP: Record<UpgradeId, UpgradeDefinition> = UPGRADES.reduce
   {} as Record<UpgradeId, UpgradeDefinition>
 );
 
-export const BASE_INCOME = 1;
+/** Soft floor so early game still ticks while stats are weak */
+export const BASE_COMPUTE = 0.35;
 
 export function getUpgradeCost(upgrade: UpgradeDefinition, level: number): number {
   return Math.floor(upgrade.baseCost * Math.pow(upgrade.costMultiplier, level));
@@ -360,10 +403,10 @@ export const EMPTY_UPGRADE_LEVELS: Record<UpgradeId, number> = {
   clock: 0,
   buses: 0,
   cores: 0,
-  isa: 0,
-  generation: 0,
+  pipeline: 0,
+  forwarding: 0,
+  branchPrediction: 0,
   overclocking: 0,
-  socket: 0,
   cooling: 0,
 };
 
@@ -373,3 +416,10 @@ export const STARTING_UNLOCKS: UpgradeId[] = [
   "registers",
   "clock",
 ];
+
+/** Map legacy save IDs → new upgrade IDs */
+export const LEGACY_UPGRADE_MAP: Record<string, UpgradeId> = {
+  isa: "pipeline",
+  generation: "forwarding",
+  socket: "branchPrediction",
+};

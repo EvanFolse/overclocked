@@ -7,6 +7,7 @@ import { UpgradePanel } from "@/components/UpgradePanel";
 import { QuizPanel } from "@/components/QuizPanel";
 import { StatsPanel } from "@/components/StatsPanel";
 import { AchievementToast } from "@/components/AchievementToast";
+import { UpgradeFeedback } from "@/components/UpgradeFeedback";
 import { ThemeProvider } from "@/lib/theme";
 
 function GameBoardInner() {
@@ -26,6 +27,10 @@ function GameBoardInner() {
     }
   };
 
+  const isBottleneck =
+    !!game.state.activeBottleneckId &&
+    game.activeQuestion?.id === game.state.activeBottleneckId;
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div
@@ -40,7 +45,9 @@ function GameBoardInner() {
         <Header
           money={game.state.money}
           incomePerSecond={game.incomePerSecond}
-          onOpenQuiz={() => game.openQuiz(false)}
+          cpuStats={game.cpuStats}
+          hasBottleneck={!!game.state.activeBottleneckId}
+          onOpenQuiz={() => game.openQuiz(!!game.state.activeBottleneckId)}
           onReset={confirmReset}
         />
 
@@ -58,6 +65,7 @@ function GameBoardInner() {
               state={game.state}
               incomePerSecond={game.incomePerSecond}
               cpuLevel={game.cpuLevel}
+              cpuStats={game.cpuStats}
             />
           </div>
 
@@ -69,7 +77,8 @@ function GameBoardInner() {
         </main>
 
         <footer className="border-t border-edge py-4 text-center text-[11px] text-muted">
-          Progress saves automatically in your browser · Educational idle game MVP
+          Progress saves automatically · Learn how clock, cache, pipelines, hazards,
+          prediction, and cores shape throughput
         </footer>
       </div>
 
@@ -78,12 +87,14 @@ function GameBoardInner() {
         question={game.activeQuestion}
         selectedChoice={game.selectedChoice}
         feedback={game.feedback}
+        isBottleneck={isBottleneck}
         onSelect={game.setSelectedChoice}
         onSubmit={game.submitAnswer}
         onNext={game.nextQuestion}
         onClose={game.closeQuiz}
       />
 
+      <UpgradeFeedback delta={game.statDelta} onDismiss={game.clearStatDelta} />
       <AchievementToast achievementId={game.newAchievement} />
     </div>
   );

@@ -1,14 +1,19 @@
 "use client";
 
-import type { Question, QuizFeedback } from "@/types/game";
+import type { Challenge, QuizFeedback } from "@/types/game";
+import { DIFFICULTY_LABELS } from "@/types/game";
 import { formatMoney } from "@/lib/format";
 import { UPGRADE_MAP } from "@/data/upgrades";
+import { TOPIC_LABELS } from "@/data/questions";
+import { CpuCycleVisual } from "@/components/CpuCycleVisual";
+import { MemoryHierarchyVisual } from "@/components/MemoryHierarchyVisual";
 
 interface QuizPanelProps {
   open: boolean;
-  question: Question | null;
+  question: Challenge | null;
   selectedChoice: number | null;
   feedback: QuizFeedback | null;
+  isBottleneck: boolean;
   onSelect: (index: number) => void;
   onSubmit: () => void;
   onNext: () => void;
@@ -20,6 +25,7 @@ export function QuizPanel({
   question,
   selectedChoice,
   feedback,
+  isBottleneck,
   onSelect,
   onSubmit,
   onNext,
@@ -27,17 +33,26 @@ export function QuizPanel({
 }: QuizPanelProps) {
   if (!open || !question) return null;
 
+  const topicLabel = TOPIC_LABELS[question.topic] ?? question.topic;
+  const diffLabel = DIFFICULTY_LABELS[question.difficulty];
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 sm:items-center">
       <div className="absolute inset-0" onClick={onClose} aria-hidden />
-      <div className="relative z-10 w-full max-w-lg rounded-2xl border border-violet/30 bg-panel p-5 shadow-2xl sm:p-6">
+      <div className="relative z-10 max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-violet/30 bg-panel p-5 shadow-2xl sm:p-6">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div>
-            <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-violet">
-              Knowledge Check · {question.topic}
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-violet">
+              {question.courseUnit} · {topicLabel} · {diffLabel}
             </p>
             <h2 className="mt-1 font-mono text-lg font-semibold text-foreground">
-              Computer Science Quiz
+              {isBottleneck
+                ? "Diagnose the Bottleneck"
+                : question.courseUnit === "Boolean Logic"
+                  ? "Circuit Design Challenge"
+                  : question.courseUnit === "GPU"
+                    ? "Parallel Architecture Challenge"
+                    : "CSC 3501 Scenario"}
             </h2>
           </div>
           <button
@@ -49,7 +64,25 @@ export function QuizPanel({
           </button>
         </div>
 
-        <p className="text-sm leading-relaxed text-foreground">{question.question}</p>
+        {isBottleneck && (
+          <p className="mb-3 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning">
+            A live performance problem is limiting throughput. Choose the concept or upgrade
+            that best fixes it.
+          </p>
+        )}
+
+        <p className="text-sm leading-relaxed text-foreground">{question.scenario}</p>
+
+        {(question.highlightCycle || question.highlightMemory) && (
+          <div className="mt-3 flex flex-col gap-2">
+            {question.highlightCycle && (
+              <CpuCycleVisual active={question.highlightCycle} compact />
+            )}
+            {question.highlightMemory && (
+              <MemoryHierarchyVisual active={question.highlightMemory} compact />
+            )}
+          </div>
+        )}
 
         <div className="mt-4 flex flex-col gap-2">
           {question.choices.map((choice, index) => {
@@ -95,16 +128,25 @@ export function QuizPanel({
             }`}
           >
             <p className="font-mono text-xs font-semibold uppercase tracking-wider">
-              {feedback.correct ? "Correct!" : "Not quite"}
+              {feedback.correct
+                ? feedback.wasBottleneck
+                  ? "Bottleneck cleared!"
+                  : "Correct!"
+                : "Not quite"}
             </p>
             {feedback.correct ? (
               <p className="mt-1 text-foreground">
                 Bonus:{" "}
                 <span className="font-mono text-success">{formatMoney(feedback.bonus)}</span>
+                {feedback.courseUnit && (
+                  <span className="ml-2 text-xs text-muted">
+                    · {feedback.courseUnit} mastery updated
+                  </span>
+                )}
               </p>
             ) : (
               <p className="mt-1 text-foreground">
-                Correct answer:{" "}
+                Better choice:{" "}
                 <span className="font-semibold">{feedback.correctAnswer}</span>
               </p>
             )}
@@ -125,7 +167,7 @@ export function QuizPanel({
               onClick={onSubmit}
               className="rounded-lg border border-violet/50 bg-violet-soft px-4 py-2 font-mono text-sm font-semibold text-violet transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              Submit Answer
+              Submit
             </button>
           ) : (
             <button
@@ -133,7 +175,7 @@ export function QuizPanel({
               onClick={onNext}
               className="rounded-lg border border-accent/40 bg-accent-soft px-4 py-2 font-mono text-sm font-semibold text-accent-text transition hover:opacity-90"
             >
-              Next Question
+              Next Challenge
             </button>
           )}
           <button
@@ -141,7 +183,7 @@ export function QuizPanel({
             onClick={onClose}
             className="rounded-lg border border-edge px-4 py-2 text-sm text-muted hover:text-foreground"
           >
-            Back to Dashboard
+            Back to Lab
           </button>
         </div>
       </div>

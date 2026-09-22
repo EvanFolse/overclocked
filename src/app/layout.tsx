@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Overclocked",
   description:
-    "An educational idle game where you build a CPU, earn money, and learn computer science.",
+    "CSC 3501 educational idle game: build a CPU, earn Compute Points from clock/CPI/cache/cores, and master CPU, Memory, Boolean Logic, and GPU course topics.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

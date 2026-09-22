@@ -1,15 +1,30 @@
 # Overclocked
 
-An educational idle game inspired by Cookie Clicker. Build and upgrade a virtual CPU, earn money automatically, and answer computer science quizzes to unlock advanced components.
+An educational idle game for **CSC 3501 Computer Organization and Design**. Build a virtual CPU, earn **Compute Points** from architecture metrics, and diagnose course-based scenarios across CPU, Memory, Boolean Logic, and GPU topics.
+
+## Learning objective
+
+After completing the game, the player should be able to explain how **clock speed**, **cache memory**, **pipelining**, **pipeline hazards**, **branch prediction**, and **processor cores** affect CPU instruction throughput — using terminology from CSC 3501 lecture material (CPU, Memory, Boolean/Logisim, and GPU units).
+
+## Course alignment
+
+| Unit | Role in game |
+| ---- | ------------ |
+| **CPU** | Primary — CU, ALU, registers, clock, FDE cycle, Von Neumann/Harvard, ISA, pipeline, hazards, multicore |
+| **Memory** | Very high — hierarchy, L1/L2/L3, RAM, SRAM/DRAM, DDR, storage, latency |
+| **Boolean Logic** | Secondary circuit challenges — gates, truth tables, half/full adders, flip-flops |
+| **GPU** | Late-game parallel track — CPU vs GPU, SIMT, threads/blocks/grids |
+
+Challenges show labels like `MEMORY · CACHE · APPLICATION` and track **Course Mastery** percentages per unit.
 
 ## Features
 
-- Passive income that grows as you upgrade real CPU components
-- Educational path: Control Unit, ALU, Registers, Clock, Cache, Buses, Cores, ISA, Generation, Overclocking, Socket, Cooling
-- Era progression from the **Intel 4004 (1971)** to **2026 flagship** class (EPYC Venice / Diamond Rapids / Threadripper-scale)
-- Quizzes covering CU/ALU/registers, ISA families (x86, ARM, RISC-V, MIPS, AVR), and more
-- Light / dark mode and interactive 3D die preview
-- Achievements and localStorage save/load (no backend)
+- Idle Compute Points from: `IPS ≈ (clock / CPI) × cores × pipeline efficiency`
+- Visible CPU stats + Fetch→Decode→Execute and memory-hierarchy visuals
+- Scenario challenges tied to upgrades and bottleneck events
+- Before/after upgrade feedback
+- Architecture stages + historical eras
+- 3D die preview, achievements, localStorage save, light/dark mode
 
 ## Getting Started
 
@@ -20,31 +35,10 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-## Scripts
-
-| Command         | Description            |
-| --------------- | ---------------------- |
-| `npm run dev`   | Start local dev server |
-| `npm run build` | Production build       |
-| `npm run start` | Run production server  |
-| `npm run lint`  | Lint the project       |
-
 ## Deploy
 
-Push to GitHub and import the repo in [Vercel](https://vercel.com). No environment variables or database required.
-
-## Project Structure
-
-```
-src/
-  components/   UI panels and game board
-  data/         Upgrades, questions, achievements
-  hooks/        useGame state hook
-  lib/          Game logic, formatting, storage, theme
-  types/        Shared TypeScript types
-  app/          Next.js App Router entry
-```
+Push to GitHub and import in [Vercel](https://vercel.com). No environment variables required.
 
 ## Save Data
 
-Progress is stored in `localStorage` under `overclocked-save-v2`. Use **Reset** in the header to clear it.
+Progress is stored under `overclocked-save-v3` (older keys migrate when possible). Use **Reset** to clear.
