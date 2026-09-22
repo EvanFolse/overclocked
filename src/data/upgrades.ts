@@ -173,8 +173,9 @@ export const UPGRADES: UpgradeDefinition[] = [
     baseCost: 12,
     costMultiplier: 1.15,
     incomePerLevel: 0.4,
-    requiresUnlock: false,
-    unlockHint: "Available from the start.",
+    requiresUnlock: true,
+    unlockTag: "controlUnit",
+    unlockHint: "Complete the CPU Basics boot sequence.",
     educationalNote:
       "A stronger CU improves instruction sequencing and slightly helps pipeline control and branch handling.",
     formatSpec: cuLabel,
@@ -190,8 +191,9 @@ export const UPGRADES: UpgradeDefinition[] = [
     baseCost: 18,
     costMultiplier: 1.15,
     incomePerLevel: 0.55,
-    requiresUnlock: false,
-    unlockHint: "Available from the start.",
+    requiresUnlock: true,
+    unlockTag: "alu",
+    unlockHint: "Complete the CPU Basics boot sequence.",
     educationalNote:
       "ALU upgrades lower effective CPI on compute-heavy work by finishing EX-stage work sooner.",
     formatSpec: aluLabel,
@@ -207,8 +209,9 @@ export const UPGRADES: UpgradeDefinition[] = [
     baseCost: 25,
     costMultiplier: 1.15,
     incomePerLevel: 0.7,
-    requiresUnlock: false,
-    unlockHint: "Available from the start.",
+    requiresUnlock: true,
+    unlockTag: "registers",
+    unlockHint: "Complete the CPU Basics boot sequence.",
     educationalNote:
       "More/faster registers reduce spills to memory and slightly improve cache hit behavior.",
     formatSpec: registerLabel,
@@ -224,8 +227,9 @@ export const UPGRADES: UpgradeDefinition[] = [
     baseCost: 80,
     costMultiplier: 1.15,
     incomePerLevel: 1.4,
-    requiresUnlock: false,
-    unlockHint: "Available from the start.",
+    requiresUnlock: true,
+    unlockTag: "clock",
+    unlockHint: "Complete the CPU Basics boot sequence.",
     educationalNote:
       "Clock speed raises cycles/sec. Throughput still depends on CPI: IPS ≈ clock / CPI × cores.",
     formatSpec: clockLabel,
@@ -410,7 +414,10 @@ export const EMPTY_UPGRADE_LEVELS: Record<UpgradeId, number> = {
   cooling: 0,
 };
 
-export const STARTING_UNLOCKS: UpgradeId[] = [
+export const STARTING_UNLOCKS: UpgradeId[] = [];
+
+/** Core parts granted when the intro checkpoint finishes */
+export const BOOT_UNLOCKS: UpgradeId[] = [
   "controlUnit",
   "alu",
   "registers",

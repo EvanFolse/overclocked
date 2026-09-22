@@ -1,7 +1,13 @@
 import { ACHIEVEMENTS } from "@/data/achievements";
+import {
+  CHECKPOINTS,
+  getCheckpoint,
+  type CheckpointId,
+} from "@/data/checkpoints";
 import { CHALLENGES } from "@/data/questions";
 import {
   BASE_COMPUTE,
+  BOOT_UNLOCKS,
   EMPTY_UPGRADE_LEVELS,
   LEGACY_UPGRADE_MAP,
   STARTING_UNLOCKS,
@@ -11,12 +17,14 @@ import {
 } from "@/data/upgrades";
 import {
   computeCpuPerformance,
+  formatIps,
   getCpuPerformance,
   levelsWithUpgrade,
 } from "@/lib/cpuStats";
+import { formatPercent } from "@/lib/format";
 import type {
-  BottleneckType,
   Challenge,
+  CheckpointResolveResult,
   CourseMastery,
   CourseUnit,
   GameState,
@@ -26,13 +34,11 @@ import type {
 } from "@/types/game";
 import { EMPTY_COURSE_MASTERY } from "@/types/game";
 
-export const STORAGE_KEY = "overclocked-save-v3";
-export const LEGACY_STORAGE_KEY = "overclocked-save-v2";
-export const LEGACY_STORAGE_KEY_OLD = "overclocked-save-v1";
-export const LEGACY_STORAGE_KEY_ANCIENT = "cpu-tycoon-save-v1";
-
-const BOTTLENECK_MIN_MS = 45_000;
-const BOTTLENECK_MAX_MS = 90_000;
+export const STORAGE_KEY = "overclocked-save-v4";
+export const LEGACY_STORAGE_KEY = "overclocked-save-v3";
+export const LEGACY_STORAGE_KEY_OLD = "overclocked-save-v2";
+export const LEGACY_STORAGE_KEY_ANCIENT = "overclocked-save-v1";
+export const LEGACY_STORAGE_KEY_TYCOON = "cpu-tycoon-save-v1";
 
 function cloneMastery(src: CourseMastery = EMPTY_COURSE_MASTERY): CourseMastery {
   return {
@@ -54,15 +60,27 @@ export function createInitialState(now = Date.now()): GameState {
     answeredQuestionIds: [],
     unlockedAchievements: [],
     lastTick: now,
-    nextBottleneckAt: now + BOTTLENECK_MIN_MS,
+    nextBottleneckAt: Number.MAX_SAFE_INTEGER,
     activeBottleneckId: null,
     bottlenecksResolved: 0,
     courseMastery: cloneMastery(),
+    completedLearningCheckpoints: [],
+    activeCheckpointId: null,
+    checkpointStep: 0,
   };
 }
 
-/** Idle compute generation derived from educational CPU performance model */
+export function isCpuOnline(state: GameState): boolean {
+  return state.completedLearningCheckpoints.includes("cpu-basics");
+}
+
+export function isProductionStalled(state: GameState): boolean {
+  return !isCpuOnline(state) || !!state.activeCheckpointId;
+}
+
+/** Idle compute — 0 while offline or during a mandatory checkpoint */
 export function getIncomePerSecond(state: GameState): number {
+  if (isProductionStalled(state)) return 0;
   const perf = getCpuPerformance(state);
   return BASE_COMPUTE + perf.computePerSecond;
 }
@@ -83,33 +101,22 @@ export function tickIncome(state: GameState, now = Date.now()): GameState {
     return { ...state, lastTick: now };
   }
 
-  const cappedMs = Math.min(elapsedMs, 8 * 60 * 60 * 1000);
-  const seconds = cappedMs / 1000;
-  const earned = getIncomePerSecond(state) * seconds;
+  let next: GameState = { ...state, lastTick: now };
 
-  let next: GameState = {
-    ...state,
-    lastTick: now,
-  };
-
-  if (earned > 0) {
-    next = {
-      ...next,
-      money: next.money + earned,
-      totalEarned: next.totalEarned + earned,
-    };
-  }
-
-  // Schedule bottleneck if due and none active
-  if (!next.activeBottleneckId && now >= next.nextBottleneckAt) {
-    const challenge = pickBottleneckChallenge(next);
-    if (challenge) {
-      next = { ...next, activeBottleneckId: challenge.id };
-    } else {
-      next = { ...next, nextBottleneckAt: now + randomBottleneckDelay() };
+  // No offline/online earnings while stalled or offline
+  if (!isProductionStalled(state)) {
+    const cappedMs = Math.min(elapsedMs, 8 * 60 * 60 * 1000);
+    const earned = getIncomePerSecond(state) * (cappedMs / 1000);
+    if (earned > 0) {
+      next = {
+        ...next,
+        money: next.money + earned,
+        totalEarned: next.totalEarned + earned,
+      };
     }
   }
 
+  next = maybeActivateCheckpoint(next);
   return applyAchievements(next);
 }
 
@@ -117,6 +124,12 @@ export function purchaseUpgrade(
   state: GameState,
   id: UpgradeId
 ): { state: GameState; delta: StatDelta } | null {
+  if (isProductionStalled(state) && isCpuOnline(state)) {
+    // Allow browsing costs while stalled? User said production paused — block purchases during stall to focus learning
+    return null;
+  }
+  if (!isCpuOnline(state)) return null;
+
   const def = UPGRADE_MAP[id];
   if (!def) return null;
   if (!isUpgradeUnlocked(state, id)) return null;
@@ -129,11 +142,13 @@ export function purchaseUpgrade(
   const afterLevels = levelsWithUpgrade(state.upgradeLevels, id, 1);
   const after = computeCpuPerformance(afterLevels);
 
-  const next: GameState = {
+  let next: GameState = {
     ...state,
     money: state.money - cost,
     upgradeLevels: afterLevels,
   };
+
+  next = maybeActivateCheckpoint(next);
 
   return {
     state: applyAchievements(next),
@@ -146,112 +161,301 @@ export function purchaseUpgrade(
 }
 
 export function getQuizBonus(state: GameState): number {
-  const income = getIncomePerSecond(state);
+  const income = Math.max(getIncomePerSecond(state), BASE_COMPUTE);
   return Math.max(25, Math.floor(income * 20 + 50));
 }
 
-function unlockUpgradesFromTags(
-  state: GameState,
-  tags: string[] | undefined
-): { state: GameState; unlockedUpgrade?: UpgradeId } {
-  if (!tags?.length) return { state };
+function unlockIds(state: GameState, ids: UpgradeId[]): GameState {
+  const unlocked = new Set(state.unlockedUpgrades);
+  for (const id of ids) unlocked.add(id);
+  return { ...state, unlockedUpgrades: Array.from(unlocked) };
+}
 
-  let unlockedUpgrade: UpgradeId | undefined;
-  const unlocked = [...state.unlockedUpgrades];
-
-  for (const upgrade of UPGRADES) {
-    if (!upgrade.requiresUnlock || !upgrade.unlockTag) continue;
-    if (unlocked.includes(upgrade.id)) continue;
-    if (tags.includes(upgrade.unlockTag)) {
-      unlocked.push(upgrade.id);
-      unlockedUpgrade = upgrade.id;
-    }
-  }
-
-  if (!unlockedUpgrade) return { state };
-
+function bumpLevel(state: GameState, id: UpgradeId, amount = 1): GameState {
   return {
-    state: { ...state, unlockedUpgrades: unlocked },
-    unlockedUpgrade,
+    ...state,
+    upgradeLevels: {
+      ...state.upgradeLevels,
+      [id]: (state.upgradeLevels[id] ?? 0) + amount,
+    },
   };
 }
 
+export function startBootSequence(state: GameState): GameState {
+  if (isCpuOnline(state) || state.activeCheckpointId === "cpu-basics") {
+    return state;
+  }
+  return {
+    ...state,
+    activeCheckpointId: "cpu-basics",
+    checkpointStep: 0,
+  };
+}
+
+export function maybeActivateCheckpoint(state: GameState): GameState {
+  if (state.activeCheckpointId) return state;
+  if (!isCpuOnline(state)) return state;
+
+  const completed = new Set(state.completedLearningCheckpoints);
+
+  for (const cp of CHECKPOINTS) {
+    if (cp.id === "cpu-basics") continue;
+    if (completed.has(cp.id)) continue;
+    if (!cp.requires.every((r) => completed.has(r))) continue;
+    if (cp.minTotalEarned != null && state.totalEarned < cp.minTotalEarned) continue;
+    if (cp.minCpuLevel != null && getCpuLevel(state) < cp.minCpuLevel) continue;
+
+    return {
+      ...state,
+      activeCheckpointId: cp.id,
+      checkpointStep: 0,
+    };
+  }
+
+  return state;
+}
+
+function trackMastery(
+  state: GameState,
+  unit: CourseUnit,
+  correct: boolean
+): GameState {
+  const mastery = cloneMastery(state.courseMastery ?? EMPTY_COURSE_MASTERY);
+  mastery[unit] = {
+    attempted: mastery[unit].attempted + 1,
+    correct: mastery[unit].correct + (correct ? 1 : 0),
+  };
+  return {
+    ...state,
+    courseMastery: mastery,
+    questionsAnswered: state.questionsAnswered + 1,
+    correctAnswers: state.correctAnswers + (correct ? 1 : 0),
+  };
+}
+
+export function answerCheckpointStep(
+  state: GameState,
+  choiceIndex: number
+): {
+  state: GameState;
+  feedback: QuizFeedback;
+  completedCheckpoint: boolean;
+  resolve?: CheckpointResolveResult;
+} | null {
+  const cp = getCheckpoint(state.activeCheckpointId);
+  if (!cp) return null;
+
+  const step = state.checkpointStep;
+  const question = cp.questions[step];
+  if (!question) return null;
+
+  const correct = choiceIndex === question.correctIndex;
+  let next = trackMastery(state, cp.courseUnit, correct);
+
+  if (!correct) {
+    return {
+      state: applyAchievements(next),
+      feedback: {
+        correct: false,
+        explanation: question.explanation,
+        correctAnswer: question.choices[question.correctIndex],
+        bonus: 0,
+        courseUnit: cp.courseUnit,
+        hint: question.hint,
+      },
+      completedCheckpoint: false,
+    };
+  }
+
+  // Correct — unlock stepwise components, advance
+  if (question.unlockUpgrade) {
+    next = unlockIds(next, [question.unlockUpgrade]);
+    if ((next.upgradeLevels[question.unlockUpgrade] ?? 0) === 0) {
+      next = bumpLevel(next, question.unlockUpgrade, 1);
+    }
+  }
+
+  const nextStep = step + 1;
+  const finished = nextStep >= cp.questions.length;
+
+  if (!finished) {
+    return {
+      state: applyAchievements({ ...next, checkpointStep: nextStep }),
+      feedback: {
+        correct: true,
+        explanation: question.explanation,
+        correctAnswer: question.choices[question.correctIndex],
+        bonus: 0,
+        unlockedUpgrade: question.unlockUpgrade,
+        courseUnit: cp.courseUnit,
+      },
+      completedCheckpoint: false,
+    };
+  }
+
+  const beforeRate = isCpuOnline(state)
+    ? BASE_COMPUTE + computeCpuPerformance(state.upgradeLevels).computePerSecond
+    : 0;
+  const beforePerf = computeCpuPerformance(state.upgradeLevels);
+
+  next = unlockIds(next, cp.unlockUpgrades);
+  for (const id of cp.unlockUpgrades) {
+    if ((next.upgradeLevels[id] ?? 0) === 0) {
+      next = bumpLevel(next, id, 1);
+    }
+  }
+
+  // Intro: ensure boot parts are at least level 1
+  if (cp.id === "cpu-basics") {
+    next = unlockIds(next, BOOT_UNLOCKS);
+    for (const id of BOOT_UNLOCKS) {
+      if ((next.upgradeLevels[id] ?? 0) < 1) next = bumpLevel(next, id, 1);
+    }
+  }
+
+  const completed = [
+    ...new Set([...next.completedLearningCheckpoints, cp.id]),
+  ];
+
+  next = {
+    ...next,
+    completedLearningCheckpoints: completed,
+    activeCheckpointId: null,
+    checkpointStep: 0,
+    bottlenecksResolved: next.bottlenecksResolved + 1,
+  };
+
+  const afterPerf = computeCpuPerformance(next.upgradeLevels);
+  const afterRate = BASE_COMPUTE + afterPerf.computePerSecond;
+
+  const resolve = buildResolve(cp.id, cp.title, beforeRate, afterRate, beforePerf, afterPerf, cp.relevantStat);
+
+  next = maybeActivateCheckpoint(next);
+
+  return {
+    state: applyAchievements(next),
+    feedback: {
+      correct: true,
+      explanation: question.explanation,
+      correctAnswer: question.choices[question.correctIndex],
+      bonus: 0,
+      unlockedUpgrade: question.unlockUpgrade,
+      courseUnit: cp.courseUnit,
+      wasBottleneck: true,
+    },
+    completedCheckpoint: true,
+    resolve,
+  };
+}
+
+function buildResolve(
+  id: string,
+  title: string,
+  beforeRate: number,
+  afterRate: number,
+  before: ReturnType<typeof computeCpuPerformance>,
+  after: ReturnType<typeof computeCpuPerformance>,
+  relevant?: string
+): CheckpointResolveResult {
+  const bodies: Record<string, string> = {
+    "cpu-basics": "Core CPU components installed. The processor can execute instructions.",
+    "fetch-decode-execute": "Instruction cycle clarified. Throughput foundations improved.",
+    "memory-bottleneck": "Cache installed. Memory delays reduced.",
+    "cache-hierarchy": "Cache hierarchy and buses strengthened.",
+    "boolean-alu": "ALU datapath logic reinforced.",
+    pipeline: "Pipeline unlocked. Instruction overlap enabled.",
+    "data-hazards": "Forwarding unlocked. RAW stalls reduced.",
+    "branch-prediction": "Branch predictor unlocked. Fewer wasted flushes.",
+    multicore: "Additional cores unlocked for parallel work.",
+    "cpu-vs-gpu": "Parallel architecture choice understood. Late-game headroom unlocked.",
+  };
+
+  const result: CheckpointResolveResult = {
+    title: id === "cpu-basics" ? "CPU ONLINE" : `${title.toUpperCase()} RESOLVED`,
+    body: bodies[id] ?? "Architecture improved.",
+    beforeRate,
+    afterRate,
+  };
+
+  if (relevant === "cacheHitRate") {
+    result.relevantLabel = "Cache Hit Rate";
+    result.relevantBefore = formatPercent(before.cacheHitRate);
+    result.relevantAfter = formatPercent(after.cacheHitRate);
+  } else if (relevant === "cpi") {
+    result.relevantLabel = "CPI";
+    result.relevantBefore = before.cpi.toFixed(2);
+    result.relevantAfter = after.cpi.toFixed(2);
+  } else if (relevant === "pipelineEfficiency") {
+    result.relevantLabel = "Pipeline Efficiency";
+    result.relevantBefore = formatPercent(before.pipelineEfficiency);
+    result.relevantAfter = formatPercent(after.pipelineEfficiency);
+  } else if (relevant === "branchAccuracy") {
+    result.relevantLabel = "Branch Accuracy";
+    result.relevantBefore = formatPercent(before.branchAccuracy);
+    result.relevantAfter = formatPercent(after.branchAccuracy);
+  } else if (relevant === "coreCount") {
+    result.relevantLabel = "Cores";
+    result.relevantBefore = String(before.coreCount);
+    result.relevantAfter = String(after.coreCount);
+  } else if (relevant === "ips") {
+    result.relevantLabel = "IPS";
+    result.relevantBefore = formatIps(before.ips);
+    result.relevantAfter = formatIps(after.ips);
+  }
+
+  return result;
+}
+
+/** Optional free-practice challenges (not mandatory) */
 export function answerQuestion(
   state: GameState,
   questionId: string,
   choiceIndex: number
 ): { state: GameState; feedback: QuizFeedback } | null {
+  if (state.activeCheckpointId) return null;
+
   const question = CHALLENGES.find((q) => q.id === questionId);
   if (!question) return null;
 
   const correct = choiceIndex === question.correctIndex;
-  const wasBottleneck = state.activeBottleneckId === questionId;
-
-  const mastery = cloneMastery(state.courseMastery ?? EMPTY_COURSE_MASTERY);
-  const unit = question.courseUnit;
-  mastery[unit] = {
-    attempted: mastery[unit].attempted + 1,
-    correct: mastery[unit].correct + (correct ? 1 : 0),
-  };
-
-  let next: GameState = {
-    ...state,
-    questionsAnswered: state.questionsAnswered + 1,
-    correctAnswers: state.correctAnswers + (correct ? 1 : 0),
-    answeredQuestionIds: state.answeredQuestionIds.includes(questionId)
-      ? state.answeredQuestionIds
-      : [...state.answeredQuestionIds, questionId],
-    courseMastery: mastery,
-  };
+  let next = trackMastery(state, question.courseUnit, correct);
 
   let bonus = 0;
   let unlockedUpgrade: UpgradeId | undefined;
 
   if (correct) {
-    bonus = getQuizBonus(state) * (wasBottleneck ? 1.5 : 1);
-    bonus = Math.floor(bonus);
+    bonus = getQuizBonus(state);
     next = {
       ...next,
       money: next.money + bonus,
       totalEarned: next.totalEarned + bonus,
     };
 
-    const unlockResult = unlockUpgradesFromTags(next, question.unlockTags);
-    next = unlockResult.state;
-    unlockedUpgrade = unlockResult.unlockedUpgrade;
-
-    if (wasBottleneck) {
-      next = {
-        ...next,
-        activeBottleneckId: null,
-        bottlenecksResolved: next.bottlenecksResolved + 1,
-        nextBottleneckAt: Date.now() + randomBottleneckDelay(),
-      };
+    if (question.unlockTags?.length) {
+      for (const upgrade of UPGRADES) {
+        if (!upgrade.requiresUnlock || !upgrade.unlockTag) continue;
+        if (next.unlockedUpgrades.includes(upgrade.id)) continue;
+        if (question.unlockTags.includes(upgrade.unlockTag)) {
+          next = unlockIds(next, [upgrade.id]);
+          unlockedUpgrade = upgrade.id;
+        }
+      }
     }
   }
 
-  next = applyAchievements(next);
+  next = maybeActivateCheckpoint(next);
 
   return {
-    state: next,
+    state: applyAchievements(next),
     feedback: {
       correct,
       explanation: question.explanation,
       correctAnswer: question.choices[question.correctIndex],
       bonus,
       unlockedUpgrade,
-      wasBottleneck,
-      courseUnit: unit,
+      courseUnit: question.courseUnit,
+      hint: correct ? undefined : "Review the explanation, then try a related challenge.",
     },
-  };
-}
-
-export function dismissBottleneck(state: GameState): GameState {
-  if (!state.activeBottleneckId) return state;
-  return {
-    ...state,
-    activeBottleneckId: null,
-    nextBottleneckAt: Date.now() + randomBottleneckDelay(),
   };
 }
 
@@ -275,7 +479,7 @@ export function applyAchievements(state: GameState): GameState {
     "cpu-expert": allAdvancedUnlocked && cpuLevel >= 40,
     "flagship-2026": cpuLevel >= 80,
     "pipeline-master": pipeStack,
-    "bottleneck-5": state.bottlenecksResolved >= 5,
+    "bottleneck-5": state.bottlenecksResolved >= 5 || state.completedLearningCheckpoints.length >= 5,
   };
 
   let changed = false;
@@ -290,45 +494,6 @@ export function applyAchievements(state: GameState): GameState {
   return { ...state, unlockedAchievements: Array.from(unlocked) };
 }
 
-function randomBottleneckDelay(): number {
-  return (
-    BOTTLENECK_MIN_MS +
-    Math.floor(Math.random() * (BOTTLENECK_MAX_MS - BOTTLENECK_MIN_MS))
-  );
-}
-
-function preferredBottleneckType(state: GameState): BottleneckType {
-  const levels = state.upgradeLevels;
-  const unlocked = new Set(state.unlockedUpgrades);
-  const mastery = state.courseMastery ?? EMPTY_COURSE_MASTERY;
-
-  if (!unlocked.has("cache") || (levels.cache ?? 0) < 2) return "memory-latency";
-  if (!unlocked.has("pipeline")) return "low-throughput";
-  if (unlocked.has("pipeline") && !unlocked.has("forwarding")) return "data-hazard";
-  if (unlocked.has("pipeline") && !unlocked.has("branchPrediction")) return "branch-flush";
-  if (!unlocked.has("cores")) return "parallel-workload";
-
-  // Sprinkle logic / GPU challenges once core CPU path is open
-  const logicRate =
-    mastery["Boolean Logic"].attempted === 0
-      ? 0
-      : mastery["Boolean Logic"].correct / mastery["Boolean Logic"].attempted;
-  const gpuRate =
-    mastery.GPU.attempted === 0 ? 0 : mastery.GPU.correct / mastery.GPU.attempted;
-
-  if (mastery["Boolean Logic"].attempted < 3 || logicRate < 0.6) return "logic-circuit";
-  if (getCpuLevel(state) >= 25 && (mastery.GPU.attempted < 2 || gpuRate < 0.6)) {
-    return "gpu-workload";
-  }
-
-  const perf = getCpuPerformance(state);
-  if (perf.cacheHitRate < 0.55) return "memory-latency";
-  if (perf.cpi > 2.2) return "data-hazard";
-  if (perf.branchAccuracy < 0.75) return "branch-flush";
-  if (perf.coreCount < 4) return "parallel-workload";
-  return "low-throughput";
-}
-
 export function getCourseMasteryPercents(state: GameState): Record<CourseUnit, number | null> {
   const m = state.courseMastery ?? EMPTY_COURSE_MASTERY;
   const pct = (unit: CourseUnit) =>
@@ -341,27 +506,7 @@ export function getCourseMasteryPercents(state: GameState): Record<CourseUnit, n
   };
 }
 
-export function pickBottleneckChallenge(state: GameState): Challenge | null {
-  const type = preferredBottleneckType(state);
-  const lockedTags = UPGRADES.filter(
-    (u) => u.requiresUnlock && u.unlockTag && !state.unlockedUpgrades.includes(u.id)
-  ).map((u) => u.unlockTag as string);
-
-  const typed = CHALLENGES.filter((c) => c.bottleneckType === type);
-  const unlockHelpful = typed.filter((c) =>
-    c.unlockTags?.some((tag) => lockedTags.includes(tag))
-  );
-  const pool = unlockHelpful.length > 0 ? unlockHelpful : typed.length > 0 ? typed : CHALLENGES;
-  if (pool.length === 0) return null;
-  return pool[Math.floor(Math.random() * pool.length)]!;
-}
-
 export function pickRandomQuestion(state: GameState, preferUnlock = false): Challenge {
-  if (state.activeBottleneckId) {
-    const active = CHALLENGES.find((c) => c.id === state.activeBottleneckId);
-    if (active) return active;
-  }
-
   if (preferUnlock) {
     const lockedTags = UPGRADES.filter(
       (u) => u.requiresUnlock && u.unlockTag && !state.unlockedUpgrades.includes(u.id)
@@ -381,6 +526,49 @@ export function pickRandomQuestion(state: GameState, preferUnlock = false): Chal
   return pool[Math.floor(Math.random() * pool.length)]!;
 }
 
+export function dismissBottleneck(state: GameState): GameState {
+  // Mandatory checkpoints cannot be dismissed
+  return state;
+}
+
+function migrateCompletedCheckpoints(data: Partial<GameState>): string[] {
+  if (Array.isArray(data.completedLearningCheckpoints)) {
+    return data.completedLearningCheckpoints.map(String);
+  }
+
+  // Legacy saves that already progressed: treat as past intro
+  const levels = (data.upgradeLevels ?? {}) as Record<string, number>;
+  const earned = Number(data.totalEarned) || 0;
+  const unlocked = Array.isArray(data.unlockedUpgrades) ? data.unlockedUpgrades : [];
+  const hasProgress =
+    earned > 0 ||
+    unlocked.length > 0 ||
+    Object.values(levels).some((v) => Number(v) > 0);
+
+  if (!hasProgress) return [];
+
+  const completed: string[] = ["cpu-basics"];
+  if (unlocked.includes("cache") || Number(levels.cache ?? 0) > 0) {
+    completed.push("fetch-decode-execute", "memory-bottleneck");
+  }
+  if (unlocked.includes("buses") || Number(levels.buses ?? 0) > 0) {
+    completed.push("cache-hierarchy");
+  }
+  if (unlocked.includes("pipeline") || Number(levels.pipeline ?? 0) > 0) {
+    completed.push("boolean-alu", "pipeline");
+  }
+  if (unlocked.includes("forwarding") || Number(levels.forwarding ?? 0) > 0) {
+    completed.push("data-hazards");
+  }
+  if (unlocked.includes("branchPrediction") || Number(levels.branchPrediction ?? 0) > 0) {
+    completed.push("branch-prediction");
+  }
+  if (unlocked.includes("cores") || Number(levels.cores ?? 0) > 0) {
+    completed.push("multicore");
+  }
+  return [...new Set(completed)];
+}
+
 export function sanitizeLoadedState(raw: unknown): GameState | null {
   if (!raw || typeof raw !== "object") return null;
   const data = raw as Partial<GameState> & { upgradeLevels?: Record<string, number> };
@@ -398,18 +586,34 @@ export function sanitizeLoadedState(raw: unknown): GameState | null {
       }
     }
 
-    const unlockedUpgrades = Array.isArray(data.unlockedUpgrades)
-      ? [
-          ...new Set([
-            ...STARTING_UNLOCKS,
-            ...(data.unlockedUpgrades as string[])
-              .map((id) => (LEGACY_UPGRADE_MAP[id] ?? id) as UpgradeId)
-              .filter((id) => validIds.has(id)),
-          ]),
-        ]
-      : base.unlockedUpgrades;
+    const completedLearningCheckpoints = migrateCompletedCheckpoints(data);
 
-    return applyAchievements({
+    let unlockedUpgrades = Array.isArray(data.unlockedUpgrades)
+      ? [
+          ...new Set(
+            (data.unlockedUpgrades as string[])
+              .map((id) => (LEGACY_UPGRADE_MAP[id] ?? id) as UpgradeId)
+              .filter((id) => validIds.has(id))
+          ),
+        ]
+      : [];
+
+    // Legacy games had free basic unlocks
+    if (completedLearningCheckpoints.includes("cpu-basics")) {
+      unlockedUpgrades = [...new Set([...unlockedUpgrades, ...BOOT_UNLOCKS])];
+    }
+
+    let activeCheckpointId =
+      typeof data.activeCheckpointId === "string" ? data.activeCheckpointId : null;
+    if (activeCheckpointId && !getCheckpoint(activeCheckpointId)) {
+      activeCheckpointId = null;
+    }
+    // Never restore a completed checkpoint as active
+    if (activeCheckpointId && completedLearningCheckpoints.includes(activeCheckpointId)) {
+      activeCheckpointId = null;
+    }
+
+    let state: GameState = applyAchievements({
       money: Number(data.money) || 0,
       totalEarned: Number(data.totalEarned) || 0,
       upgradeLevels,
@@ -423,12 +627,17 @@ export function sanitizeLoadedState(raw: unknown): GameState | null {
         ? data.unlockedAchievements.map(String)
         : [],
       lastTick: Number(data.lastTick) || Date.now(),
-      nextBottleneckAt: Number(data.nextBottleneckAt) || Date.now() + BOTTLENECK_MIN_MS,
-      activeBottleneckId:
-        typeof data.activeBottleneckId === "string" ? data.activeBottleneckId : null,
+      nextBottleneckAt: Number.MAX_SAFE_INTEGER,
+      activeBottleneckId: null,
       bottlenecksResolved: Number(data.bottlenecksResolved) || 0,
       courseMastery: sanitizeMastery(data.courseMastery),
+      completedLearningCheckpoints,
+      activeCheckpointId,
+      checkpointStep: Number(data.checkpointStep) || 0,
     });
+
+    state = maybeActivateCheckpoint(state);
+    return state;
   } catch {
     return null;
   }
@@ -449,3 +658,5 @@ function sanitizeMastery(raw: unknown): CourseMastery {
   }
   return base;
 }
+
+export type { CheckpointId };

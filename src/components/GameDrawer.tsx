@@ -4,21 +4,17 @@ import { useEffect, type ReactNode } from "react";
 
 export type DrawerSection =
   | "upgrades"
-  | "stats"
-  | "challenges"
-  | "mastery"
-  | "achievements"
-  | "architecture"
-  | "settings";
+  | "learning"
+  | "progress"
+  | "settings"
+  | "sources";
 
 const NAV: { id: DrawerSection; label: string }[] = [
   { id: "upgrades", label: "Upgrades" },
-  { id: "stats", label: "CPU Stats" },
-  { id: "challenges", label: "Challenges" },
-  { id: "mastery", label: "Course Mastery" },
-  { id: "achievements", label: "Achievements" },
-  { id: "architecture", label: "Architecture" },
+  { id: "learning", label: "Learning" },
+  { id: "progress", label: "Progress" },
   { id: "settings", label: "Settings" },
+  { id: "sources", label: "Sources" },
 ];
 
 interface GameDrawerProps {
@@ -27,7 +23,7 @@ interface GameDrawerProps {
   onSectionChange: (section: DrawerSection) => void;
   onClose: () => void;
   children: ReactNode;
-  bottleneckBadge?: boolean;
+  learningBadge?: boolean;
 }
 
 export function GameDrawer({
@@ -36,7 +32,7 @@ export function GameDrawer({
   onSectionChange,
   onClose,
   children,
-  bottleneckBadge,
+  learningBadge,
 }: GameDrawerProps) {
   useEffect(() => {
     if (!open) return;
@@ -58,7 +54,6 @@ export function GameDrawer({
 
   return (
     <>
-      {/* Scrim */}
       <div
         className={`fixed inset-0 z-40 bg-black/45 transition-opacity duration-300 ${
           open ? "opacity-100" : "pointer-events-none opacity-0"
@@ -78,7 +73,7 @@ export function GameDrawer({
       >
         <div className="flex items-center justify-between border-b border-edge px-4 py-3">
           <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-accent-text">
-            System Menu
+            Menu
           </p>
           <button
             type="button"
@@ -104,7 +99,7 @@ export function GameDrawer({
                 }`}
               >
                 {item.label}
-                {item.id === "challenges" && bottleneckBadge && (
+                {item.id === "learning" && learningBadge && (
                   <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-warning" />
                 )}
               </button>
@@ -119,5 +114,3 @@ export function GameDrawer({
     </>
   );
 }
-
-export const DRAWER_NAV = NAV;

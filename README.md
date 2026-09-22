@@ -41,4 +41,6 @@ Push to GitHub and import in [Vercel](https://vercel.com). No environment variab
 
 ## Save Data
 
-Progress is stored under `overclocked-save-v3` (older keys migrate when possible). Use **Reset** to clear.
+Progress is stored under `overclocked-save-v4` (older keys migrate when possible). Use **Reset** to clear.
+
+Mandatory learning checkpoints pause Compute/sec until solved. Offline earnings also pause during stalls.

@@ -1,18 +1,28 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { QuizFeedback, StatDelta, UpgradeId } from "@/types/game";
+import type {
+  CheckpointResolveResult,
+  QuizFeedback,
+  StatDelta,
+  UpgradeId,
+} from "@/types/game";
 import {
+  answerCheckpointStep,
   answerQuestion,
   createInitialState,
-  dismissBottleneck,
   getCpuLevel,
   getIncomePerSecond,
+  isCpuOnline,
+  isProductionStalled,
+  maybeActivateCheckpoint,
   pickRandomQuestion,
   purchaseUpgrade,
+  startBootSequence,
   tickIncome,
 } from "@/lib/gameLogic";
 import { getCpuPerformance } from "@/lib/cpuStats";
+import { getCheckpoint } from "@/data/checkpoints";
 import { clearSavedGame, loadGame, saveGame } from "@/lib/storage";
 import { CHALLENGES } from "@/data/questions";
 
@@ -24,17 +34,19 @@ export function useGame() {
   const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
   const [selectedChoice, setSelectedChoice] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<QuizFeedback | null>(null);
-  const [quizOpen, setQuizOpen] = useState(false);
+  const [lessonOpen, setLessonOpen] = useState(false);
   const [newAchievement, setNewAchievement] = useState<string | null>(null);
   const [statDelta, setStatDelta] = useState<StatDelta | null>(null);
+  const [resolveToast, setResolveToast] = useState<CheckpointResolveResult | null>(
+    null
+  );
   const prevAchievements = useRef<string[]>([]);
-  const prevBottleneck = useRef<string | null>(null);
+  const prevCheckpoint = useRef<string | null>(null);
 
   useEffect(() => {
     const caughtUp = tickIncome(loadGame(), Date.now());
     prevAchievements.current = caughtUp.unlockedAchievements;
-    prevBottleneck.current = caughtUp.activeBottleneckId;
-    // One-time client hydration from localStorage (SSR-safe)
+    prevCheckpoint.current = caughtUp.activeCheckpointId;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional mount hydration
     setState(caughtUp);
     setHydrated(true);
@@ -75,20 +87,46 @@ export function useGame() {
     prevAchievements.current = state.unlockedAchievements;
   }, [state.unlockedAchievements, hydrated]);
 
-  // Arm bottleneck challenge id without auto-opening a modal (toast + drawer instead)
+  // When a new checkpoint arms, reset lesson UI (do not auto-open optional quiz)
   useEffect(() => {
     if (!hydrated) return;
     if (
-      state.activeBottleneckId &&
-      state.activeBottleneckId !== prevBottleneck.current
+      state.activeCheckpointId &&
+      state.activeCheckpointId !== prevCheckpoint.current
     ) {
-      setActiveQuestionId(state.activeBottleneckId);
       setSelectedChoice(null);
       setFeedback(null);
-      setQuizOpen(false);
+      setLessonOpen(false);
     }
-    prevBottleneck.current = state.activeBottleneckId;
-  }, [state.activeBottleneckId, hydrated]);
+    if (!state.activeCheckpointId) {
+      setLessonOpen(false);
+    }
+    prevCheckpoint.current = state.activeCheckpointId;
+  }, [state.activeCheckpointId, hydrated]);
+
+  const beginBoot = useCallback(() => {
+    setState((prev) => startBootSequence(prev));
+    setLessonOpen(true);
+    setSelectedChoice(null);
+    setFeedback(null);
+  }, []);
+
+  const openLesson = useCallback(() => {
+    setState((prev) => {
+      if (prev.activeCheckpointId) return prev;
+      return maybeActivateCheckpoint(prev);
+    });
+    setLessonOpen(true);
+    setSelectedChoice(null);
+    setFeedback(null);
+  }, []);
+
+  const closeLesson = useCallback(() => {
+    // Can close the reading UI, but stall remains until solved
+    setLessonOpen(false);
+    setFeedback(null);
+    setSelectedChoice(null);
+  }, []);
 
   const buyUpgrade = useCallback((id: UpgradeId) => {
     setState((prev) => {
@@ -101,32 +139,40 @@ export function useGame() {
   }, []);
 
   const clearStatDelta = useCallback(() => setStatDelta(null), []);
+  const clearResolveToast = useCallback(() => setResolveToast(null), []);
 
-  const openQuiz = useCallback((preferUnlock = false) => {
+  const submitCheckpointAnswer = useCallback(() => {
+    if (selectedChoice == null) return;
     setState((prev) => {
-      const q = pickRandomQuestion(prev, preferUnlock || !!prev.activeBottleneckId);
+      const result = answerCheckpointStep(prev, selectedChoice);
+      if (!result) return prev;
+      setFeedback(result.feedback);
+      if (result.completedCheckpoint && result.resolve) {
+        setResolveToast(result.resolve);
+        setUpgradeFlash((f) => f + 1);
+        setLessonOpen(false);
+      }
+      return result.state;
+    });
+  }, [selectedChoice]);
+
+  const nextCheckpointStep = useCallback(() => {
+    setSelectedChoice(null);
+    setFeedback(null);
+  }, []);
+
+  const openPractice = useCallback((preferUnlock = false) => {
+    setState((prev) => {
+      if (prev.activeCheckpointId) return prev;
+      const q = pickRandomQuestion(prev, preferUnlock);
       setActiveQuestionId(q.id);
       setSelectedChoice(null);
       setFeedback(null);
-      setQuizOpen(true);
       return prev;
     });
   }, []);
 
-  const closeQuiz = useCallback(() => {
-    setQuizOpen(false);
-    setFeedback(null);
-    setSelectedChoice(null);
-  }, []);
-
-  const dismissActiveBottleneck = useCallback(() => {
-    setState((prev) => dismissBottleneck(prev));
-    setQuizOpen(false);
-    setFeedback(null);
-    setSelectedChoice(null);
-  }, []);
-
-  const submitAnswer = useCallback(() => {
+  const submitPractice = useCallback(() => {
     if (activeQuestionId == null || selectedChoice == null) return;
     setState((prev) => {
       const result = answerQuestion(prev, activeQuestionId, selectedChoice);
@@ -136,7 +182,7 @@ export function useGame() {
     });
   }, [activeQuestionId, selectedChoice]);
 
-  const nextQuestion = useCallback(() => {
+  const nextPractice = useCallback(() => {
     setState((prev) => {
       const q = pickRandomQuestion(prev, true);
       setActiveQuestionId(q.id);
@@ -151,15 +197,17 @@ export function useGame() {
     const fresh = createInitialState();
     setState(fresh);
     prevAchievements.current = [];
-    prevBottleneck.current = null;
-    setQuizOpen(false);
+    prevCheckpoint.current = null;
+    setLessonOpen(false);
     setFeedback(null);
     setSelectedChoice(null);
     setActiveQuestionId(null);
     setStatDelta(null);
+    setResolveToast(null);
   }, []);
 
   const activeQuestion = CHALLENGES.find((q) => q.id === activeQuestionId) ?? null;
+  const activeCheckpoint = getCheckpoint(state.activeCheckpointId);
   const cpuStats = getCpuPerformance(state);
 
   return {
@@ -168,22 +216,30 @@ export function useGame() {
     incomePerSecond: getIncomePerSecond(state),
     cpuLevel: getCpuLevel(state),
     cpuStats,
+    cpuOnline: isCpuOnline(state),
+    stalled: isProductionStalled(state),
     pulse,
     upgradeFlash,
-    quizOpen,
+    activeCheckpoint,
+    lessonOpen,
     activeQuestion,
     selectedChoice,
     setSelectedChoice,
     feedback,
     newAchievement,
     statDelta,
+    resolveToast,
     clearStatDelta,
+    clearResolveToast,
+    beginBoot,
+    openLesson,
+    closeLesson,
+    submitCheckpointAnswer,
+    nextCheckpointStep,
     buyUpgrade,
-    openQuiz,
-    closeQuiz,
-    dismissActiveBottleneck,
-    submitAnswer,
-    nextQuestion,
+    openPractice,
+    submitPractice,
+    nextPractice,
     resetGame,
   };
 }

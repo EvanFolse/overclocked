@@ -160,11 +160,25 @@ export interface GameState {
   answeredQuestionIds: string[];
   unlockedAchievements: string[];
   lastTick: number;
+  /** Legacy field — timer bottlenecks removed */
   nextBottleneckAt: number;
+  /** Legacy field — prefer activeCheckpointId */
   activeBottleneckId: string | null;
   bottlenecksResolved: number;
-  /** Correct / attempted by CSC 3501 course unit */
   courseMastery: CourseMastery;
+  completedLearningCheckpoints: string[];
+  activeCheckpointId: string | null;
+  checkpointStep: number;
+}
+
+export interface CheckpointResolveResult {
+  title: string;
+  body: string;
+  beforeRate: number;
+  afterRate: number;
+  relevantLabel?: string;
+  relevantBefore?: string;
+  relevantAfter?: string;
 }
 
 export interface QuizFeedback {
@@ -175,6 +189,7 @@ export interface QuizFeedback {
   unlockedUpgrade?: UpgradeId;
   wasBottleneck?: boolean;
   courseUnit?: CourseUnit;
+  hint?: string;
 }
 
 export type ThemeMode = "light" | "dark";

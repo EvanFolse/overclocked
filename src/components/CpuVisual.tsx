@@ -14,8 +14,8 @@ interface CpuVisualProps {
   levels: UpgradeLevels;
   cpuLevel: number;
   upgradeFlash: number;
-  /** Full-viewport immersive stage (default game screen) */
   immersive?: boolean;
+  offline?: boolean;
 }
 
 function InteractiveControls() {
@@ -119,13 +119,14 @@ export function CpuVisual({
   cpuLevel,
   upgradeFlash,
   immersive = false,
+  offline = false,
 }: CpuVisualProps) {
   const { theme } = useTheme();
   const { era, next, progress } = getEraProgress(state);
 
   if (immersive) {
     return (
-      <div className="relative h-full w-full">
+      <div className={`relative h-full w-full ${offline ? "grayscale-[0.45] opacity-80" : ""}`}>
         <div
           key={upgradeFlash}
           className="pointer-events-none absolute inset-0 z-20 animate-upgrade-flash bg-accent/10"
@@ -141,20 +142,22 @@ export function CpuVisual({
 
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-background via-background/70 to-transparent px-4 pb-6 pt-16 text-center sm:pb-8">
           <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-muted">
-            Build Level {cpuLevel}
+            {offline ? "CPU Offline" : `Build Level ${cpuLevel}`}
           </p>
           <p className="mt-1 font-mono text-sm text-accent-text sm:text-base">
-            {era.name}
-            {next ? (
+            {offline ? "Awaiting core components" : era.name}
+            {!offline && next ? (
               <span className="text-muted">
                 {" "}
                 → {next.name} · {Math.round(progress * 100)}%
               </span>
             ) : null}
           </p>
-          <p className="mx-auto mt-2 hidden max-w-md text-[11px] text-muted sm:block">
-            Drag to rotate · Scroll to zoom · Right-drag to pan
-          </p>
+          {!offline && (
+            <p className="mx-auto mt-2 hidden max-w-md text-[11px] text-muted sm:block">
+              Drag to rotate · Scroll to zoom · Right-drag to pan
+            </p>
+          )}
         </div>
       </div>
     );

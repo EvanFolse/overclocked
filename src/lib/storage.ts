@@ -4,6 +4,7 @@ import {
   LEGACY_STORAGE_KEY,
   LEGACY_STORAGE_KEY_OLD,
   LEGACY_STORAGE_KEY_ANCIENT,
+  LEGACY_STORAGE_KEY_TYCOON,
   createInitialState,
   sanitizeLoadedState,
 } from "@/lib/gameLogic";
@@ -18,7 +19,8 @@ export function loadGame(): GameState {
       window.localStorage.getItem(STORAGE_KEY) ??
       window.localStorage.getItem(LEGACY_STORAGE_KEY) ??
       window.localStorage.getItem(LEGACY_STORAGE_KEY_OLD) ??
-      window.localStorage.getItem(LEGACY_STORAGE_KEY_ANCIENT);
+      window.localStorage.getItem(LEGACY_STORAGE_KEY_ANCIENT) ??
+      window.localStorage.getItem(LEGACY_STORAGE_KEY_TYCOON);
     if (!raw) return createInitialState();
     const parsed = JSON.parse(raw) as unknown;
     return sanitizeLoadedState(parsed) ?? createInitialState();
@@ -43,6 +45,7 @@ export function clearSavedGame(): void {
     window.localStorage.removeItem(LEGACY_STORAGE_KEY);
     window.localStorage.removeItem(LEGACY_STORAGE_KEY_OLD);
     window.localStorage.removeItem(LEGACY_STORAGE_KEY_ANCIENT);
+    window.localStorage.removeItem(LEGACY_STORAGE_KEY_TYCOON);
   } catch {
     // ignore
   }
