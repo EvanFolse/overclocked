@@ -31,7 +31,7 @@ function row(
 export function UpgradeFeedback({ delta, onDismiss }: UpgradeFeedbackProps) {
   useEffect(() => {
     if (!delta) return;
-    const t = window.setTimeout(onDismiss, 6500);
+    const t = window.setTimeout(onDismiss, 4500);
     return () => window.clearTimeout(t);
   }, [delta, onDismiss]);
 
@@ -40,7 +40,7 @@ export function UpgradeFeedback({ delta, onDismiss }: UpgradeFeedbackProps) {
   const { before, after, explanation } = delta;
 
   return (
-    <div className="fixed bottom-4 left-4 z-40 w-[min(100%-2rem,22rem)] rounded-2xl border border-accent/40 bg-panel p-4 shadow-xl">
+    <div className="fixed left-4 top-24 z-30 w-[min(100%-2rem,18rem)] animate-toast-in rounded-2xl border border-accent/40 bg-panel/95 p-3.5 shadow-xl backdrop-blur-md sm:top-28">
       <div className="mb-2 flex items-start justify-between gap-2">
         <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-accent-text">
           Upgrade Impact
@@ -50,10 +50,10 @@ export function UpgradeFeedback({ delta, onDismiss }: UpgradeFeedbackProps) {
           onClick={onDismiss}
           className="text-xs text-muted hover:text-foreground"
         >
-          Dismiss
+          ✕
         </button>
       </div>
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1">
         {row(
           "CPI",
           before.cpi.toFixed(2),
@@ -61,22 +61,10 @@ export function UpgradeFeedback({ delta, onDismiss }: UpgradeFeedbackProps) {
           after.cpi < before.cpi
         )}
         {row(
-          "Cache hit",
+          "Hit rate",
           formatPercent(before.cacheHitRate),
           formatPercent(after.cacheHitRate),
           after.cacheHitRate > before.cacheHitRate
-        )}
-        {row(
-          "Pipe eff.",
-          formatPercent(before.pipelineEfficiency),
-          formatPercent(after.pipelineEfficiency),
-          after.pipelineEfficiency > before.pipelineEfficiency
-        )}
-        {row(
-          "Branch acc.",
-          formatPercent(before.branchAccuracy),
-          formatPercent(after.branchAccuracy),
-          after.branchAccuracy > before.branchAccuracy
         )}
         {row(
           "IPS",
@@ -91,7 +79,7 @@ export function UpgradeFeedback({ delta, onDismiss }: UpgradeFeedbackProps) {
           after.computePerSecond > before.computePerSecond
         )}
       </div>
-      <p className="mt-3 text-xs leading-relaxed text-muted">{explanation}</p>
+      <p className="mt-2 text-[11px] leading-relaxed text-muted">{explanation}</p>
     </div>
   );
 }

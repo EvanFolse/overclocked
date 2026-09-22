@@ -4,10 +4,8 @@ import { Suspense, useRef } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { ContactShadows, Environment, OrbitControls } from "@react-three/drei";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
-import { formatMoney } from "@/lib/format";
 import { CpuModel, type UpgradeLevels } from "@/components/cpu/CpuModel";
 import { useTheme } from "@/lib/theme";
-import { UPGRADES } from "@/data/upgrades";
 import { getEraProgress } from "@/data/eras";
 import type { GameState } from "@/types/game";
 
@@ -15,9 +13,9 @@ interface CpuVisualProps {
   state: GameState;
   levels: UpgradeLevels;
   cpuLevel: number;
-  incomePerSecond: number;
-  pulse: number;
   upgradeFlash: number;
+  /** Full-viewport immersive stage (default game screen) */
+  immersive?: boolean;
 }
 
 function InteractiveControls() {
@@ -73,8 +71,6 @@ function Scene({
   return (
     <>
       <color attach="background" args={[bg]} />
-
-      {/* Bright studio-style fill — metals need ambient + env or they read black */}
       <ambientLight intensity={theme === "light" ? 1.35 : 1.15} />
       <hemisphereLight
         args={[
@@ -83,18 +79,13 @@ function Scene({
           theme === "light" ? 1.1 : 0.95,
         ]}
       />
-
-      {/* Key light — no castShadow so the chip doesn't self-shadow into darkness */}
       <directionalLight position={[3.5, 6, 4]} intensity={theme === "light" ? 2.4 : 2.1} />
-      {/* Soft fill from camera-left */}
       <directionalLight
         position={[-4, 3.5, 2]}
         intensity={1.2}
         color={theme === "light" ? "#fff7ed" : "#e0f2fe"}
       />
-      {/* Rim / backlight to lift edges and gold pins */}
       <directionalLight position={[0, 2.5, -4]} intensity={1.35} color="#fff1c9" />
-      {/* Under-fill so the gold pin field isn't in a cave */}
       <directionalLight position={[0, -3, 1]} intensity={0.85} color="#ffe9a8" />
 
       <Suspense
@@ -122,96 +113,64 @@ function Scene({
   );
 }
 
-function buildSpecSummary(levels: UpgradeLevels): string {
-  const parts = UPGRADES.filter((u) => (levels[u.id] ?? 0) > 0 || !u.requiresUnlock)
-    .slice(0, 4)
-    .map((u) => u.formatSpec(levels[u.id] ?? 0));
-  return parts.join(" · ");
-}
-
 export function CpuVisual({
   state,
   levels,
   cpuLevel,
-  incomePerSecond,
-  pulse,
   upgradeFlash,
+  immersive = false,
 }: CpuVisualProps) {
   const { theme } = useTheme();
   const { era, next, progress } = getEraProgress(state);
 
-  return (
-    <div className="relative flex flex-col overflow-hidden rounded-2xl border border-edge bg-panel shadow-sm">
-      <div
-        className="pointer-events-none absolute inset-0 opacity-40"
-        style={{
-          backgroundImage:
-            "linear-gradient(var(--grid-line) 1px, transparent 1px), linear-gradient(90deg, var(--grid-line) 1px, transparent 1px)",
-          backgroundSize: "28px 28px",
-        }}
-      />
-
-      <div
-        key={upgradeFlash}
-        className="pointer-events-none absolute inset-0 z-20 animate-upgrade-flash bg-accent/10"
-      />
-
-      <div className="relative z-10 flex items-center justify-between gap-2 px-4 pt-4 sm:px-6">
-        <p className="font-mono text-[10px] uppercase tracking-[0.3em] text-accent-text">
-          {era.year} · {era.name}
-        </p>
-        <p className="hidden font-mono text-[10px] text-muted sm:block">
-          Drag to rotate · Scroll to zoom · Right-drag to pan
-        </p>
-      </div>
-
-      <div className="relative z-10 h-72 w-full touch-none sm:h-80 md:h-[26rem]">
+  if (immersive) {
+    return (
+      <div className="relative h-full w-full">
+        <div
+          key={upgradeFlash}
+          className="pointer-events-none absolute inset-0 z-20 animate-upgrade-flash bg-accent/10"
+        />
         <Canvas
           dpr={[1, 2]}
-          camera={{ position: [2.2, 1.7, 2.5], fov: 40, near: 0.1, far: 40 }}
+          camera={{ position: [2.35, 1.85, 2.7], fov: 38, near: 0.1, far: 40 }}
           gl={{ antialias: true, alpha: true, toneMappingExposure: 1.35 }}
-          className="h-full w-full cursor-grab active:cursor-grabbing"
+          className="h-full w-full touch-none cursor-grab active:cursor-grabbing"
         >
           <Scene levels={levels} upgradeFlash={upgradeFlash} theme={theme} />
         </Canvas>
-      </div>
 
-      <p className="relative z-10 px-4 text-center font-mono text-[10px] text-muted sm:hidden">
-        Drag to rotate · Pinch/scroll to zoom
-      </p>
-
-      <div className="relative z-10 px-4 pb-5 pt-2 text-center sm:px-6">
-        <div key={pulse} className="mb-2 animate-money-pop font-mono text-sm text-success">
-          +{formatMoney(incomePerSecond)}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-background via-background/70 to-transparent px-4 pb-6 pt-16 text-center sm:pb-8">
+          <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-muted">
+            Build Level {cpuLevel}
+          </p>
+          <p className="mt-1 font-mono text-sm text-accent-text sm:text-base">
+            {era.name}
+            {next ? (
+              <span className="text-muted">
+                {" "}
+                → {next.name} · {Math.round(progress * 100)}%
+              </span>
+            ) : null}
+          </p>
+          <p className="mx-auto mt-2 hidden max-w-md text-[11px] text-muted sm:block">
+            Drag to rotate · Scroll to zoom · Right-drag to pan
+          </p>
         </div>
-        <p className="font-mono text-2xl font-bold text-foreground sm:text-3xl">
-          Build Level {cpuLevel}
-        </p>
-        <p className="mx-auto mt-2 max-w-lg text-xs leading-relaxed text-muted">{era.summary}</p>
-        <p className="mx-auto mt-2 max-w-md font-mono text-[11px] text-accent-text">
-          {buildSpecSummary(levels)}
-        </p>
-        {next && (
-          <div className="mx-auto mt-3 max-w-sm">
-            <div className="mb-1 flex justify-between font-mono text-[10px] text-muted">
-              <span>Next: {next.name}</span>
-              <span>{Math.round(progress * 100)}%</span>
-            </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-edge/40">
-              <div
-                className="h-full rounded-full bg-gradient-to-r from-accent to-success transition-all duration-500"
-                style={{ width: `${progress * 100}%` }}
-              />
-            </div>
-          </div>
-        )}
-        <p className="mx-auto mt-3 max-w-md text-[10px] text-muted">
-          Die map: <span className="text-violet-500">CU</span> ·{" "}
-          <span className="text-blue-500">ALU</span> ·{" "}
-          <span className="text-emerald-600">Registers</span> ·{" "}
-          <span className="text-amber-600">Buses</span> · copper cache
-        </p>
       </div>
+    );
+  }
+
+  // Legacy card layout (unused on main screen, kept for safety)
+  return (
+    <div className="relative flex h-80 flex-col overflow-hidden rounded-2xl border border-edge bg-panel">
+      <Canvas
+        dpr={[1, 2]}
+        camera={{ position: [2.2, 1.7, 2.5], fov: 40, near: 0.1, far: 40 }}
+        gl={{ antialias: true, alpha: true, toneMappingExposure: 1.35 }}
+        className="h-full w-full"
+      >
+        <Scene levels={levels} upgradeFlash={upgradeFlash} theme={theme} />
+      </Canvas>
     </div>
   );
 }

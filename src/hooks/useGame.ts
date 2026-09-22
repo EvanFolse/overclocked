@@ -75,7 +75,7 @@ export function useGame() {
     prevAchievements.current = state.unlockedAchievements;
   }, [state.unlockedAchievements, hydrated]);
 
-  // Auto-open challenge panel when a bottleneck appears
+  // Arm bottleneck challenge id without auto-opening a modal (toast + drawer instead)
   useEffect(() => {
     if (!hydrated) return;
     if (
@@ -85,7 +85,7 @@ export function useGame() {
       setActiveQuestionId(state.activeBottleneckId);
       setSelectedChoice(null);
       setFeedback(null);
-      setQuizOpen(true);
+      setQuizOpen(false);
     }
     prevBottleneck.current = state.activeBottleneckId;
   }, [state.activeBottleneckId, hydrated]);
@@ -104,7 +104,7 @@ export function useGame() {
 
   const openQuiz = useCallback((preferUnlock = false) => {
     setState((prev) => {
-      const q = pickRandomQuestion(prev, preferUnlock);
+      const q = pickRandomQuestion(prev, preferUnlock || !!prev.activeBottleneckId);
       setActiveQuestionId(q.id);
       setSelectedChoice(null);
       setFeedback(null);
@@ -117,9 +117,13 @@ export function useGame() {
     setQuizOpen(false);
     setFeedback(null);
     setSelectedChoice(null);
-    setState((prev) =>
-      prev.activeBottleneckId ? dismissBottleneck(prev) : prev
-    );
+  }, []);
+
+  const dismissActiveBottleneck = useCallback(() => {
+    setState((prev) => dismissBottleneck(prev));
+    setQuizOpen(false);
+    setFeedback(null);
+    setSelectedChoice(null);
   }, []);
 
   const submitAnswer = useCallback(() => {
@@ -177,6 +181,7 @@ export function useGame() {
     buyUpgrade,
     openQuiz,
     closeQuiz,
+    dismissActiveBottleneck,
     submitAnswer,
     nextQuestion,
     resetGame,

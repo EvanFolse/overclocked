@@ -14,10 +14,13 @@ interface QuizPanelProps {
   selectedChoice: number | null;
   feedback: QuizFeedback | null;
   isBottleneck: boolean;
+  /** Inline = drawer content; modal kept for compatibility but unused on main screen */
+  mode?: "inline" | "modal";
   onSelect: (index: number) => void;
   onSubmit: () => void;
   onNext: () => void;
   onClose: () => void;
+  onStart?: () => void;
 }
 
 export function QuizPanel({
@@ -26,35 +29,104 @@ export function QuizPanel({
   selectedChoice,
   feedback,
   isBottleneck,
+  mode = "modal",
   onSelect,
   onSubmit,
   onNext,
   onClose,
+  onStart,
 }: QuizPanelProps) {
-  if (!open || !question) return null;
+  if (!open) return null;
 
-  const topicLabel = TOPIC_LABELS[question.topic] ?? question.topic;
-  const diffLabel = DIFFICULTY_LABELS[question.difficulty];
+  const content = !question ? (
+    <div className="flex flex-col gap-3">
+      <h2 className="font-mono text-sm font-semibold uppercase tracking-widest text-violet">
+        Challenges / Learning
+      </h2>
+      <p className="text-xs leading-relaxed text-muted">
+        Scenario-based CSC 3501 questions unlock architecture upgrades and raise Course
+        Mastery. Bottlenecks also appear as toasts on the main screen.
+      </p>
+      {onStart && (
+        <button
+          type="button"
+          onClick={onStart}
+          className="rounded-lg border border-violet/50 bg-violet-soft px-4 py-2.5 font-mono text-sm font-semibold text-violet"
+        >
+          Start Challenge
+        </button>
+      )}
+    </div>
+  ) : (
+    <ChallengeBody
+      question={question}
+      selectedChoice={selectedChoice}
+      feedback={feedback}
+      isBottleneck={isBottleneck}
+      onSelect={onSelect}
+      onSubmit={onSubmit}
+      onNext={onNext}
+      onClose={onClose}
+      showClose={mode === "modal"}
+    />
+  );
+
+  if (mode === "inline") {
+    return <div className="flex flex-col gap-3">{content}</div>;
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 sm:items-center">
       <div className="absolute inset-0" onClick={onClose} aria-hidden />
       <div className="relative z-10 max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-violet/30 bg-panel p-5 shadow-2xl sm:p-6">
-        <div className="mb-4 flex items-start justify-between gap-3">
-          <div>
-            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-violet">
-              {question.courseUnit} · {topicLabel} · {diffLabel}
-            </p>
-            <h2 className="mt-1 font-mono text-lg font-semibold text-foreground">
-              {isBottleneck
-                ? "Diagnose the Bottleneck"
-                : question.courseUnit === "Boolean Logic"
-                  ? "Circuit Design Challenge"
-                  : question.courseUnit === "GPU"
-                    ? "Parallel Architecture Challenge"
-                    : "CSC 3501 Scenario"}
-            </h2>
-          </div>
+        {content}
+      </div>
+    </div>
+  );
+}
+
+function ChallengeBody({
+  question,
+  selectedChoice,
+  feedback,
+  isBottleneck,
+  onSelect,
+  onSubmit,
+  onNext,
+  onClose,
+  showClose,
+}: {
+  question: Challenge;
+  selectedChoice: number | null;
+  feedback: QuizFeedback | null;
+  isBottleneck: boolean;
+  onSelect: (index: number) => void;
+  onSubmit: () => void;
+  onNext: () => void;
+  onClose: () => void;
+  showClose: boolean;
+}) {
+  const topicLabel = TOPIC_LABELS[question.topic] ?? question.topic;
+  const diffLabel = DIFFICULTY_LABELS[question.difficulty];
+
+  return (
+    <>
+      <div className="mb-1 flex items-start justify-between gap-3">
+        <div>
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-violet">
+            {question.courseUnit} · {topicLabel} · {diffLabel}
+          </p>
+          <h2 className="mt-1 font-mono text-base font-semibold text-foreground sm:text-lg">
+            {isBottleneck
+              ? "Diagnose the Bottleneck"
+              : question.courseUnit === "Boolean Logic"
+                ? "Circuit Design Challenge"
+                : question.courseUnit === "GPU"
+                  ? "Parallel Architecture Challenge"
+                  : "CSC 3501 Scenario"}
+          </h2>
+        </div>
+        {showClose && (
           <button
             type="button"
             onClick={onClose}
@@ -62,122 +134,124 @@ export function QuizPanel({
           >
             Close
           </button>
-        </div>
-
-        {isBottleneck && (
-          <p className="mb-3 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning">
-            A live performance problem is limiting throughput. Choose the concept or upgrade
-            that best fixes it.
-          </p>
         )}
+      </div>
 
-        <p className="text-sm leading-relaxed text-foreground">{question.scenario}</p>
+      {isBottleneck && (
+        <p className="mb-3 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning">
+          A live performance problem is limiting throughput. Choose the concept or upgrade
+          that best fixes it.
+        </p>
+      )}
 
-        {(question.highlightCycle || question.highlightMemory) && (
-          <div className="mt-3 flex flex-col gap-2">
-            {question.highlightCycle && (
-              <CpuCycleVisual active={question.highlightCycle} compact />
-            )}
-            {question.highlightMemory && (
-              <MemoryHierarchyVisual active={question.highlightMemory} compact />
-            )}
-          </div>
-        )}
+      <p className="text-sm leading-relaxed text-foreground">{question.scenario}</p>
 
-        <div className="mt-4 flex flex-col gap-2">
-          {question.choices.map((choice, index) => {
-            const isSelected = selectedChoice === index;
-            let style =
-              "border-edge bg-panel-muted text-foreground hover:border-violet/40";
-
-            if (feedback) {
-              if (index === question.correctIndex) {
-                style = "border-success/60 bg-success-soft text-success";
-              } else if (isSelected && !feedback.correct) {
-                style = "border-rose-400/50 bg-rose-500/10 text-rose-500";
-              } else {
-                style = "border-edge/50 bg-panel text-muted";
-              }
-            } else if (isSelected) {
-              style = "border-violet/60 bg-violet-soft text-violet";
-            }
-
-            return (
-              <button
-                key={choice}
-                type="button"
-                disabled={!!feedback}
-                onClick={() => onSelect(index)}
-                className={`rounded-xl border px-3 py-2.5 text-left text-sm transition focus:outline-none focus:ring-2 focus:ring-violet/40 ${style}`}
-              >
-                <span className="mr-2 font-mono text-xs text-muted">
-                  {String.fromCharCode(65 + index)}.
-                </span>
-                {choice}
-              </button>
-            );
-          })}
-        </div>
-
-        {feedback && (
-          <div
-            className={`mt-4 rounded-xl border p-3 text-sm ${
-              feedback.correct
-                ? "border-success/40 bg-success-soft text-success"
-                : "border-warning/40 bg-warning/10 text-warning"
-            }`}
-          >
-            <p className="font-mono text-xs font-semibold uppercase tracking-wider">
-              {feedback.correct
-                ? feedback.wasBottleneck
-                  ? "Bottleneck cleared!"
-                  : "Correct!"
-                : "Not quite"}
-            </p>
-            {feedback.correct ? (
-              <p className="mt-1 text-foreground">
-                Bonus:{" "}
-                <span className="font-mono text-success">{formatMoney(feedback.bonus)}</span>
-                {feedback.courseUnit && (
-                  <span className="ml-2 text-xs text-muted">
-                    · {feedback.courseUnit} mastery updated
-                  </span>
-                )}
-              </p>
-            ) : (
-              <p className="mt-1 text-foreground">
-                Better choice:{" "}
-                <span className="font-semibold">{feedback.correctAnswer}</span>
-              </p>
-            )}
-            <p className="mt-2 text-xs leading-relaxed text-muted">{feedback.explanation}</p>
-            {feedback.unlockedUpgrade && (
-              <p className="mt-2 font-mono text-xs text-accent-text">
-                Unlocked: {UPGRADE_MAP[feedback.unlockedUpgrade].name}
-              </p>
-            )}
-          </div>
-        )}
-
-        <div className="mt-5 flex flex-wrap gap-2">
-          {!feedback ? (
-            <button
-              type="button"
-              disabled={selectedChoice === null}
-              onClick={onSubmit}
-              className="rounded-lg border border-violet/50 bg-violet-soft px-4 py-2 font-mono text-sm font-semibold text-violet transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Submit
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={onNext}
-              className="rounded-lg border border-accent/40 bg-accent-soft px-4 py-2 font-mono text-sm font-semibold text-accent-text transition hover:opacity-90"
-            >
-              Next Challenge
-            </button>
+      {(question.highlightCycle || question.highlightMemory) && (
+        <div className="mt-3 flex flex-col gap-2">
+          {question.highlightCycle && (
+            <CpuCycleVisual active={question.highlightCycle} compact />
           )}
+          {question.highlightMemory && (
+            <MemoryHierarchyVisual active={question.highlightMemory} compact />
+          )}
+        </div>
+      )}
+
+      <div className="mt-4 flex flex-col gap-2">
+        {question.choices.map((choice, index) => {
+          const isSelected = selectedChoice === index;
+          let style =
+            "border-edge bg-panel-muted text-foreground hover:border-violet/40";
+
+          if (feedback) {
+            if (index === question.correctIndex) {
+              style = "border-success/60 bg-success-soft text-success";
+            } else if (isSelected && !feedback.correct) {
+              style = "border-rose-400/50 bg-rose-500/10 text-rose-500";
+            } else {
+              style = "border-edge/50 bg-panel text-muted";
+            }
+          } else if (isSelected) {
+            style = "border-violet/60 bg-violet-soft text-violet";
+          }
+
+          return (
+            <button
+              key={choice}
+              type="button"
+              disabled={!!feedback}
+              onClick={() => onSelect(index)}
+              className={`rounded-xl border px-3 py-2.5 text-left text-sm transition focus:outline-none focus:ring-2 focus:ring-violet/40 ${style}`}
+            >
+              <span className="mr-2 font-mono text-xs text-muted">
+                {String.fromCharCode(65 + index)}.
+              </span>
+              {choice}
+            </button>
+          );
+        })}
+      </div>
+
+      {feedback && (
+        <div
+          className={`mt-4 rounded-xl border p-3 text-sm ${
+            feedback.correct
+              ? "border-success/40 bg-success-soft text-success"
+              : "border-warning/40 bg-warning/10 text-warning"
+          }`}
+        >
+          <p className="font-mono text-xs font-semibold uppercase tracking-wider">
+            {feedback.correct
+              ? feedback.wasBottleneck
+                ? "Bottleneck cleared!"
+                : "Correct!"
+              : "Not quite"}
+          </p>
+          {feedback.correct ? (
+            <p className="mt-1 text-foreground">
+              Bonus:{" "}
+              <span className="font-mono text-success">{formatMoney(feedback.bonus)}</span>
+              {feedback.courseUnit && (
+                <span className="ml-2 text-xs text-muted">
+                  · {feedback.courseUnit} mastery updated
+                </span>
+              )}
+            </p>
+          ) : (
+            <p className="mt-1 text-foreground">
+              Better choice:{" "}
+              <span className="font-semibold">{feedback.correctAnswer}</span>
+            </p>
+          )}
+          <p className="mt-2 text-xs leading-relaxed text-muted">{feedback.explanation}</p>
+          {feedback.unlockedUpgrade && (
+            <p className="mt-2 font-mono text-xs text-accent-text">
+              Unlocked: {UPGRADE_MAP[feedback.unlockedUpgrade].name}
+            </p>
+          )}
+        </div>
+      )}
+
+      <div className="mt-5 flex flex-wrap gap-2">
+        {!feedback ? (
+          <button
+            type="button"
+            disabled={selectedChoice === null}
+            onClick={onSubmit}
+            className="rounded-lg border border-violet/50 bg-violet-soft px-4 py-2 font-mono text-sm font-semibold text-violet transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            Submit
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={onNext}
+            className="rounded-lg border border-accent/40 bg-accent-soft px-4 py-2 font-mono text-sm font-semibold text-accent-text transition hover:opacity-90"
+          >
+            Next Challenge
+          </button>
+        )}
+        {showClose && (
           <button
             type="button"
             onClick={onClose}
@@ -185,8 +259,8 @@ export function QuizPanel({
           >
             Back to Lab
           </button>
-        </div>
+        )}
       </div>
-    </div>
+    </>
   );
 }
