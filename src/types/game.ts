@@ -169,6 +169,8 @@ export interface GameState {
   completedLearningCheckpoints: string[];
   activeCheckpointId: string | null;
   checkpointStep: number;
+  checkpointMissStreak: number;
+  bonusSuspended: boolean; // introduct bonus mode;
 }
 
 export interface CheckpointResolveResult {
@@ -190,6 +192,9 @@ export interface QuizFeedback {
   wasBottleneck?: boolean;
   courseUnit?: CourseUnit;
   hint?: string;
+  hint2?: string; // second hint; more details
+  attempt?: number; // set up attempt times per question
+  revealed?: boolean;
 }
 
 export type ThemeMode = "light" | "dark";

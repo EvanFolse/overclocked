@@ -67,6 +67,8 @@ export function createInitialState(now = Date.now()): GameState {
     completedLearningCheckpoints: [],
     activeCheckpointId: null,
     checkpointStep: 0,
+    checkpointMissStreak: 0,
+    bonusSuspended: false,
   };
 }
 
@@ -590,12 +592,12 @@ export function sanitizeLoadedState(raw: unknown): GameState | null {
 
     let unlockedUpgrades = Array.isArray(data.unlockedUpgrades)
       ? [
-          ...new Set(
-            (data.unlockedUpgrades as string[])
-              .map((id) => (LEGACY_UPGRADE_MAP[id] ?? id) as UpgradeId)
-              .filter((id) => validIds.has(id))
-          ),
-        ]
+        ...new Set(
+          (data.unlockedUpgrades as string[])
+            .map((id) => (LEGACY_UPGRADE_MAP[id] ?? id) as UpgradeId)
+            .filter((id) => validIds.has(id))
+        ),
+      ]
       : [];
 
     // Legacy games had free basic unlocks
@@ -634,6 +636,8 @@ export function sanitizeLoadedState(raw: unknown): GameState | null {
       completedLearningCheckpoints,
       activeCheckpointId,
       checkpointStep: Number(data.checkpointStep) || 0,
+      checkpointMissStreak: Number(data.checkpointMissStreak) || 0,
+      bonusSuspended: Boolean(data.bonusSuspended),
     });
 
     state = maybeActivateCheckpoint(state);
