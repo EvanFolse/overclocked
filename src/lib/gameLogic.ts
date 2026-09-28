@@ -287,6 +287,7 @@ export function answerCheckpointStep(
   }
 
   // Correct — unlock stepwise components, advance
+  next = { ...next, checkpointMissStreak: 0, bonusSuspended: false };
   if (question.unlockUpgrade) {
     next = unlockIds(next, [question.unlockUpgrade]);
     if ((next.upgradeLevels[question.unlockUpgrade] ?? 0) === 0) {

@@ -24,6 +24,7 @@ export interface CheckpointQuestion {
   correctIndex: 0 | 1 | 2 | 3;
   explanation: string;
   hint: string;
+  hint2?: string; // this hint is optional
   /** Unlocked when this step is answered correctly (intro / multi-step) */
   unlockUpgrade?: UpgradeId;
 }
@@ -82,6 +83,8 @@ export const CHECKPOINTS: LearningCheckpoint[] = [
         explanation:
           "The Arithmetic Logic Unit performs arithmetic and logical operations on data.",
         hint: "Think about which unit does math and comparisons.",
+        hint2: "It doesn't store data long-term, and it isn't a bus. It performs the actual add and compare operations.",
+
         unlockUpgrade: "alu",
       },
       {
@@ -92,6 +95,7 @@ export const CHECKPOINTS: LearningCheckpoint[] = [
         explanation:
           "Registers are small high-speed locations inside the CPU for active data and addresses.",
         hint: "Faster than RAM, but much smaller — inside the chip.",
+        hint2: "It is not permanent storage like a disk. It holds only the few values the CPU is using right this instant.",
         unlockUpgrade: "registers",
       },
       {
@@ -102,6 +106,7 @@ export const CHECKPOINTS: LearningCheckpoint[] = [
         explanation:
           "The Control Unit directs the movement of instructions and data and signals other components.",
         hint: "It is the ‘director’ of the processor.",
+        hint2: "It doesn't do the math itself. It tells other components when to act and where data should go.",
         unlockUpgrade: "controlUnit",
       },
       {
@@ -112,6 +117,7 @@ export const CHECKPOINTS: LearningCheckpoint[] = [
         explanation:
           "The clock paces CPU activity. More cycles per second can mean more work — if the rest of the design keeps up.",
         hint: "Measured in hertz / GHz.",
+        hint2: "It is not an input or output device. It is the internal heartbeat that every other component synchronizes to.",
         unlockUpgrade: "clock",
       },
     ],

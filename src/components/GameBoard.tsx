@@ -180,6 +180,7 @@ function GameBoardInner() {
           step={game.state.checkpointStep}
           selectedChoice={game.selectedChoice}
           feedback={game.feedback}
+          bonusSuspended={game.state.bonusSuspended}
           lessonOpen={game.lessonOpen || game.activeCheckpoint.id === "cpu-basics"}
           onOpenLesson={game.openLesson}
           onCloseLesson={game.closeLesson}
