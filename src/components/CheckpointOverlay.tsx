@@ -10,6 +10,7 @@ interface CheckpointOverlayProps {
   step: number;
   selectedChoice: number | null;
   feedback: QuizFeedback | null;
+  bonusSuspended: boolean;
   lessonOpen: boolean;
   onOpenLesson: () => void;
   onCloseLesson: () => void;
@@ -23,6 +24,7 @@ export function CheckpointOverlay({
   step,
   selectedChoice,
   feedback,
+  bonusSuspended,
   lessonOpen,
   onOpenLesson,
   onCloseLesson,
@@ -97,7 +99,16 @@ export function CheckpointOverlay({
             )}
           </div>
         )}
-
+        {bonusSuspended && (
+          <div className="mt-3 rounded-xl border border-warning/40 bg-warning/10 p-3 text-xs text-warning">
+            <p className="font-mono font-semibold uppercase tracking-wider">
+              Learning Recovery Mode
+            </p>
+            <p className="mt-1 leading-relaxed">
+              Bonus rewards are paused. Answer this question correctly to restore them.
+            </p>
+          </div>
+        )}
         {question && (
           <>
             <p className="mt-4 text-sm font-medium leading-relaxed text-foreground">
@@ -110,7 +121,7 @@ export function CheckpointOverlay({
                 let style =
                   "border-edge bg-panel-muted text-foreground hover:border-violet/40";
                 if (feedback) {
-                  if (index === question.correctIndex) {
+                  if (index === question.correctIndex && (feedback.correct || feedback.revealed)) {
                     style = "border-success/60 bg-success-soft text-success";
                   } else if (isSelected && !feedback.correct) {
                     style = "border-rose-400/50 bg-rose-500/10 text-rose-500";
@@ -142,11 +153,10 @@ export function CheckpointOverlay({
 
         {feedback && (
           <div
-            className={`mt-4 rounded-xl border p-3 text-sm ${
-              feedback.correct
-                ? "border-success/40 bg-success-soft text-success"
-                : "border-warning/40 bg-warning/10 text-warning"
-            }`}
+            className={`mt-4 rounded-xl border p-3 text-sm ${feedback.correct
+              ? "border-success/40 bg-success-soft text-success"
+              : "border-warning/40 bg-warning/10 text-warning"
+              }`}
           >
             <p className="font-mono text-xs font-semibold uppercase tracking-wider">
               {feedback.correct
@@ -155,9 +165,24 @@ export function CheckpointOverlay({
                   : "Correct"
                 : "Not quite"}
             </p>
-            <p className="mt-2 text-xs leading-relaxed text-muted">{feedback.explanation}</p>
+            {(feedback.correct || feedback.revealed) && (
+              <p className="mt-2 text-xs leading-relaxed text-muted">{feedback.explanation}</p>
+            )}
             {!feedback.correct && feedback.hint && (
               <p className="mt-2 text-xs text-warning">Hint: {feedback.hint}</p>
+            )}
+            {!feedback.correct && feedback.hint2 && (
+              <p className="mt-2 text-xs text-warning">Hint: {feedback.hint2}</p>
+            )}
+            {!feedback.correct && !feedback.revealed && feedback.attempt && (
+              <p className="mt-2 font-mono text-[10px] text-muted">
+                Attempt {feedback.attempt} of 3
+              </p>
+            )}
+            {!feedback.correct && feedback.revealed && (
+              <p className="mt-2 text-xs text-warning">
+                Correct answer: {feedback.correctAnswer}
+              </p>
             )}
           </div>
         )}

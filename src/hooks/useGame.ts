@@ -34,6 +34,7 @@ export function useGame() {
   const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
   const [selectedChoice, setSelectedChoice] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<QuizFeedback | null>(null);
+  const [checkpointAttempt, setCheckpointAttempt] = useState(1);
   const [lessonOpen, setLessonOpen] = useState(false);
   const [newAchievement, setNewAchievement] = useState<string | null>(null);
   const [statDelta, setStatDelta] = useState<StatDelta | null>(null);
@@ -100,6 +101,7 @@ export function useGame() {
     }
     if (!state.activeCheckpointId) {
       setLessonOpen(false);
+      setCheckpointAttempt(1);
     }
     prevCheckpoint.current = state.activeCheckpointId;
   }, [state.activeCheckpointId, hydrated]);
@@ -109,6 +111,7 @@ export function useGame() {
     setLessonOpen(true);
     setSelectedChoice(null);
     setFeedback(null);
+    setCheckpointAttempt(1);
   }, []);
 
   const openLesson = useCallback(() => {
@@ -144,9 +147,14 @@ export function useGame() {
   const submitCheckpointAnswer = useCallback(() => {
     if (selectedChoice == null) return;
     setState((prev) => {
-      const result = answerCheckpointStep(prev, selectedChoice);
+      const result = answerCheckpointStep(prev, selectedChoice, checkpointAttempt);
       if (!result) return prev;
       setFeedback(result.feedback);
+      if (result.feedback.correct || result.feedback.revealed) {
+        setCheckpointAttempt(1);
+      } else {
+        setCheckpointAttempt((a) => a + 1);
+      }
       if (result.completedCheckpoint && result.resolve) {
         setResolveToast(result.resolve);
         setUpgradeFlash((f) => f + 1);
@@ -154,7 +162,7 @@ export function useGame() {
       }
       return result.state;
     });
-  }, [selectedChoice]);
+  }, [selectedChoice, checkpointAttempt]);
 
   const nextCheckpointStep = useCallback(() => {
     setSelectedChoice(null);
@@ -194,6 +202,7 @@ export function useGame() {
 
   const resetGame = useCallback(() => {
     clearSavedGame();
+    window.localStorage.removeItem("overclocked-welcome-seen-v1");
     const fresh = createInitialState();
     setState(fresh);
     prevAchievements.current = [];
@@ -226,6 +235,7 @@ export function useGame() {
     selectedChoice,
     setSelectedChoice,
     feedback,
+    checkpointAttempt,
     newAchievement,
     statDelta,
     resolveToast,

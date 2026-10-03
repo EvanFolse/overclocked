@@ -24,6 +24,7 @@ export interface CheckpointQuestion {
   correctIndex: 0 | 1 | 2 | 3;
   explanation: string;
   hint: string;
+  hint2?: string; // this hint is optional
   /** Unlocked when this step is answered correctly (intro / multi-step) */
   unlockUpgrade?: UpgradeId;
 }
@@ -82,6 +83,8 @@ export const CHECKPOINTS: LearningCheckpoint[] = [
         explanation:
           "The Arithmetic Logic Unit performs arithmetic and logical operations on data.",
         hint: "Think about which unit does math and comparisons.",
+        hint2: "It doesn't store data long-term, and it isn't a bus. It performs the actual add and compare operations.",
+
         unlockUpgrade: "alu",
       },
       {
@@ -92,6 +95,7 @@ export const CHECKPOINTS: LearningCheckpoint[] = [
         explanation:
           "Registers are small high-speed locations inside the CPU for active data and addresses.",
         hint: "Faster than RAM, but much smaller — inside the chip.",
+        hint2: "It is not permanent storage like a disk. It holds only the few values the CPU is using right this instant.",
         unlockUpgrade: "registers",
       },
       {
@@ -102,6 +106,7 @@ export const CHECKPOINTS: LearningCheckpoint[] = [
         explanation:
           "The Control Unit directs the movement of instructions and data and signals other components.",
         hint: "It is the ‘director’ of the processor.",
+        hint2: "It doesn't do the math itself. It tells other components when to act and where data should go.",
         unlockUpgrade: "controlUnit",
       },
       {
@@ -112,6 +117,7 @@ export const CHECKPOINTS: LearningCheckpoint[] = [
         explanation:
           "The clock paces CPU activity. More cycles per second can mean more work — if the rest of the design keeps up.",
         hint: "Measured in hertz / GHz.",
+        hint2: "It is not an input or output device. It is the internal heartbeat that every other component synchronizes to.",
         unlockUpgrade: "clock",
       },
     ],
@@ -144,6 +150,7 @@ export const CHECKPOINTS: LearningCheckpoint[] = [
         correctIndex: 0,
         explanation: "Fetch retrieves the next instruction from memory.",
         hint: "It happens before the CPU knows what the instruction means.",
+        hint2: "The instruction is still just raw bits pulled from memory. Nothing has been interpreted yet.",
       },
       {
         scenario:
@@ -158,6 +165,7 @@ export const CHECKPOINTS: LearningCheckpoint[] = [
         explanation:
           "Decode interprets the instruction so the Control Unit and datapath know what to execute.",
         hint: "Binary bits become a meaningful operation.",
+        hint2: "This is the step where the Control Unit figures out which operation the bits represent, before anything is computed.",
       },
     ],
     unlockUpgrades: [],
@@ -196,6 +204,7 @@ export const CHECKPOINTS: LearningCheckpoint[] = [
         explanation:
           "Cache keeps frequently accessed data close to the CPU, cutting slow main-memory trips.",
         hint: "Think hierarchy: what sits between registers and RAM?",
+        hint2: "It's smaller and faster than RAM, and its whole purpose is to avoid repeated trips to main memory.",
         unlockUpgrade: "cache",
       },
     ],
@@ -228,6 +237,7 @@ export const CHECKPOINTS: LearningCheckpoint[] = [
         correctIndex: 1,
         explanation: "L1 sits closest to the core — tiny but extremely fast.",
         hint: "Closest to the execution units.",
+        hint2: "It's the smallest of the three because being that close to the core leaves very little room.",
       },
       {
         scenario:
@@ -242,6 +252,7 @@ export const CHECKPOINTS: LearningCheckpoint[] = [
         explanation:
           "Buses move data on a miss. Better interconnects reduce miss penalty.",
         hint: "Think about how data travels after a cache miss.",
+        hint2: "It's not about storing data faster. It's about the width and speed of the path data travels on.",
         unlockUpgrade: "buses",
       },
     ],
@@ -275,6 +286,7 @@ export const CHECKPOINTS: LearningCheckpoint[] = [
         correctIndex: 1,
         explanation: "AND is 1 only if every input is 1.",
         hint: "Both inputs must be true.",
+        hint2: "If even one input is 0, the output must be 0. Only one gate behaves that strictly.",
       },
       {
         scenario:
@@ -283,6 +295,7 @@ export const CHECKPOINTS: LearningCheckpoint[] = [
         correctIndex: 0,
         explanation: "A half adder produces sum and carry from two bits.",
         hint: "Classic Logisim building block for addition.",
+        hint2: "It only handles two single bits and has no carry-in. That's what makes it 'half'.",
       },
     ],
     unlockUpgrades: [],
@@ -321,6 +334,7 @@ export const CHECKPOINTS: LearningCheckpoint[] = [
         explanation:
           "Pipelining overlaps Fetch/Decode/Execute (and related stages) across instructions.",
         hint: "Assembly line for instructions.",
+        hint2: "It's not about removing components. It's about starting the next instruction's first stage before the current one finishes its last stage.",
         unlockUpgrade: "pipeline",
       },
     ],
@@ -360,6 +374,7 @@ export const CHECKPOINTS: LearningCheckpoint[] = [
         explanation:
           "The later instruction depends on a value not yet written — a classic RAW hazard.",
         hint: "Read after write of the same register.",
+        hint2: "The second instruction needs a value the first hasn't finished writing yet. That ordering is what makes it a hazard.",
       },
       {
         scenario: "What design reduces stalls by bypassing results to earlier stages?",
@@ -373,6 +388,7 @@ export const CHECKPOINTS: LearningCheckpoint[] = [
         explanation:
           "Forwarding routes results to needing stages early, cutting RAW stalls.",
         hint: "Also called a bypass network.",
+        hint2: "It sends the ALU's result straight to the instruction that needs it, skipping the wait for write-back.",
         unlockUpgrade: "forwarding",
       },
     ],
@@ -412,6 +428,7 @@ export const CHECKPOINTS: LearningCheckpoint[] = [
         explanation:
           "Predictors guess outcomes so the CPU can continue fetching with fewer flushes.",
         hint: "Guess the next path after if/loop decisions.",
+        hint2: "It's specifically about guessing which way a branch will go before it's resolved, not about caching data or adding cores.",
         unlockUpgrade: "branchPrediction",
       },
     ],
@@ -450,6 +467,7 @@ export const CHECKPOINTS: LearningCheckpoint[] = [
         explanation:
           "More cores multiply throughput when the workload can run in parallel.",
         hint: "Think hardware parallelism for threads.",
+        hint2: "One core can only run one thread at a time. You need physically separate execution units to run more threads simultaneously.",
         unlockUpgrade: "cores",
       },
     ],
@@ -488,6 +506,7 @@ export const CHECKPOINTS: LearningCheckpoint[] = [
         explanation:
           "GPUs excel at wide data-parallel work with limited divergent control flow.",
         hint: "Many simple units vs few complex ones.",
+        hint2: "The same operation is applied millions of times independently. That's exactly the kind of workload many simple cores handle well.",
       },
       {
         scenario:
@@ -502,6 +521,7 @@ export const CHECKPOINTS: LearningCheckpoint[] = [
         explanation:
           "CPUs handle irregular control flow and system-style work more naturally.",
         hint: "Complexity and branching favor CPU cores.",
+        hint2: "Frequent unpredictable decisions need cores that are good at divergent control flow, not raw parallel throughput.",
       },
     ],
     unlockUpgrades: ["overclocking", "cooling"],

@@ -33,6 +33,7 @@ import type {
   UpgradeId,
 } from "@/types/game";
 import { EMPTY_COURSE_MASTERY } from "@/types/game";
+import { attach } from "@react-three/fiber/dist/declarations/src/core/utils";
 
 export const STORAGE_KEY = "overclocked-save-v4";
 export const LEGACY_STORAGE_KEY = "overclocked-save-v3";
@@ -67,6 +68,8 @@ export function createInitialState(now = Date.now()): GameState {
     completedLearningCheckpoints: [],
     activeCheckpointId: null,
     checkpointStep: 0,
+    checkpointMissStreak: 0,
+    bonusSuspended: false,
   };
 }
 
@@ -161,6 +164,7 @@ export function purchaseUpgrade(
 }
 
 export function getQuizBonus(state: GameState): number {
+  if (state.bonusSuspended) return 0;// in some cases; the bonus would stop
   const income = Math.max(getIncomePerSecond(state), BASE_COMPUTE);
   return Math.max(25, Math.floor(income * 20 + 50));
 }
@@ -235,7 +239,8 @@ function trackMastery(
 
 export function answerCheckpointStep(
   state: GameState,
-  choiceIndex: number
+  choiceIndex: number,
+  attempt: number
 ): {
   state: GameState;
   feedback: QuizFeedback;
@@ -253,21 +258,36 @@ export function answerCheckpointStep(
   let next = trackMastery(state, cp.courseUnit, correct);
 
   if (!correct) {
+    const revealed = attempt >= 3;// above 3 mistakes then show the answer
+    let updatedNext = next;
+
+    if (revealed) {
+      const missStreak = state.checkpointMissStreak + 1;
+      updatedNext = {
+        ...next,
+        checkpointMissStreak: missStreak,
+        bonusSuspended: state.bonusSuspended || missStreak>=3
+      }
+    }
     return {
-      state: applyAchievements(next),
+      state: applyAchievements(updatedNext),
       feedback: {
         correct: false,
-        explanation: question.explanation,
-        correctAnswer: question.choices[question.correctIndex],
+        explanation: revealed ? question.explanation : "",
+        correctAnswer: revealed ? question.choices[question.correctIndex] : "",
         bonus: 0,
         courseUnit: cp.courseUnit,
-        hint: question.hint,
+        hint: attempt === 1 ? question.hint : undefined,
+        hint2: attempt === 2 ? question.hint2 : undefined,
+        attempt,
+        revealed,
       },
       completedCheckpoint: false,
-    };
+    }
   }
 
   // Correct — unlock stepwise components, advance
+  next = { ...next, checkpointMissStreak: 0, bonusSuspended: false };
   if (question.unlockUpgrade) {
     next = unlockIds(next, [question.unlockUpgrade]);
     if ((next.upgradeLevels[question.unlockUpgrade] ?? 0) === 0) {
@@ -590,12 +610,12 @@ export function sanitizeLoadedState(raw: unknown): GameState | null {
 
     let unlockedUpgrades = Array.isArray(data.unlockedUpgrades)
       ? [
-          ...new Set(
-            (data.unlockedUpgrades as string[])
-              .map((id) => (LEGACY_UPGRADE_MAP[id] ?? id) as UpgradeId)
-              .filter((id) => validIds.has(id))
-          ),
-        ]
+        ...new Set(
+          (data.unlockedUpgrades as string[])
+            .map((id) => (LEGACY_UPGRADE_MAP[id] ?? id) as UpgradeId)
+            .filter((id) => validIds.has(id))
+        ),
+      ]
       : [];
 
     // Legacy games had free basic unlocks
@@ -634,6 +654,8 @@ export function sanitizeLoadedState(raw: unknown): GameState | null {
       completedLearningCheckpoints,
       activeCheckpointId,
       checkpointStep: Number(data.checkpointStep) || 0,
+      checkpointMissStreak: Number(data.checkpointMissStreak) || 0,
+      bonusSuspended: Boolean(data.bonusSuspended),
     });
 
     state = maybeActivateCheckpoint(state);
