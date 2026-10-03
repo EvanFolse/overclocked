@@ -10,6 +10,7 @@ import { QuizPanel } from "@/components/QuizPanel";
 import { AchievementToast } from "@/components/AchievementToast";
 import { UpgradeFeedback } from "@/components/UpgradeFeedback";
 import { CheckpointOverlay } from "@/components/CheckpointOverlay";
+import { WelcomeOverlay } from "@/components/WelcomeOverlay";
 import { LearningView } from "@/components/drawer/LearningView";
 import { ProgressView } from "@/components/drawer/ProgressView";
 import { SettingsView } from "@/components/drawer/SettingsView";
@@ -196,6 +197,7 @@ function GameBoardInner() {
         onDismissDelta={game.clearStatDelta}
         onDismissResolve={game.clearResolveToast}
       />
+      <WelcomeOverlay key={game.state.lastTick} />
       <AchievementToast achievementId={game.newAchievement} />
     </div>
   );

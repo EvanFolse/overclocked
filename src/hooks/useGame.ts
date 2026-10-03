@@ -202,6 +202,7 @@ export function useGame() {
 
   const resetGame = useCallback(() => {
     clearSavedGame();
+    window.localStorage.removeItem("overclocked-welcome-seen-v1");
     const fresh = createInitialState();
     setState(fresh);
     prevAchievements.current = [];
