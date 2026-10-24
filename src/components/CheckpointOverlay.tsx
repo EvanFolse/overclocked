@@ -24,7 +24,7 @@ export function CheckpointOverlay({
   step,
   selectedChoice,
   feedback,
-  bonusSuspended,
+  bonusSuspended: _bonusSuspended,
   lessonOpen,
   onOpenLesson,
   onCloseLesson,
@@ -47,14 +47,14 @@ export function CheckpointOverlay({
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-muted">{checkpoint.stallBody}</p>
           <p className="mt-3 font-mono text-[11px] text-accent-text">
-            Compute/sec paused at 0 until this is resolved.
+            Read the short lesson, then pass the questions to unlock parts.
           </p>
           <button
             type="button"
             onClick={onOpenLesson}
             className="mt-5 w-full rounded-xl border border-warning/50 bg-warning/15 px-4 py-3 font-mono text-sm font-semibold text-warning transition hover:opacity-90"
           >
-            {isBoot ? "Build Your First CPU" : "Diagnose"}
+            {isBoot ? "Start Stage 1" : "Start quiz round"}
           </button>
         </div>
       </div>
@@ -99,16 +99,7 @@ export function CheckpointOverlay({
             )}
           </div>
         )}
-        {bonusSuspended && (
-          <div className="mt-3 rounded-xl border border-warning/40 bg-warning/10 p-3 text-xs text-warning">
-            <p className="font-mono font-semibold uppercase tracking-wider">
-              Learning Recovery Mode
-            </p>
-            <p className="mt-1 leading-relaxed">
-              Bonus rewards are paused. Answer this question correctly to restore them.
-            </p>
-          </div>
-        )}
+        
         {question && (
           <>
             <p className="mt-4 text-sm font-medium leading-relaxed text-foreground">
@@ -171,12 +162,10 @@ export function CheckpointOverlay({
             {!feedback.correct && feedback.hint && (
               <p className="mt-2 text-xs text-warning">Hint: {feedback.hint}</p>
             )}
-            {!feedback.correct && feedback.hint2 && (
-              <p className="mt-2 text-xs text-warning">Hint: {feedback.hint2}</p>
-            )}
+            
             {!feedback.correct && !feedback.revealed && feedback.attempt && (
               <p className="mt-2 font-mono text-[10px] text-muted">
-                Attempt {feedback.attempt} of 3
+                Attempt {feedback.attempt} of 2
               </p>
             )}
             {!feedback.correct && feedback.revealed && (

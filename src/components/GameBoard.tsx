@@ -86,7 +86,14 @@ function GameBoardInner() {
           activeCheckpoint={game.activeCheckpoint}
           onOpenCheckpoint={() => {
             closeDrawer();
-            game.openLesson();
+            if (
+              !game.state.completedLearningCheckpoints.includes("cpu-basics") &&
+              !game.activeCheckpoint
+            ) {
+              game.beginBoot();
+            } else {
+              game.openLesson();
+            }
           }}
           onPractice={() => {
             setPracticeOpen(true);
@@ -151,25 +158,26 @@ function GameBoardInner() {
       </GameDrawer>
 
       {/* Offline boot CTA when no active lesson yet */}
-      {!game.cpuOnline && !game.activeCheckpoint && (
+      {!game.activeCheckpoint &&
+        !game.state.completedLearningCheckpoints.includes("cpu-basics") && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/55 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-warning/40 bg-panel/95 p-6 text-center shadow-2xl backdrop-blur-md">
-            <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-warning">
-              CPU Offline
+          <div className="w-full max-w-md rounded-2xl border border-violet/40 bg-panel/95 p-6 text-center shadow-2xl backdrop-blur-md">
+            <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-violet">
+              Stage 1 · KNOW CPU
             </p>
             <h2 className="mt-2 font-mono text-xl font-bold text-foreground">
-              Missing Components
+              Learn the parts, then unlock them
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-muted">
-              Your processor is missing the components it needs to execute instructions.
-              Compute/sec starts at 0.
+              Your clock is already ticking and earning CP. Read a short explanation,
+              then pass the quiz round. CP cannot skip the quiz.
             </p>
             <button
               type="button"
               onClick={game.beginBoot}
-              className="mt-5 w-full rounded-xl border border-warning/50 bg-warning/15 px-4 py-3 font-mono text-sm font-semibold text-warning"
+              className="mt-5 w-full rounded-xl border border-violet/50 bg-violet-soft px-4 py-3 font-mono text-sm font-semibold text-violet"
             >
-              Build Your First CPU
+              Start Stage 1
             </button>
           </div>
         </div>

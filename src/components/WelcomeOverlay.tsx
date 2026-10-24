@@ -55,22 +55,22 @@ export function WelcomeOverlay() {
           <p>
             <span className="font-semibold text-foreground">🎯 Your goal</span>
             <br />
-            Build a faster CPU and upgrade through new CPU generations.
+            Build a simplified CPU. Learn what each part does before you unlock the next stage.
           </p>
           <p>
             <span className="font-semibold text-foreground">💰 Your CP</span>
             <br />
-            Your CPU automatically generates Compute Points. Spend CP on upgrades.
+            CP grows automatically. It only sets the pace. It can never skip the quiz.
           </p>
           <p>
             <span className="font-semibold text-foreground">🧠 Your knowledge</span>
             <br />
-            Complete learning challenges to unlock advanced upgrades.
+            Read a short explanation, then pass a quiz round (70% or higher) to unlock parts.
           </p>
           <p>
             <span className="font-semibold text-foreground">🦾 Game values</span>
             <br />
-            Designed to help you learn as much as possible while you play.
+            Spend CP to upgrade unlocked parts and raise CP per second.
           </p>
         </div>
 

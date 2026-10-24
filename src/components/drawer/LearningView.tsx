@@ -16,7 +16,7 @@ export function LearningView({
   state,
   activeCheckpoint,
   onOpenCheckpoint,
-  onPractice,
+  onPractice: _onPractice,
 }: LearningViewProps) {
   const mastery = getCourseMasteryPercents(state);
   const completed = new Set(state.completedLearningCheckpoints);
@@ -28,8 +28,8 @@ export function LearningView({
           Learning
         </h2>
         <p className="mt-1 text-xs text-muted">
-          Required architecture checkpoints unlock CPU features. Production pauses until
-          each is solved.
+          Read the stage lesson and pass the quiz round to unlock parts.
+          CP keeps growing while you learn.
         </p>
       </div>
 
@@ -47,22 +47,24 @@ export function LearningView({
             onClick={onOpenCheckpoint}
             className="mt-3 w-full rounded-lg border border-warning/50 bg-warning/15 px-3 py-2 font-mono text-xs font-semibold text-warning"
           >
-            Continue Lesson
+            Continue Stage 1
           </button>
         </div>
       ) : (
         <div className="rounded-xl border border-edge bg-panel-muted p-3">
           <p className="text-xs text-muted">
-            No active stall. Keep upgrading — the next architectural wall will pause the
-            CPU when it matters.
+            No quiz round is open. Open Stage 1 when you are ready.
+            You need both enough CP and a passed quiz to unlock the next stage.
           </p>
-          <button
-            type="button"
-            onClick={onPractice}
-            className="mt-3 w-full rounded-lg border border-violet/40 bg-violet-soft px-3 py-2 font-mono text-xs font-semibold text-violet"
-          >
-            Optional Practice Challenge
-          </button>
+          {!completed.has("cpu-basics") && (
+            <button
+              type="button"
+              onClick={onOpenCheckpoint}
+              className="mt-3 w-full rounded-lg border border-violet/40 bg-violet-soft px-3 py-2 font-mono text-xs font-semibold text-violet"
+            >
+              Start Stage 1
+            </button>
+          )}
         </div>
       )}
 

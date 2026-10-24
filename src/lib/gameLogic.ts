@@ -35,7 +35,7 @@ import type {
 import { EMPTY_COURSE_MASTERY } from "@/types/game";
 import { attach } from "@react-three/fiber/dist/declarations/src/core/utils";
 
-export const STORAGE_KEY = "overclocked-save-v4";
+export const STORAGE_KEY = "overclocked-save-v5";
 export const LEGACY_STORAGE_KEY = "overclocked-save-v3";
 export const LEGACY_STORAGE_KEY_OLD = "overclocked-save-v2";
 export const LEGACY_STORAGE_KEY_ANCIENT = "overclocked-save-v1";
@@ -54,7 +54,7 @@ export function createInitialState(now = Date.now()): GameState {
   return {
     money: 0,
     totalEarned: 0,
-    upgradeLevels: { ...EMPTY_UPGRADE_LEVELS },
+    upgradeLevels: { ...EMPTY_UPGRADE_LEVELS, clock: 1},
     unlockedUpgrades: [...STARTING_UNLOCKS],
     questionsAnswered: 0,
     correctAnswers: 0,
@@ -74,11 +74,15 @@ export function createInitialState(now = Date.now()): GameState {
 }
 
 export function isCpuOnline(state: GameState): boolean {
-  return state.completedLearningCheckpoints.includes("cpu-basics");
+  return (
+    state.unlockedUpgrades.includes("clock") ||
+    state.completedLearningCheckpoints.includes("cpu-basics")
+  );
 }
 
 export function isProductionStalled(state: GameState): boolean {
-  return !isCpuOnline(state) || !!state.activeCheckpointId;
+  // return !isCpuOnline(state) || !!state.activeCheckpointId;
+  return false;
 }
 
 /** Idle compute — 0 while offline or during a mandatory checkpoint */
@@ -127,10 +131,7 @@ export function purchaseUpgrade(
   state: GameState,
   id: UpgradeId
 ): { state: GameState; delta: StatDelta } | null {
-  if (isProductionStalled(state) && isCpuOnline(state)) {
-    // Allow browsing costs while stalled? User said production paused — block purchases during stall to focus learning
-    return null;
-  }
+  
   if (!isCpuOnline(state)) return null;
 
   const def = UPGRADE_MAP[id];
@@ -164,7 +165,6 @@ export function purchaseUpgrade(
 }
 
 export function getQuizBonus(state: GameState): number {
-  if (state.bonusSuspended) return 0;// in some cases; the bonus would stop
   const income = Math.max(getIncomePerSecond(state), BASE_COMPUTE);
   return Math.max(25, Math.floor(income * 20 + 50));
 }
@@ -186,7 +186,10 @@ function bumpLevel(state: GameState, id: UpgradeId, amount = 1): GameState {
 }
 
 export function startBootSequence(state: GameState): GameState {
-  if (isCpuOnline(state) || state.activeCheckpointId === "cpu-basics") {
+  if (
+    state.completedLearningCheckpoints.includes("cpu-basics") ||
+    state.activeCheckpointId === "cpu-basics"
+  ) {
     return state;
   }
   return {
@@ -197,25 +200,6 @@ export function startBootSequence(state: GameState): GameState {
 }
 
 export function maybeActivateCheckpoint(state: GameState): GameState {
-  if (state.activeCheckpointId) return state;
-  if (!isCpuOnline(state)) return state;
-
-  const completed = new Set(state.completedLearningCheckpoints);
-
-  for (const cp of CHECKPOINTS) {
-    if (cp.id === "cpu-basics") continue;
-    if (completed.has(cp.id)) continue;
-    if (!cp.requires.every((r) => completed.has(r))) continue;
-    if (cp.minTotalEarned != null && state.totalEarned < cp.minTotalEarned) continue;
-    if (cp.minCpuLevel != null && getCpuLevel(state) < cp.minCpuLevel) continue;
-
-    return {
-      ...state,
-      activeCheckpointId: cp.id,
-      checkpointStep: 0,
-    };
-  }
-
   return state;
 }
 
@@ -258,16 +242,15 @@ export function answerCheckpointStep(
   let next = trackMastery(state, cp.courseUnit, correct);
 
   if (!correct) {
-    const revealed = attempt >= 3;// above 3 mistakes then show the answer
+    const revealed = attempt >= 2;// above 2 mistakes then show the answer
     let updatedNext = next;
 
     if (revealed) {
-      const missStreak = state.checkpointMissStreak + 1;
       updatedNext = {
         ...next,
-        checkpointMissStreak: missStreak,
-        bonusSuspended: state.bonusSuspended || missStreak>=3
-      }
+        checkpointMissStreak: 0,
+        bonusSuspended: false,
+      };
     }
     return {
       state: applyAchievements(updatedNext),
@@ -278,7 +261,7 @@ export function answerCheckpointStep(
         bonus: 0,
         courseUnit: cp.courseUnit,
         hint: attempt === 1 ? question.hint : undefined,
-        hint2: attempt === 2 ? question.hint2 : undefined,
+        hint2: undefined,
         attempt,
         revealed,
       },
