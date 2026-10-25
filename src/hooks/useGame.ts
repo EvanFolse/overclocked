@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   CheckpointResolveResult,
+  GameState,
   QuizFeedback,
   StatDelta,
   UpgradeId,
@@ -25,15 +26,29 @@ import {
 import { getCpuPerformance } from "@/lib/cpuStats";
 import { getCheckpoint } from "@/data/checkpoints";
 import { getStageByCheckpoint } from "@/data/stages";
+import { getBank, getRoundQuestions, shuffleOrder } from "@/lib/rounds";
 import { clearSavedGame, loadGame, saveGame } from "@/lib/storage";
 import { CHALLENGES } from "@/data/questions";
 
-export interface RoundResult{
+export interface RoundResult {
   stageTitle: string;
   /** 0 to 1 */
   percent: number;
-  /** failed: under 70%. pending: passed, but not enough cp yet*/
+  /** failed: under 70%. pending: passed, but not enough CP yet */
   kind: "failed" | "pending";
+}
+
+/** A fresh random option order for the question the player is currently on. */
+function orderFor(s: GameState): number[] {
+  const q = getRoundQuestions(s)[s.checkpointStep];
+  return q ? shuffleOrder(q.choices.length) : [];
+}
+
+/** The option order to use now: the stored one if it fits, otherwise the original order. */
+function resolveOrder(s: GameState, order: number[]): number[] {
+  const q = getRoundQuestions(s)[s.checkpointStep];
+  if (!q) return [];
+  return order.length === q.choices.length ? order : q.choices.map((_, i) => i);
 }
 
 export function useGame() {
@@ -46,6 +61,8 @@ export function useGame() {
   const [feedback, setFeedback] = useState<QuizFeedback | null>(null);
   const [checkpointAttempt, setCheckpointAttempt] = useState(1);
   const [hintOpened, setHintOpened] = useState(false);
+  /** choiceOrder[displayedIndex] = original option index of the current question */
+  const [choiceOrder, setChoiceOrder] = useState<number[]>([]);
   const [resetCount, setResetCount] = useState(0);
   const [lessonOpen, setLessonOpen] = useState(false);
   const [newAchievement, setNewAchievement] = useState<string | null>(null);
@@ -63,6 +80,8 @@ export function useGame() {
     prevCheckpoint.current = caughtUp.activeCheckpointId;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional mount hydration
     setState(caughtUp);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional mount hydration
+    setChoiceOrder(orderFor(caughtUp));
     setHydrated(true);
   }, []);
 
@@ -119,14 +138,21 @@ export function useGame() {
     prevCheckpoint.current = state.activeCheckpointId;
   }, [state.activeCheckpointId, hydrated]);
 
-  const beginStage = useCallback((stageId: number) => {
-    setState((prev) => startStage(prev, stageId));
-    setLessonOpen(true);
-    setSelectedChoice(null);
-    setFeedback(null);
-    setCheckpointAttempt(1);
-    setRoundResult(null);
-  }, []);
+  const beginStage = useCallback(
+    (stageId: number) => {
+      // Compute outside the state updater so the first question is shuffled exactly once
+      const next = startStage(state, stageId);
+      setState(next);
+      setChoiceOrder(orderFor(next));
+      setLessonOpen(true);
+      setSelectedChoice(null);
+      setFeedback(null);
+      setCheckpointAttempt(1);
+      setHintOpened(false);
+      setRoundResult(null);
+    },
+    [state]
+  );
 
   const beginBoot = useCallback(() => {
     beginStage(1);
@@ -163,12 +189,17 @@ export function useGame() {
   const clearResolveToast = useCallback(() => setResolveToast(null), []);
   const clearRoundResult = useCallback(() => setRoundResult(null), []);
   const openHint = useCallback(() => setHintOpened(true), []);
+
   const submitCheckpointAnswer = useCallback(() => {
     if (selectedChoice == null) return;
+    // The player picked a displayed position. Convert it to the original option index.
+    const order = resolveOrder(state, choiceOrder);
+    const originalIndex = order[selectedChoice] ?? selectedChoice;
+
     // Compute outside the state updater so the side effects below run exactly once
     const result = answerCheckpointStep(
       state,
-      selectedChoice,
+      originalIndex,
       checkpointAttempt,
       hintOpened
     );
@@ -199,12 +230,15 @@ export function useGame() {
       });
       setLessonOpen(false);
     }
-  }, [state, selectedChoice, checkpointAttempt, hintOpened]);
+  }, [state, selectedChoice, checkpointAttempt, hintOpened, choiceOrder]);
 
+  // Called by "Continue" (next question) and "Try Again" (same question, second attempt).
+  // Both show a freshly shuffled set of options.
   const nextCheckpointStep = useCallback(() => {
     setSelectedChoice(null);
     setFeedback(null);
-  }, []);
+    setChoiceOrder(orderFor(state));
+  }, [state]);
 
   const openPractice = useCallback((preferUnlock = false) => {
     setState((prev) => {
@@ -251,11 +285,36 @@ export function useGame() {
     setStatDelta(null);
     setResolveToast(null);
     setRoundResult(null);
+    setHintOpened(false);
+    setCheckpointAttempt(1);
+    setChoiceOrder([]);
     setResetCount((n) => n + 1);
   }, []);
 
   const activeQuestion = CHALLENGES.find((q) => q.id === activeQuestionId) ?? null;
-  const activeCheckpoint = getCheckpoint(state.activeCheckpointId);
+
+  // What the quiz overlay shows: the questions of this round, the current one with
+  // shuffled options, and the reading from the question bank when the stage has one.
+  const baseCheckpoint = getCheckpoint(state.activeCheckpointId);
+  const roundQuestions = getRoundQuestions(state);
+  const shownOrder = resolveOrder(state, choiceOrder);
+  const bank = getBank(state.activeCheckpointId);
+  const activeCheckpoint = baseCheckpoint
+    ? {
+      ...baseCheckpoint,
+      reading: bank?.reading ?? baseCheckpoint.reading,
+      questions: roundQuestions.map((q, i) =>
+        i === state.checkpointStep
+          ? {
+            ...q,
+            choices: shownOrder.map((o) => q.choices[o]!),
+            correctIndex: shownOrder.indexOf(q.correctIndex),
+          }
+          : q
+      ),
+    }
+    : null;
+
   const cpuStats = getCpuPerformance(state);
 
   return {
