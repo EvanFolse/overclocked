@@ -151,6 +151,10 @@ export type CourseMastery = Record<
 >;
 
 export interface GameState {
+  /** sum of credits(1/0.75/0.5/0)  earned in the current round*/
+  checkpointScore: number;
+  /** Checkpoints whose round was passed but the stage price is not paid yet */
+  pendingUnlocks: string[];
   money: number;
   totalEarned: number;
   upgradeLevels: Record<UpgradeId, number>;
@@ -195,6 +199,9 @@ export interface QuizFeedback {
   hint2?: string; // second hint; more details
   attempt?: number; // set up attempt times per question
   revealed?: boolean;
+  roundPassed?: boolean;
+  roundPercent?: number;
+  pendingUnlock?: boolean;
 }
 
 export type ThemeMode = "light" | "dark";

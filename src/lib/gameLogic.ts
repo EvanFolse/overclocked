@@ -1,9 +1,6 @@
 import { ACHIEVEMENTS } from "@/data/achievements";
-import {
-  CHECKPOINTS,
-  getCheckpoint,
-  type CheckpointId,
-} from "@/data/checkpoints";
+import { getCheckpoint, type CheckpointId } from "@/data/checkpoints";
+import { STAGES, getStage, getStageByCheckpoint, type StageDef } from "@/data/stages";
 import { CHALLENGES } from "@/data/questions";
 import {
   BASE_COMPUTE,
@@ -33,7 +30,6 @@ import type {
   UpgradeId,
 } from "@/types/game";
 import { EMPTY_COURSE_MASTERY } from "@/types/game";
-import { attach } from "@react-three/fiber/dist/declarations/src/core/utils";
 
 export const STORAGE_KEY = "overclocked-save-v5";
 export const LEGACY_STORAGE_KEY = "overclocked-save-v3";
@@ -70,6 +66,8 @@ export function createInitialState(now = Date.now()): GameState {
     checkpointStep: 0,
     checkpointMissStreak: 0,
     bonusSuspended: false,
+    checkpointScore: 0,
+    pendingUnlocks:[],
   };
 }
 
@@ -123,6 +121,7 @@ export function tickIncome(state: GameState, now = Date.now()): GameState {
     }
   }
 
+  next = settlePendingUnlocks(next);
   next = maybeActivateCheckpoint(next);
   return applyAchievements(next);
 }
@@ -185,22 +184,60 @@ function bumpLevel(state: GameState, id: UpgradeId, amount = 1): GameState {
   };
 }
 
-export function startBootSequence(state: GameState): GameState {
-  if (
-    state.completedLearningCheckpoints.includes("cpu-basics") ||
-    state.activeCheckpointId === "cpu-basics"
-  ) {
-    return state;
+export function isStageComplete(state: GameState, stage: StageDef): boolean {
+  return state.completedLearningCheckpoints.includes(stage.checkpointId);
+}
+
+export function getNextStage(state: GameState): StageDef | null {
+  if (state.activeCheckpointId) return null;
+  for (const stage of STAGES) {
+    if (isStageComplete(state, stage)) continue;
+    const previous = getStage(stage.id - 1);
+    if (previous && !isStageComplete(state, previous)) return null;
+    return stage;
   }
+  return null;
+}
+
+export function startStage(state: GameState, stageId: number): GameState {
+  const stage = getStage(stageId);
+  if (!stage) return state;
+  if (state.activeCheckpointId) return state;
+  if (isStageComplete(state, stage)) return state;
+  const previous = getStage(stage.id - 1);
+  if (previous && !isStageComplete(state, previous)) return state;
+  // Round already passed, just waiting for enough CP
+  if (state.pendingUnlocks.includes(stage.checkpointId)) return state;
   return {
     ...state,
-    activeCheckpointId: "cpu-basics",
+    activeCheckpointId: stage.checkpointId,
     checkpointStep: 0,
+    checkpointScore: 0,
   };
 }
 
+export function startBootSequence(state: GameState): GameState {
+  return startStage(state, 1);
+}
+export function settlePendingUnlocks(state: GameState): GameState{
+  if (state.activeCheckpointId) return state;
+  for (const stage of STAGES) {
+    if (!state.pendingUnlocks.includes(stage.checkpointId)) continue;
+    if (state.money < stage.price) return state;
+    const cp = getCheckpoint(stage.checkpointId);
+    if (!cp) return state;
+    return finishCheckpoint(state, cp, state).state;
+  }
+  return state;
+}
 export function maybeActivateCheckpoint(state: GameState): GameState {
   return state;
+}
+
+function stageClearBonus(checkpointId: string): number {
+  const stage = getStageByCheckpoint(checkpointId);
+  if (!stage) return 40;
+  return Math.max(40, Math.floor(stage.price * 0.3) || 40);
 }
 
 function trackMastery(
@@ -219,6 +256,57 @@ function trackMastery(
     questionsAnswered: state.questionsAnswered + 1,
     correctAnswers: state.correctAnswers + (correct ? 1 : 0),
   };
+}
+
+export const PASS_RATIO = 0.7;
+
+/** Hint (x0.5) is added later together with the hint button UI */
+function attemptCredit(attempt: number): number {
+  return attempt <= 1 ? 1 : 0.75;
+}
+
+type LearningCp = NonNullable<ReturnType<typeof getCheckpoint>>;
+
+function endRound(
+  next: GameState,
+  cp: LearningCp,
+  beforeState: GameState
+): {
+  state: GameState;
+  resolve?: CheckpointResolveResult;
+  bonus: number;
+  passed: boolean;
+  percent: number;
+  pending: boolean;
+} {
+  const percent = next.checkpointScore / cp.questions.length;
+  const reset = { activeCheckpointId: null, checkpointStep: 0, checkpointScore: 0 };
+
+  // Failed round: nothing is paid, nothing unlocks
+  if (percent < PASS_RATIO) {
+    return { state: { ...next, ...reset }, bonus: 0, passed: false, percent, pending: false };
+  }
+
+  const price = getStageByCheckpoint(cp.id)?.price ?? 0;
+
+  // Passed, but not enough CP: remember the pass, unlock later
+  if (next.money < price) {
+    return {
+      state: {
+        ...next,
+        ...reset,
+        pendingUnlocks: [...new Set([...next.pendingUnlocks, cp.id])],
+      },
+      bonus: 0,
+      passed: true,
+      percent,
+      pending: true,
+    };
+  }
+
+  // Passed and affordable: pay, unlock, reward
+  const done = finishCheckpoint(next, cp, beforeState);
+  return { ...done, passed: true, percent, pending: false };
 }
 
 export function answerCheckpointStep(
@@ -241,65 +329,82 @@ export function answerCheckpointStep(
   const correct = choiceIndex === question.correctIndex;
   let next = trackMastery(state, cp.courseUnit, correct);
 
-  if (!correct) {
-    const revealed = attempt >= 2;// above 2 mistakes then show the answer
-    let updatedNext = next;
-
-    if (revealed) {
-      updatedNext = {
-        ...next,
-        checkpointMissStreak: 0,
-        bonusSuspended: false,
-      };
-    }
+  // Wrong on the first attempt: let the player retry
+  if (!correct && attempt < 2) {
     return {
-      state: applyAchievements(updatedNext),
+      state: applyAchievements(next),
       feedback: {
         correct: false,
-        explanation: revealed ? question.explanation : "",
-        correctAnswer: revealed ? question.choices[question.correctIndex] : "",
+        explanation: "",
+        correctAnswer: "",
         bonus: 0,
         courseUnit: cp.courseUnit,
-        hint: attempt === 1 ? question.hint : undefined,
+        hint: question.hint,
         hint2: undefined,
         attempt,
-        revealed,
-      },
-      completedCheckpoint: false,
-    }
-  }
-
-  // Correct — unlock stepwise components, advance
-  next = { ...next, checkpointMissStreak: 0, bonusSuspended: false };
-  if (question.unlockUpgrade) {
-    next = unlockIds(next, [question.unlockUpgrade]);
-    if ((next.upgradeLevels[question.unlockUpgrade] ?? 0) === 0) {
-      next = bumpLevel(next, question.unlockUpgrade, 1);
-    }
-  }
-
-  const nextStep = step + 1;
-  const finished = nextStep >= cp.questions.length;
-
-  if (!finished) {
-    return {
-      state: applyAchievements({ ...next, checkpointStep: nextStep }),
-      feedback: {
-        correct: true,
-        explanation: question.explanation,
-        correctAnswer: question.choices[question.correctIndex],
-        bonus: 0,
-        unlockedUpgrade: question.unlockUpgrade,
-        courseUnit: cp.courseUnit,
+        revealed: false,
       },
       completedCheckpoint: false,
     };
   }
 
-  const beforeRate = isCpuOnline(state)
-    ? BASE_COMPUTE + computeCpuPerformance(state.upgradeLevels).computePerSecond
+  // The question is settled: correct (any attempt) or wrong on attempt 2
+  if (correct) {
+    next = { ...next, checkpointScore: next.checkpointScore + attemptCredit(attempt) };
+    if (question.unlockUpgrade) {
+      next = unlockIds(next, [question.unlockUpgrade]);
+      if ((next.upgradeLevels[question.unlockUpgrade] ?? 0) === 0) {
+        next = bumpLevel(next, question.unlockUpgrade, 1);
+      }
+    }
+  }
+  next = { ...next, checkpointMissStreak: 0, bonusSuspended: false };
+
+  const baseFeedback = {
+    correct,
+    explanation: question.explanation,
+    correctAnswer: question.choices[question.correctIndex],
+    courseUnit: cp.courseUnit,
+    ...(correct
+      ? { unlockedUpgrade: question.unlockUpgrade }
+      : { attempt, revealed: true }),
+  };
+
+  const nextStep = step + 1;
+  if (nextStep < cp.questions.length) {
+    return {
+      state: applyAchievements({ ...next, checkpointStep: nextStep }),
+      feedback: { ...baseFeedback, bonus: 0 },
+      completedCheckpoint: false,
+    };
+  }
+
+  const end = endRound(next, cp, state);
+  return {
+    state: applyAchievements(end.state),
+    feedback: {
+      ...baseFeedback,
+      bonus: end.bonus,
+      wasBottleneck: true,
+      roundPassed: end.passed,
+      roundPercent: end.percent,
+      pendingUnlock: end.pending,
+    },
+    completedCheckpoint: true,
+    resolve: end.resolve,
+  };
+}
+
+
+function finishCheckpoint(
+  next: GameState,
+  cp: NonNullable<ReturnType<typeof getCheckpoint>>,
+  beforeState: GameState
+): { state: GameState; resolve: CheckpointResolveResult; bonus: number } {
+  const beforeRate = isCpuOnline(beforeState)
+    ? BASE_COMPUTE + computeCpuPerformance(beforeState.upgradeLevels).computePerSecond
     : 0;
-  const beforePerf = computeCpuPerformance(state.upgradeLevels);
+  const beforePerf = computeCpuPerformance(beforeState.upgradeLevels);
 
   next = unlockIds(next, cp.unlockUpgrades);
   for (const id of cp.unlockUpgrades) {
@@ -308,47 +413,41 @@ export function answerCheckpointStep(
     }
   }
 
-  // Intro: ensure boot parts are at least level 1
   if (cp.id === "cpu-basics") {
     next = unlockIds(next, BOOT_UNLOCKS);
     for (const id of BOOT_UNLOCKS) {
       if ((next.upgradeLevels[id] ?? 0) < 1) next = bumpLevel(next, id, 1);
     }
   }
-
-  const completed = [
-    ...new Set([...next.completedLearningCheckpoints, cp.id]),
-  ];
+  const price = getStageByCheckpoint(cp.id)?.price ?? 0;
+  const bonus = stageClearBonus(cp.id);
+  const completed = [...new Set([...next.completedLearningCheckpoints, cp.id])];
 
   next = {
     ...next,
+    money: next.money - price + bonus,
+    totalEarned: next.totalEarned + bonus,
     completedLearningCheckpoints: completed,
+    pendingUnlocks: next.pendingUnlocks.filter((id) => id !== cp.id),
     activeCheckpointId: null,
     checkpointStep: 0,
-    bottlenecksResolved: next.bottlenecksResolved + 1,
+    checkpointScore: 0,
+    bottlenecksResolved: next.bottlenecksResolved +1,
   };
 
   const afterPerf = computeCpuPerformance(next.upgradeLevels);
   const afterRate = BASE_COMPUTE + afterPerf.computePerSecond;
+  const resolve = buildResolve(
+    cp.id,
+    cp.title,
+    beforeRate,
+    afterRate,
+    beforePerf,
+    afterPerf,
+    cp.relevantStat
+  );
 
-  const resolve = buildResolve(cp.id, cp.title, beforeRate, afterRate, beforePerf, afterPerf, cp.relevantStat);
-
-  next = maybeActivateCheckpoint(next);
-
-  return {
-    state: applyAchievements(next),
-    feedback: {
-      correct: true,
-      explanation: question.explanation,
-      correctAnswer: question.choices[question.correctIndex],
-      bonus: 0,
-      unlockedUpgrade: question.unlockUpgrade,
-      courseUnit: cp.courseUnit,
-      wasBottleneck: true,
-    },
-    completedCheckpoint: true,
-    resolve,
-  };
+  return { state: maybeActivateCheckpoint(next), resolve, bonus };
 }
 
 function buildResolve(
@@ -639,8 +738,11 @@ export function sanitizeLoadedState(raw: unknown): GameState | null {
       checkpointStep: Number(data.checkpointStep) || 0,
       checkpointMissStreak: Number(data.checkpointMissStreak) || 0,
       bonusSuspended: Boolean(data.bonusSuspended),
-    });
-
+      checkpointScore: Number(data.checkpointScore) || 0,
+      pendingUnlocks: Array.isArray(data.pendingUnlocks)
+        ? data.pendingUnlocks.map(String)
+        : [],
+    })
     state = maybeActivateCheckpoint(state);
     return state;
   } catch {
