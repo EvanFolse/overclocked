@@ -19,6 +19,7 @@ import {
   levelsWithUpgrade,
 } from "@/lib/cpuStats";
 import { formatPercent } from "@/lib/format";
+import { drawRoundIds, getBank, getRoundQuestions } from "@/lib/rounds";
 import type {
   Challenge,
   CheckpointResolveResult,
@@ -50,7 +51,7 @@ export function createInitialState(now = Date.now()): GameState {
   return {
     money: 0,
     totalEarned: 0,
-    upgradeLevels: { ...EMPTY_UPGRADE_LEVELS, clock: 1},
+    upgradeLevels: { ...EMPTY_UPGRADE_LEVELS, clock: 1 },
     unlockedUpgrades: [...STARTING_UNLOCKS],
     questionsAnswered: 0,
     correctAnswers: 0,
@@ -67,7 +68,9 @@ export function createInitialState(now = Date.now()): GameState {
     checkpointMissStreak: 0,
     bonusSuspended: false,
     checkpointScore: 0,
-    pendingUnlocks:[],
+    pendingUnlocks: [],
+    roundQuestionIds: [],
+    failedQuestionIds: [],
   };
 }
 
@@ -130,7 +133,7 @@ export function purchaseUpgrade(
   state: GameState,
   id: UpgradeId
 ): { state: GameState; delta: StatDelta } | null {
-  
+
   if (!isCpuOnline(state)) return null;
 
   const def = UPGRADE_MAP[id];
@@ -198,8 +201,10 @@ export function getNextStage(state: GameState): StageDef | null {
   }
   return null;
 }
+
 export type StageStatus = "done" | "pending" | "available" | "locked";
-export function getStageStatus(state: GameState, stage: StageDef): StageStatus{
+
+export function getStageStatus(state: GameState, stage: StageDef): StageStatus {
   if (isStageComplete(state, stage)) return "done";
   if (state.pendingUnlocks.includes(stage.checkpointId)) return "pending";
   const previous = getStage(stage.id - 1);
@@ -216,18 +221,22 @@ export function startStage(state: GameState, stageId: number): GameState {
   if (previous && !isStageComplete(state, previous)) return state;
   // Round already passed, just waiting for enough CP
   if (state.pendingUnlocks.includes(stage.checkpointId)) return state;
+  const bank = getBank(stage.checkpointId);
   return {
     ...state,
     activeCheckpointId: stage.checkpointId,
     checkpointStep: 0,
     checkpointScore: 0,
+    roundQuestionIds: bank ? drawRoundIds(bank, state.failedQuestionIds) : [],
   };
 }
 
 export function startBootSequence(state: GameState): GameState {
   return startStage(state, 1);
 }
-export function settlePendingUnlocks(state: GameState): GameState{
+
+/** A passed round waiting for CP unlocks as soon as the player can afford it */
+export function settlePendingUnlocks(state: GameState): GameState {
   if (state.activeCheckpointId) return state;
   for (const stage of STAGES) {
     if (!state.pendingUnlocks.includes(stage.checkpointId)) continue;
@@ -238,6 +247,7 @@ export function settlePendingUnlocks(state: GameState): GameState{
   }
   return state;
 }
+
 export function maybeActivateCheckpoint(state: GameState): GameState {
   return state;
 }
@@ -268,8 +278,8 @@ function trackMastery(
 
 export const PASS_RATIO = 0.7;
 
-/** Hint (x0.5) is added later together with the hint button UI */
-function attemptCredit(attempt: number,hintUsed:boolean): number {
+/** Credit per question: 1 on the first attempt, 0.75 on the second, 0.5 if the hint was opened */
+function attemptCredit(attempt: number, hintUsed: boolean): number {
   if (attempt <= 1) return 1;
   return hintUsed ? 0.5 : 0.75;
 }
@@ -279,7 +289,8 @@ type LearningCp = NonNullable<ReturnType<typeof getCheckpoint>>;
 function endRound(
   next: GameState,
   cp: LearningCp,
-  beforeState: GameState
+  beforeState: GameState,
+  totalQuestions: number
 ): {
   state: GameState;
   resolve?: CheckpointResolveResult;
@@ -288,8 +299,13 @@ function endRound(
   percent: number;
   pending: boolean;
 } {
-  const percent = next.checkpointScore / cp.questions.length;
-  const reset = { activeCheckpointId: null, checkpointStep: 0, checkpointScore: 0 };
+  const percent = next.checkpointScore / totalQuestions;
+  const reset = {
+    activeCheckpointId: null,
+    checkpointStep: 0,
+    checkpointScore: 0,
+    roundQuestionIds: [] as string[],
+  };
 
   // Failed round: nothing is paid, nothing unlocks
   if (percent < PASS_RATIO) {
@@ -332,8 +348,9 @@ export function answerCheckpointStep(
   const cp = getCheckpoint(state.activeCheckpointId);
   if (!cp) return null;
 
+  const roundQs = getRoundQuestions(state);
   const step = state.checkpointStep;
-  const question = cp.questions[step];
+  const question = roundQs[step];
   if (!question) return null;
 
   const correct = choiceIndex === question.correctIndex;
@@ -363,7 +380,7 @@ export function answerCheckpointStep(
     next = {
       ...next,
       checkpointScore: next.checkpointScore + attemptCredit(attempt, hintUsed),
-    }
+    };
     if (question.unlockUpgrade) {
       next = unlockIds(next, [question.unlockUpgrade]);
       if ((next.upgradeLevels[question.unlockUpgrade] ?? 0) === 0) {
@@ -372,6 +389,14 @@ export function answerCheckpointStep(
     }
   }
   next = { ...next, checkpointMissStreak: 0, bonusSuspended: false };
+
+  // Remember questions that were failed on both attempts (bank stages only)
+  if (!correct && getBank(cp.id)) {
+    next = {
+      ...next,
+      failedQuestionIds: [...new Set([...next.failedQuestionIds, question.id])],
+    };
+  }
 
   const baseFeedback = {
     correct,
@@ -384,7 +409,7 @@ export function answerCheckpointStep(
   };
 
   const nextStep = step + 1;
-  if (nextStep < cp.questions.length) {
+  if (nextStep < roundQs.length) {
     return {
       state: applyAchievements({ ...next, checkpointStep: nextStep }),
       feedback: { ...baseFeedback, bonus: 0 },
@@ -392,7 +417,7 @@ export function answerCheckpointStep(
     };
   }
 
-  const end = endRound(next, cp, state);
+  const end = endRound(next, cp, state, roundQs.length);
   return {
     state: applyAchievements(end.state),
     feedback: {
@@ -407,7 +432,6 @@ export function answerCheckpointStep(
     resolve: end.resolve,
   };
 }
-
 
 function finishCheckpoint(
   next: GameState,
@@ -433,6 +457,7 @@ function finishCheckpoint(
     }
   }
   const price = getStageByCheckpoint(cp.id)?.price ?? 0;
+  const bank = getBank(cp.id);
   const bonus = stageClearBonus(cp.id);
   const completed = [...new Set([...next.completedLearningCheckpoints, cp.id])];
 
@@ -445,7 +470,11 @@ function finishCheckpoint(
     activeCheckpointId: null,
     checkpointStep: 0,
     checkpointScore: 0,
-    bottlenecksResolved: next.bottlenecksResolved +1,
+    roundQuestionIds: [],
+    failedQuestionIds: bank
+      ? next.failedQuestionIds.filter((id) => !bank.mc.some((q) => q.id === id))
+      : next.failedQuestionIds,
+    bottlenecksResolved: next.bottlenecksResolved + 1,
   };
 
   const afterPerf = computeCpuPerformance(next.upgradeLevels);
@@ -755,7 +784,14 @@ export function sanitizeLoadedState(raw: unknown): GameState | null {
       pendingUnlocks: Array.isArray(data.pendingUnlocks)
         ? data.pendingUnlocks.map(String)
         : [],
-    })
+      roundQuestionIds: Array.isArray(data.roundQuestionIds)
+        ? data.roundQuestionIds.map(String)
+        : [],
+      failedQuestionIds: Array.isArray(data.failedQuestionIds)
+        ? data.failedQuestionIds.map(String)
+        : [],
+    });
+
     state = maybeActivateCheckpoint(state);
     return state;
   } catch {
