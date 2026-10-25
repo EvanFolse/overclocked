@@ -12,7 +12,7 @@ interface StageListProps {
 
 export function StageList({ state, onStart }: StageListProps) {
     return (
-        <div className="fixed bottom-4 left-1/2 z-30 w-[min(100%-2rem,26rem)] -translate-x-1/2 rounded-2xl border border-violet/40 bg-panel/95 p-3 shadow-2xl backdrop-blur-md">
+        <div className="fixed left-4 top-24 z-30 w-60 rounded-2xl border border-violet/40 bg-panel/95 p-3 shadow-2xl backdrop-blur-md">
             <p className="px-1 font-mono text-[10px] uppercase tracking-[0.22em] text-violet">
                 Stages
             </p>
@@ -33,7 +33,10 @@ export function StageList({ state, onStart }: StageListProps) {
                     } else if (status === "locked") {
                         label = "Locked";
                     } else {
-                        label = stage.price === 0 ? "Free · start quiz" : `Price ${formatMoney(stage.price)} · start quiz`;
+                        label =
+                            stage.price === 0
+                                ? "Free · start quiz"
+                                : `Price ${formatMoney(stage.price)} · start quiz`;
                     }
 
                     return (
@@ -42,7 +45,7 @@ export function StageList({ state, onStart }: StageListProps) {
                                 type="button"
                                 disabled={!clickable}
                                 onClick={() => onStart(stage.id)}
-                                className={`flex w-full items-center justify-between gap-3 rounded-xl border px-3 py-2 text-left ${clickable
+                                className={`flex w-full flex-col items-start gap-0.5 rounded-xl border px-3 py-2 text-left ${clickable
                                         ? "border-violet/50 bg-violet-soft"
                                         : "border-violet/20 opacity-70"
                                     }`}
