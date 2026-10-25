@@ -199,6 +199,8 @@ function GameBoardInner() {
           onSelect={game.setSelectedChoice}
           onSubmit={game.submitCheckpointAnswer}
           onContinue={game.nextCheckpointStep}
+          hintOpened={game.hintOpened}
+          onOpenHint={game.openHint}
         />
       )}
       {game.roundResult && (

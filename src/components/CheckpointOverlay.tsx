@@ -17,6 +17,8 @@ interface CheckpointOverlayProps {
   onSelect: (index: number) => void;
   onSubmit: () => void;
   onContinue: () => void;
+  hintOpened: boolean;
+  onOpenHint: () => void;
 }
 
 export function CheckpointOverlay({
@@ -31,6 +33,8 @@ export function CheckpointOverlay({
   onSelect,
   onSubmit,
   onContinue,
+  hintOpened,
+  onOpenHint,
 }: CheckpointOverlayProps) {
   const question = checkpoint.questions[step];
   const isBoot = checkpoint.id === "cpu-basics";
@@ -159,8 +163,23 @@ export function CheckpointOverlay({
             {(feedback.correct || feedback.revealed) && (
               <p className="mt-2 text-xs leading-relaxed text-muted">{feedback.explanation}</p>
             )}
-            {!feedback.correct && feedback.hint && (
-              <p className="mt-2 text-xs text-warning">Hint: {feedback.hint}</p>
+            {feedback.bonus > 0 && (
+              <p className="mt-2 font-mono text-xs text-success">
+                Stage reward +{feedback.bonus} CP
+              </p>
+            )}
+            {!feedback.correct && !feedback.revealed && question?.hint && (
+              hintOpened ? (
+                <p className="mt-2 text-xs text-warning">Hint: {question.hint}</p>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onOpenHint}
+                  className="mt-2 rounded-lg border border-warning/40 px-3 py-1.5 font-mono text-xs text-warning"
+                >
+                  Show hint (max ×0.5 credit)
+                </button>
+              )
             )}
             
             {!feedback.correct && !feedback.revealed && feedback.attempt && (
@@ -186,7 +205,7 @@ export function CheckpointOverlay({
             >
               Submit
             </button>
-          ) : feedback.correct ? (
+          ) : feedback.correct || feedback.revealed ? (
             <button
               type="button"
               onClick={onContinue}
