@@ -269,8 +269,9 @@ function trackMastery(
 export const PASS_RATIO = 0.7;
 
 /** Hint (x0.5) is added later together with the hint button UI */
-function attemptCredit(attempt: number): number {
-  return attempt <= 1 ? 1 : 0.75;
+function attemptCredit(attempt: number,hintUsed:boolean): number {
+  if (attempt <= 1) return 1;
+  return hintUsed ? 0.5 : 0 / 75;
 }
 
 type LearningCp = NonNullable<ReturnType<typeof getCheckpoint>>;
@@ -320,7 +321,8 @@ function endRound(
 export function answerCheckpointStep(
   state: GameState,
   choiceIndex: number,
-  attempt: number
+  attempt: number,
+  hintUsed = false
 ): {
   state: GameState;
   feedback: QuizFeedback;
@@ -358,7 +360,10 @@ export function answerCheckpointStep(
 
   // The question is settled: correct (any attempt) or wrong on attempt 2
   if (correct) {
-    next = { ...next, checkpointScore: next.checkpointScore + attemptCredit(attempt) };
+    next = {
+      ...next,
+      checkpointScore: next.checkpointScore + attemptCredit(attempt, hintUsed),
+    }
     if (question.unlockUpgrade) {
       next = unlockIds(next, [question.unlockUpgrade]);
       if ((next.upgradeLevels[question.unlockUpgrade] ?? 0) === 0) {

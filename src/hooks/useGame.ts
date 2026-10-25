@@ -45,6 +45,7 @@ export function useGame() {
   const [selectedChoice, setSelectedChoice] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<QuizFeedback | null>(null);
   const [checkpointAttempt, setCheckpointAttempt] = useState(1);
+  const [hintOpened, setHintOpened] = useState(false);
   const [resetCount, setResetCount] = useState(0);
   const [lessonOpen, setLessonOpen] = useState(false);
   const [newAchievement, setNewAchievement] = useState<string | null>(null);
@@ -161,35 +162,44 @@ export function useGame() {
   const clearStatDelta = useCallback(() => setStatDelta(null), []);
   const clearResolveToast = useCallback(() => setResolveToast(null), []);
   const clearRoundResult = useCallback(() => setRoundResult(null), []);
+  const openHint = useCallback(() => setHintOpened(true), []);
   const submitCheckpointAnswer = useCallback(() => {
     if (selectedChoice == null) return;
-    setState((prev) => {
-      const result = answerCheckpointStep(prev, selectedChoice, checkpointAttempt);
-      if (!result) return prev;
-      setFeedback(result.feedback);
-      if (result.feedback.correct || result.feedback.revealed) {
-        setCheckpointAttempt(1);
-      } else {
-        setCheckpointAttempt((a) => a + 1);
-      }
-      if (result.completedCheckpoint && result.resolve) {
-        setResolveToast(result.resolve);
-        setUpgradeFlash((f) => f + 1);
-        setLessonOpen(false);
-      }
+    // Compute outside the state updater so the side effects below run exactly once
+    const result = answerCheckpointStep(
+      state,
+      selectedChoice,
+      checkpointAttempt,
+      hintOpened
+    );
+    if (!result) return;
 
-      if (result.completedCheckpoint && !result.resolve) {
-        const stage = getStageByCheckpoint(prev.activeCheckpointId);
-        setRoundResult({
-          stageTitle: stage?.title ?? "Stage",
-          percent: result.feedback.roundPercent ?? 0,
-          kind: result.feedback.pendingUnlock ? "pending" : "failed",
-        });
-        setLessonOpen(false);
-      }
-      return result.state;
-    });
-  }, [selectedChoice, checkpointAttempt]);
+    setState(result.state);
+    setFeedback(result.feedback);
+
+    if (result.feedback.correct || result.feedback.revealed) {
+      setCheckpointAttempt(1);
+      setHintOpened(false);
+    } else {
+      setCheckpointAttempt((a) => a + 1);
+    }
+
+    if (result.completedCheckpoint && result.resolve) {
+      setResolveToast(result.resolve);
+      setUpgradeFlash((f) => f + 1);
+      setLessonOpen(false);
+    }
+
+    if (result.completedCheckpoint && !result.resolve) {
+      const stage = getStageByCheckpoint(state.activeCheckpointId);
+      setRoundResult({
+        stageTitle: stage?.title ?? "Stage",
+        percent: result.feedback.roundPercent ?? 0,
+        kind: result.feedback.pendingUnlock ? "pending" : "failed",
+      });
+      setLessonOpen(false);
+    }
+  }, [state, selectedChoice, checkpointAttempt, hintOpened]);
 
   const nextCheckpointStep = useCallback(() => {
     setSelectedChoice(null);
@@ -270,6 +280,8 @@ export function useGame() {
     statDelta,
     resolveToast,
     roundResult,
+    hintOpened,
+    openHint,
     clearRoundResult,
     clearStatDelta,
     clearResolveToast,
