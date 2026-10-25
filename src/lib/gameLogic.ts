@@ -271,7 +271,7 @@ export const PASS_RATIO = 0.7;
 /** Hint (x0.5) is added later together with the hint button UI */
 function attemptCredit(attempt: number,hintUsed:boolean): number {
   if (attempt <= 1) return 1;
-  return hintUsed ? 0.5 : 0 / 75;
+  return hintUsed ? 0.5 : 0.75;
 }
 
 type LearningCp = NonNullable<ReturnType<typeof getCheckpoint>>;

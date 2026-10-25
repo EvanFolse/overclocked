@@ -155,6 +155,8 @@ export interface GameState {
   checkpointScore: number;
   /** Checkpoints whose round was passed but the stage price is not paid yet */
   pendingUnlocks: string[];
+  roundQuestionIds: string[];
+  failedQuestionIds: string[];
   money: number;
   totalEarned: number;
   upgradeLevels: Record<UpgradeId, number>;
