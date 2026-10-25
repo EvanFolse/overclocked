@@ -18,13 +18,23 @@ import {
   maybeActivateCheckpoint,
   pickRandomQuestion,
   purchaseUpgrade,
-  startBootSequence,
+  getNextStage,
+  startStage,
   tickIncome,
 } from "@/lib/gameLogic";
 import { getCpuPerformance } from "@/lib/cpuStats";
 import { getCheckpoint } from "@/data/checkpoints";
+import { getStageByCheckpoint } from "@/data/stages";
 import { clearSavedGame, loadGame, saveGame } from "@/lib/storage";
 import { CHALLENGES } from "@/data/questions";
+
+export interface RoundResult{
+  stageTitle: string;
+  /** 0 to 1 */
+  percent: number;
+  /** failed: under 70%. pending: passed, but not enough cp yet*/
+  kind: "failed" | "pending";
+}
 
 export function useGame() {
   const [state, setState] = useState(createInitialState);
@@ -35,12 +45,14 @@ export function useGame() {
   const [selectedChoice, setSelectedChoice] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<QuizFeedback | null>(null);
   const [checkpointAttempt, setCheckpointAttempt] = useState(1);
+  const [resetCount, setResetCount] = useState(0);
   const [lessonOpen, setLessonOpen] = useState(false);
   const [newAchievement, setNewAchievement] = useState<string | null>(null);
   const [statDelta, setStatDelta] = useState<StatDelta | null>(null);
   const [resolveToast, setResolveToast] = useState<CheckpointResolveResult | null>(
     null
   );
+  const [roundResult, setRoundResult] = useState<RoundResult | null>(null);
   const prevAchievements = useRef<string[]>([]);
   const prevCheckpoint = useRef<string | null>(null);
 
@@ -106,13 +118,18 @@ export function useGame() {
     prevCheckpoint.current = state.activeCheckpointId;
   }, [state.activeCheckpointId, hydrated]);
 
-  const beginBoot = useCallback(() => {
-    setState((prev) => startBootSequence(prev));
+  const beginStage = useCallback((stageId: number) => {
+    setState((prev) => startStage(prev, stageId));
     setLessonOpen(true);
     setSelectedChoice(null);
     setFeedback(null);
     setCheckpointAttempt(1);
+    setRoundResult(null);
   }, []);
+
+  const beginBoot = useCallback(() => {
+    beginStage(1);
+  }, [beginStage]);
 
   const openLesson = useCallback(() => {
     setState((prev) => {
@@ -143,7 +160,7 @@ export function useGame() {
 
   const clearStatDelta = useCallback(() => setStatDelta(null), []);
   const clearResolveToast = useCallback(() => setResolveToast(null), []);
-
+  const clearRoundResult = useCallback(() => setRoundResult(null), []);
   const submitCheckpointAnswer = useCallback(() => {
     if (selectedChoice == null) return;
     setState((prev) => {
@@ -158,6 +175,16 @@ export function useGame() {
       if (result.completedCheckpoint && result.resolve) {
         setResolveToast(result.resolve);
         setUpgradeFlash((f) => f + 1);
+        setLessonOpen(false);
+      }
+
+      if (result.completedCheckpoint && !result.resolve) {
+        const stage = getStageByCheckpoint(prev.activeCheckpointId);
+        setRoundResult({
+          stageTitle: stage?.title ?? "Stage",
+          percent: result.feedback.roundPercent ?? 0,
+          kind: result.feedback.pendingUnlock ? "pending" : "failed",
+        });
         setLessonOpen(false);
       }
       return result.state;
@@ -213,6 +240,8 @@ export function useGame() {
     setActiveQuestionId(null);
     setStatDelta(null);
     setResolveToast(null);
+    setRoundResult(null);
+    setResetCount((n) => n + 1);
   }, []);
 
   const activeQuestion = CHALLENGES.find((q) => q.id === activeQuestionId) ?? null;
@@ -236,12 +265,17 @@ export function useGame() {
     setSelectedChoice,
     feedback,
     checkpointAttempt,
+    resetCount,
     newAchievement,
     statDelta,
     resolveToast,
+    roundResult,
+    clearRoundResult,
     clearStatDelta,
     clearResolveToast,
     beginBoot,
+    beginStage,
+    nextStage: getNextStage(state),
     openLesson,
     closeLesson,
     submitCheckpointAnswer,
