@@ -10,6 +10,7 @@ import { QuizPanel } from "@/components/QuizPanel";
 import { AchievementToast } from "@/components/AchievementToast";
 import { UpgradeFeedback } from "@/components/UpgradeFeedback";
 import { CheckpointOverlay } from "@/components/CheckpointOverlay";
+import { StageList } from "@/components/StageList";
 import { WelcomeOverlay } from "@/components/WelcomeOverlay";
 import { LearningView } from "@/components/drawer/LearningView";
 import { ProgressView } from "@/components/drawer/ProgressView";
@@ -17,6 +18,7 @@ import { SettingsView } from "@/components/drawer/SettingsView";
 import { SourcesView } from "@/components/drawer/SourcesView";
 import { ThemeProvider } from "@/lib/theme";
 import { getCurrentEra } from "@/data/eras";
+import { formatMoney } from "@/lib/format";
 
 function GameBoardInner() {
   const game = useGame();
@@ -84,16 +86,13 @@ function GameBoardInner() {
         <LearningView
           state={game.state}
           activeCheckpoint={game.activeCheckpoint}
-          onOpenCheckpoint={() => {
+          onStartStage={(stageId) => {
             closeDrawer();
-            if (
-              !game.state.completedLearningCheckpoints.includes("cpu-basics") &&
-              !game.activeCheckpoint
-            ) {
-              game.beginBoot();
-            } else {
+            if (game.activeCheckpoint) {
               game.openLesson();
+              return;
             }
+            game.beginStage(stageId);
           }}
           onPractice={() => {
             setPracticeOpen(true);
@@ -183,6 +182,10 @@ function GameBoardInner() {
         </div>
       )}
 
+      {!game.activeCheckpoint && (
+        <StageList state={game.state} onStart={game.beginStage} />
+      )}
+
       {game.activeCheckpoint && (
         <CheckpointOverlay
           checkpoint={game.activeCheckpoint}
@@ -198,6 +201,31 @@ function GameBoardInner() {
           onContinue={game.nextCheckpointStep}
         />
       )}
+      {game.roundResult && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-violet/40 bg-panel/95 p-6 text-center shadow-2xl backdrop-blur-md">
+            <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-violet">
+              {game.roundResult.stageTitle}
+            </p>
+            <h2 className="mt-2 font-mono text-xl font-bold text-foreground">
+              {game.roundResult.kind === "failed" ? "Round not passed" : "Round passed"}
+            </h2>
+            <p className="mt-3 text-sm leading-relaxed text-muted">
+              Score {Math.round(game.roundResult.percent * 100)}%.{" "}
+              {game.roundResult.kind === "failed"
+                ? "You need 70% to pass. Nothing was spent, so you can try again."
+                : "This stage will unlock automatically as soon as you have enough CP."}
+            </p>
+            <button
+              type="button"
+              onClick={game.clearRoundResult}
+              className="mt-5 w-full rounded-xl border border-violet/50 bg-violet-soft px-4 py-3 font-mono text-sm font-semibold text-violet"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
 
       <UpgradeFeedback
         delta={game.statDelta}
@@ -205,7 +233,7 @@ function GameBoardInner() {
         onDismissDelta={game.clearStatDelta}
         onDismissResolve={game.clearResolveToast}
       />
-      <WelcomeOverlay key={game.state.lastTick} />
+      <WelcomeOverlay key={game.resetCount} />
       <AchievementToast achievementId={game.newAchievement} />
     </div>
   );

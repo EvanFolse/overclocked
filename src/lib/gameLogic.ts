@@ -198,6 +198,14 @@ export function getNextStage(state: GameState): StageDef | null {
   }
   return null;
 }
+export type StageStatus = "done" | "pending" | "available" | "locked";
+export function getStageStatus(state: GameState, stage: StageDef): StageStatus{
+  if (isStageComplete(state, stage)) return "done";
+  if (state.pendingUnlocks.includes(stage.checkpointId)) return "pending";
+  const previous = getStage(stage.id - 1);
+  if (previous && !isStageComplete(state, previous)) return "locked";
+  return "available";
+}
 
 export function startStage(state: GameState, stageId: number): GameState {
   const stage = getStage(stageId);
