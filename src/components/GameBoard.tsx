@@ -216,7 +216,9 @@ function GameBoardInner() {
               Score {Math.round(game.roundResult.percent * 100)}%.{" "}
               {game.roundResult.kind === "failed"
                 ? "You need 70% to pass. Nothing was spent, so you can try again."
-                : "This stage will unlock automatically as soon as you have enough CP."}
+                : game.roundResult.kind === "pending"
+                  ? "This stage will unlock automatically as soon as you have enough CP."
+                  : "Stage unlocked."}
             </p>
             <button
               type="button"
