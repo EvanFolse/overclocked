@@ -12,6 +12,7 @@ import {
   answerCheckpointStep,
   answerQuestion,
   createInitialState,
+  finishRound,
   getCpuLevel,
   getIncomePerSecond,
   isCpuOnline,
@@ -34,8 +35,8 @@ export interface RoundResult {
   stageTitle: string;
   /** 0 to 1 */
   percent: number;
-  /** failed: under 70%. pending: passed, but not enough CP yet */
-  kind: "failed" | "pending";
+  /** failed: under 70%. pending: passed, but not enough CP yet. passed: passed and unlocked */
+  kind: "failed" | "pending" | "passed";
 }
 
 /** A fresh random option order for the question the player is currently on. */
@@ -44,9 +45,9 @@ function orderFor(s: GameState): number[] {
   return q ? shuffleOrder(q.choices.length) : [];
 }
 
-/** The option order to use now: the stored one if it fits, otherwise the original order. */
-function resolveOrder(s: GameState, order: number[]): number[] {
-  const q = getRoundQuestions(s)[s.checkpointStep];
+/** The option order to use for question `step`: the stored one if it fits, otherwise the original order. */
+function resolveOrder(s: GameState, order: number[], step: number): number[] {
+  const q = getRoundQuestions(s)[step];
   if (!q) return [];
   return order.length === q.choices.length ? order : q.choices.map((_, i) => i);
 }
@@ -75,7 +76,19 @@ export function useGame() {
   const prevCheckpoint = useRef<string | null>(null);
 
   useEffect(() => {
-    const caughtUp = tickIncome(loadGame(), Date.now());
+    const loaded = tickIncome(loadGame(), Date.now());
+    // If the page was refreshed after the last question was settled, finish that round now
+    const ended = loaded.activeCheckpointId ? finishRound(loaded) : null;
+    const caughtUp = ended ? ended.state : loaded;
+    if (ended) {
+      const stage = getStageByCheckpoint(loaded.activeCheckpointId);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional mount hydration
+      setRoundResult({
+        stageTitle: stage?.title ?? "Stage",
+        percent: ended.percent,
+        kind: ended.pending ? "pending" : ended.passed ? "passed" : "failed",
+      });
+    }
     prevAchievements.current = caughtUp.unlockedAchievements;
     prevCheckpoint.current = caughtUp.activeCheckpointId;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional mount hydration
@@ -193,7 +206,7 @@ export function useGame() {
   const submitCheckpointAnswer = useCallback(() => {
     if (selectedChoice == null) return;
     // The player picked a displayed position. Convert it to the original option index.
-    const order = resolveOrder(state, choiceOrder);
+    const order = resolveOrder(state, choiceOrder, state.checkpointStep);
     const originalIndex = order[selectedChoice] ?? selectedChoice;
 
     // Compute outside the state updater so the side effects below run exactly once
@@ -214,27 +227,31 @@ export function useGame() {
     } else {
       setCheckpointAttempt((a) => a + 1);
     }
-
-    if (result.completedCheckpoint && result.resolve) {
-      setResolveToast(result.resolve);
-      setUpgradeFlash((f) => f + 1);
-      setLessonOpen(false);
-    }
-
-    if (result.completedCheckpoint && !result.resolve) {
-      const stage = getStageByCheckpoint(state.activeCheckpointId);
-      setRoundResult({
-        stageTitle: stage?.title ?? "Stage",
-        percent: result.feedback.roundPercent ?? 0,
-        kind: result.feedback.pendingUnlock ? "pending" : "failed",
-      });
-      setLessonOpen(false);
-    }
   }, [state, selectedChoice, checkpointAttempt, hintOpened, choiceOrder]);
 
-  // Called by "Continue" (next question) and "Try Again" (same question, second attempt).
-  // Both show a freshly shuffled set of options.
+  // Called by "Next", "See result" and "Try Again". The player always decides when to move on.
+  // - After the last question it ends the round and shows the result.
+  // - Otherwise it shows the next question (or the same one again for a second attempt)
+  //   with a freshly shuffled set of options.
   const nextCheckpointStep = useCallback(() => {
+    const ended = finishRound(state);
+    if (ended) {
+      const stage = getStageByCheckpoint(state.activeCheckpointId);
+      setState(ended.state);
+      setSelectedChoice(null);
+      setFeedback(null);
+      setLessonOpen(false);
+      setRoundResult({
+        stageTitle: stage?.title ?? "Stage",
+        percent: ended.percent,
+        kind: ended.pending ? "pending" : ended.passed ? "passed" : "failed",
+      });
+      if (ended.resolve) {
+        setResolveToast(ended.resolve);
+        setUpgradeFlash((f) => f + 1);
+      }
+      return;
+    }
     setSelectedChoice(null);
     setFeedback(null);
     setChoiceOrder(orderFor(state));
@@ -297,14 +314,22 @@ export function useGame() {
   // shuffled options, and the reading from the question bank when the stage has one.
   const baseCheckpoint = getCheckpoint(state.activeCheckpointId);
   const roundQuestions = getRoundQuestions(state);
-  const shownOrder = resolveOrder(state, choiceOrder);
+  // When a question is settled (answered right, or answer revealed), the saved step has
+  // already moved on to the next question. While that result is on screen, keep showing
+  // the question that was just answered, so the next question is not revealed early.
+  const settledFeedback = !!feedback && (feedback.correct || !!feedback.revealed);
+  const displayStep =
+    settledFeedback && state.activeCheckpointId
+      ? Math.max(0, state.checkpointStep - 1)
+      : state.checkpointStep;
+  const shownOrder = resolveOrder(state, choiceOrder, displayStep);
   const bank = getBank(state.activeCheckpointId);
   const activeCheckpoint = baseCheckpoint
     ? {
       ...baseCheckpoint,
       reading: bank?.reading ?? baseCheckpoint.reading,
       questions: roundQuestions.map((q, i) =>
-        i === state.checkpointStep
+        i === displayStep
           ? {
             ...q,
             choices: shownOrder.map((o) => q.choices[o]!),
@@ -328,6 +353,7 @@ export function useGame() {
     pulse,
     upgradeFlash,
     activeCheckpoint,
+    displayStep,
     lessonOpen,
     activeQuestion,
     selectedChoice,

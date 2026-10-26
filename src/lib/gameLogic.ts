@@ -342,8 +342,6 @@ export function answerCheckpointStep(
 ): {
   state: GameState;
   feedback: QuizFeedback;
-  completedCheckpoint: boolean;
-  resolve?: CheckpointResolveResult;
 } | null {
   const cp = getCheckpoint(state.activeCheckpointId);
   if (!cp) return null;
@@ -371,15 +369,15 @@ export function answerCheckpointStep(
         attempt,
         revealed: false,
       },
-      completedCheckpoint: false,
     };
   }
 
   // The question is settled: correct (any attempt) or wrong on attempt 2
+  const credit = correct ? attemptCredit(attempt, hintUsed) : 0;
   if (correct) {
     next = {
       ...next,
-      checkpointScore: next.checkpointScore + attemptCredit(attempt, hintUsed),
+      checkpointScore: next.checkpointScore + credit,
     };
     if (question.unlockUpgrade) {
       next = unlockIds(next, [question.unlockUpgrade]);
@@ -403,34 +401,39 @@ export function answerCheckpointStep(
     explanation: question.explanation,
     correctAnswer: question.choices[question.correctIndex],
     courseUnit: cp.courseUnit,
+    credit,
     ...(correct
       ? { unlockedUpgrade: question.unlockUpgrade }
       : { attempt, revealed: true }),
   };
 
-  const nextStep = step + 1;
-  if (nextStep < roundQs.length) {
-    return {
-      state: applyAchievements({ ...next, checkpointStep: nextStep }),
-      feedback: { ...baseFeedback, bonus: 0 },
-      completedCheckpoint: false,
-    };
-  }
-
-  const end = endRound(next, cp, state, roundQs.length);
+  // The saved step moves on right away (so a refresh can never re-answer this question),
+  // but the round only ends when the player clicks the button after the last question.
   return {
-    state: applyAchievements(end.state),
-    feedback: {
-      ...baseFeedback,
-      bonus: end.bonus,
-      wasBottleneck: true,
-      roundPassed: end.passed,
-      roundPercent: end.percent,
-      pendingUnlock: end.pending,
-    },
-    completedCheckpoint: true,
-    resolve: end.resolve,
+    state: applyAchievements({ ...next, checkpointStep: step + 1 }),
+    feedback: { ...baseFeedback, bonus: 0 },
   };
+}
+
+/**
+ * Ends the round once every question is settled (saved step is past the last question).
+ * Returns null while the round is still in progress.
+ */
+export function finishRound(state: GameState): {
+  state: GameState;
+  resolve?: CheckpointResolveResult;
+  bonus: number;
+  passed: boolean;
+  percent: number;
+  pending: boolean;
+} | null {
+  const cp = getCheckpoint(state.activeCheckpointId);
+  if (!cp) return null;
+  const roundQs = getRoundQuestions(state);
+  if (roundQs.length === 0 || state.checkpointStep < roundQs.length) return null;
+
+  const end = endRound(state, cp, state, roundQs.length);
+  return { ...end, state: applyAchievements(end.state) };
 }
 
 function finishCheckpoint(

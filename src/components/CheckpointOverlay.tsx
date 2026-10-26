@@ -38,6 +38,7 @@ export function CheckpointOverlay({
 }: CheckpointOverlayProps) {
   const question = checkpoint.questions[step];
   const isBoot = checkpoint.id === "cpu-basics";
+  const isLastQuestion = step >= checkpoint.questions.length - 1;
 
   if (!lessonOpen) {
     return (
@@ -103,7 +104,7 @@ export function CheckpointOverlay({
             )}
           </div>
         )}
-        
+
         {question && (
           <>
             <p className="mt-4 text-sm font-medium leading-relaxed text-foreground">
@@ -131,7 +132,7 @@ export function CheckpointOverlay({
                   <button
                     key={choice}
                     type="button"
-                    disabled={!!feedback?.correct}
+                    disabled={!!feedback}
                     onClick={() => onSelect(index)}
                     className={`rounded-xl border px-3 py-2.5 text-left text-sm transition ${style}`}
                   >
@@ -153,20 +154,24 @@ export function CheckpointOverlay({
               : "border-warning/40 bg-warning/10 text-warning"
               }`}
           >
-            <p className="font-mono text-xs font-semibold uppercase tracking-wider">
-              {feedback.correct
-                ? feedback.unlockedUpgrade
-                  ? `${feedback.unlockedUpgrade} unlocked`
-                  : "Correct"
-                : "Not quite"}
-            </p>
+            <div className="flex items-start justify-between gap-3">
+              <p className="font-mono text-xs font-semibold uppercase tracking-wider">
+                {feedback.correct
+                  ? feedback.unlockedUpgrade
+                    ? `${feedback.unlockedUpgrade} unlocked`
+                    : "Correct"
+                  : feedback.revealed
+                    ? "Incorrect"
+                    : "Not quite"}
+              </p>
+              {feedback.credit !== undefined && (
+                <p className="font-mono text-xs font-semibold">
+                  Points [{feedback.credit}/1]
+                </p>
+              )}
+            </div>
             {(feedback.correct || feedback.revealed) && (
               <p className="mt-2 text-xs leading-relaxed text-muted">{feedback.explanation}</p>
-            )}
-            {feedback.bonus > 0 && (
-              <p className="mt-2 font-mono text-xs text-success">
-                Stage reward +{feedback.bonus} CP
-              </p>
             )}
             {!feedback.correct && !feedback.revealed && question?.hint && (
               hintOpened ? (
@@ -181,7 +186,7 @@ export function CheckpointOverlay({
                 </button>
               )
             )}
-            
+
             {!feedback.correct && !feedback.revealed && feedback.attempt && (
               <p className="mt-2 font-mono text-[10px] text-muted">
                 Attempt {feedback.attempt} of 2
@@ -211,7 +216,7 @@ export function CheckpointOverlay({
               onClick={onContinue}
               className="rounded-lg border border-accent/40 bg-accent-soft px-4 py-2 font-mono text-sm font-semibold text-accent-text"
             >
-              Continue
+              {isLastQuestion ? "See result" : "Next"}
             </button>
           ) : (
             <button

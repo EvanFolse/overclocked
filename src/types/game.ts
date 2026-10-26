@@ -194,6 +194,7 @@ export interface QuizFeedback {
   explanation: string;
   correctAnswer: string;
   bonus: number;
+  credit?: number;
   unlockedUpgrade?: UpgradeId;
   wasBottleneck?: boolean;
   courseUnit?: CourseUnit;
