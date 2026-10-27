@@ -2,7 +2,7 @@ import { getCheckpoint, type CheckpointQuestion } from "@/data/checkpoints";
 import { STAGE_1_BANK } from "@/data/bank/stage1";
 import type { MatchingSet, StageBank } from "@/data/bank/types";
 import type { GameState } from "@/types/game";
-
+import { LEARNING_CONFIG } from "@/lib/learningConfig";
 /**
  * Matching sets are already in the question bank, but the matching screen is not built yet.
  * Switch this to true when the matching screen is part of the game.
@@ -15,11 +15,7 @@ export type RoundGroup = "mission" | "mc" | "match";
  * Share of the round score for each group (design doc 4.3).
  * If a group has no items in the round, its share is shared out among the other groups.
  */
-export const GROUP_WEIGHTS: Record<RoundGroup, number> = {
-    mission: 0.4,
-    mc: 0.35,
-    match: 0.25,
-};
+export const GROUP_WEIGHTS: Record<RoundGroup, number> = LEARNING_CONFIG.groupWeight;
 
 /** A multiple-choice shaped item: either a reasoning mission or a plain multiple-choice question. */
 export interface RoundQuestion extends CheckpointQuestion {

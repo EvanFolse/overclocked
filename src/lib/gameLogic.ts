@@ -2,6 +2,7 @@ import { ACHIEVEMENTS } from "@/data/achievements";
 import { getCheckpoint, type CheckpointId } from "@/data/checkpoints";
 import { STAGES, getStage, getStageByCheckpoint, type StageDef } from "@/data/stages";
 import { CHALLENGES } from "@/data/questions";
+import { LEARNING_CONFIG } from "@/lib/learningConfig";
 import {
   BASE_COMPUTE,
   BOOT_UNLOCKS,
@@ -281,12 +282,12 @@ function trackMastery(
   };
 }
 
-export const PASS_RATIO = 0.7;
-
+export const PASS_RATIO = LEARNING_CONFIG.passLine;
 /** Credit per question: 1 on the first attempt, 0.75 on the second, 0.5 if the hint was opened */
 function attemptCredit(attempt: number, hintUsed: boolean): number {
-  if (attempt <= 1) return 1;
-  return hintUsed ? 0.5 : 0.75;
+  const { first, second, withHint } = LEARNING_CONFIG.credit;
+  if (attempt <= 1) return first;
+  return hintUsed ? withHint : second;
 }
 
 type LearningCp = NonNullable<ReturnType<typeof getCheckpoint>>;
@@ -359,7 +360,7 @@ export function answerCheckpointStep(
   let next = trackMastery(state, cp.courseUnit, correct);
 
   // Wrong on the first attempt: let the player retry
-  if (!correct && attempt < 2) {
+  if (!correct && attempt < LEARNING_CONFIG.maxAttempts) {
     return {
       state: applyAchievements(next),
       feedback: {
@@ -443,7 +444,7 @@ export function answerMatchingStep(
   let next = trackMastery(state, cp.courseUnit, allCorrect);
 
   // Not all pairs right on the first check: the player gets a second attempt
-  if (!allCorrect && attempt < 2) {
+  if (!allCorrect && attempt < LEARNING_CONFIG.maxAttempts) {
     return {
       state: applyAchievements(next),
       feedback: {
