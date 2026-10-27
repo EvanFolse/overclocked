@@ -19,8 +19,13 @@ import {
   levelsWithUpgrade,
 } from "@/lib/cpuStats";
 import { formatPercent } from "@/lib/format";
-import { drawRoundIds, getBank, getRoundQuestions } from "@/lib/rounds";
-import type {
+import {
+  drawRoundIds,
+  getBank,
+  getRoundItems,
+  getRoundQuestions,
+  weightOf,
+} from "@/lib/rounds"; import type {
   Challenge,
   CheckpointResolveResult,
   CourseMastery,
@@ -290,7 +295,6 @@ function endRound(
   next: GameState,
   cp: LearningCp,
   beforeState: GameState,
-  totalQuestions: number
 ): {
   state: GameState;
   resolve?: CheckpointResolveResult;
@@ -299,7 +303,7 @@ function endRound(
   percent: number;
   pending: boolean;
 } {
-  const percent = next.checkpointScore / totalQuestions;
+  const percent = next.checkpointScore;
   const reset = {
     activeCheckpointId: null,
     checkpointStep: 0,
@@ -308,7 +312,7 @@ function endRound(
   };
 
   // Failed round: nothing is paid, nothing unlocks
-  if (percent < PASS_RATIO) {
+  if (percent + 1e-9 < PASS_RATIO) {
     return { state: { ...next, ...reset }, bonus: 0, passed: false, percent, pending: false };
   }
 
@@ -377,7 +381,7 @@ export function answerCheckpointStep(
   if (correct) {
     next = {
       ...next,
-      checkpointScore: next.checkpointScore + credit,
+      checkpointScore: next.checkpointScore + credit * weightOf(getRoundItems(state), step),
     };
     if (question.unlockUpgrade) {
       next = unlockIds(next, [question.unlockUpgrade]);
@@ -416,6 +420,73 @@ export function answerCheckpointStep(
 }
 
 /**
+ * Checks a matching set. answer[i] is the right-hand card the player linked to left item i.
+ * Cards 0 to 3 are the four correct descriptions, card 4 is the distractor,
+ * so the correct link for left item i is the card with the same number i.
+ */
+export function answerMatchingStep(
+  state: GameState,
+  answer: number[],
+  attempt: number,
+  hintUsed = false
+): { state: GameState; feedback: QuizFeedback } | null {
+  const cp = getCheckpoint(state.activeCheckpointId);
+  if (!cp) return null;
+
+  const items = getRoundItems(state);
+  const step = state.checkpointStep;
+  const item = items[step];
+  if (!item || item.kind !== "match") return null;
+
+  const matchResult = item.pairs.map((_, i) => answer[i] === i);
+  const allCorrect = matchResult.every(Boolean);
+  let next = trackMastery(state, cp.courseUnit, allCorrect);
+
+  // Not all pairs right on the first check: the player gets a second attempt
+  if (!allCorrect && attempt < 2) {
+    return {
+      state: applyAchievements(next),
+      feedback: {
+        correct: false,
+        explanation: "",
+        correctAnswer: "",
+        bonus: 0,
+        courseUnit: cp.courseUnit,
+        hint: item.hint,
+        attempt,
+        revealed: false,
+        matchResult,
+      },
+    };
+  }
+
+  // The set is settled: all pairs right (any attempt), or not all right on attempt 2
+  const credit = allCorrect ? attemptCredit(attempt, hintUsed) : 0;
+  next = {
+    ...next,
+    checkpointScore: next.checkpointScore + credit * weightOf(items, step),
+    checkpointMissStreak: 0,
+    bonusSuspended: false,
+    failedQuestionIds: allCorrect
+      ? next.failedQuestionIds
+      : [...new Set([...next.failedQuestionIds, item.id])],
+  };
+
+  return {
+    state: applyAchievements({ ...next, checkpointStep: step + 1 }),
+    feedback: {
+      correct: allCorrect,
+      explanation: "",
+      correctAnswer: "",
+      bonus: 0,
+      courseUnit: cp.courseUnit,
+      credit,
+      matchResult,
+      ...(allCorrect ? {} : { attempt, revealed: true }),
+    },
+  };
+}
+/**
  * Ends the round once every question is settled (saved step is past the last question).
  * Returns null while the round is still in progress.
  */
@@ -429,10 +500,9 @@ export function finishRound(state: GameState): {
 } | null {
   const cp = getCheckpoint(state.activeCheckpointId);
   if (!cp) return null;
-  const roundQs = getRoundQuestions(state);
-  if (roundQs.length === 0 || state.checkpointStep < roundQs.length) return null;
-
-  const end = endRound(state, cp, state, roundQs.length);
+  const items = getRoundItems(state);
+  if (items.length === 0 || state.checkpointStep < items.length) return null;
+  const end = endRound(state, cp, state);
   return { ...end, state: applyAchievements(end.state) };
 }
 
@@ -475,7 +545,9 @@ function finishCheckpoint(
     checkpointScore: 0,
     roundQuestionIds: [],
     failedQuestionIds: bank
-      ? next.failedQuestionIds.filter((id) => !bank.mc.some((q) => q.id === id))
+      ? next.failedQuestionIds.filter(
+        (id) => !bank.mc.some((q) => q.id === id) && !bank.matching.some((m) => m.id === id)
+      )
       : next.failedQuestionIds,
     bottlenecksResolved: next.bottlenecksResolved + 1,
   };

@@ -205,6 +205,7 @@ export interface QuizFeedback {
   roundPassed?: boolean;
   roundPercent?: number;
   pendingUnlock?: boolean;
+  matchResult?: boolean[];
 }
 
 export type ThemeMode = "light" | "dark";
