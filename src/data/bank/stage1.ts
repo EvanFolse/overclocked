@@ -142,6 +142,7 @@ export const STAGE_1_BANK: StageBank = {
         {
             // docx Q2
             id: "s1-mc-02",
+            spare: true,
             concept: "Instruction Decoder",
             scenario:
                 "Which processor component identifies and interprets a machine instruction fetched from memory or the instruction cache, in order to determine which operation it specifies?",
@@ -199,6 +200,7 @@ export const STAGE_1_BANK: StageBank = {
         {
             // docx Q5 (fixed in the docx: option C is the ALU only)
             id: "s1-mc-05",
+            spare: true,
             concept: "ALU",
             scenario:
                 "Which core processor component performs arithmetic operations (such as addition and subtraction) and logical operations (such as AND and OR)?",
@@ -237,6 +239,7 @@ export const STAGE_1_BANK: StageBank = {
         {
             // docx Q11 (reworded in the docx; two distractors replaced)
             id: "s1-mc-07",
+            spare:true,
             concept: "ALU",
             scenario:
                 "Which CPU component performs comparisons, such as checking whether a student’s mark is greater than or equal to a required passing value?",
