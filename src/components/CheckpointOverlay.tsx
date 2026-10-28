@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import type { LearningCheckpoint } from "@/data/checkpoints";
 import type { QuizFeedback } from "@/types/game";
 import { CpuCycleVisual } from "@/components/CpuCycleVisual";
 import { MemoryHierarchyVisual } from "@/components/MemoryHierarchyVisual";
+import { PlaceStep } from "@/components/learning/PlaceStep";
 
 interface CheckpointOverlayProps {
   checkpoint: LearningCheckpoint;
@@ -40,6 +42,8 @@ export function CheckpointOverlay({
   const isBoot = checkpoint.id === "cpu-basics";
   const isLastQuestion = step >= checkpoint.questions.length - 1;
 
+  const [isPlacing, setIsPlacing] = useState(false);
+
   if (!lessonOpen) {
     return (
       <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/55 p-4">
@@ -56,7 +60,10 @@ export function CheckpointOverlay({
           </p>
           <button
             type="button"
-            onClick={onOpenLesson}
+            onClick={() => {
+              onOpenLesson();
+              if (isBoot) setIsPlacing(true); 
+            }}
             className="mt-5 w-full rounded-xl border border-warning/50 bg-warning/15 px-4 py-3 font-mono text-sm font-semibold text-warning transition hover:opacity-90"
           >
             {isBoot ? "Start Stage 1" : "Start quiz round"}
@@ -72,178 +79,175 @@ export function CheckpointOverlay({
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-violet">
-              {checkpoint.courseUnit} · Required · Step {step + 1}/
-              {checkpoint.questions.length}
+              {checkpoint.courseUnit} · Required · {isPlacing ? "Place Parts" : `Step ${step + 1}/${checkpoint.questions.length}`}
             </p>
             <h2 className="mt-1 font-mono text-lg font-semibold text-foreground">
-              {checkpoint.title}
+              {isPlacing ? "2 · Place Parts on the CPU" : checkpoint.title}
             </h2>
           </div>
           <button
             type="button"
-            onClick={onCloseLesson}
+            onClick={() => {
+              setIsPlacing(false);
+              onCloseLesson();
+            }}
             className="rounded-lg border border-edge px-2 py-1 text-xs text-muted hover:text-foreground"
           >
             Leave
           </button>
         </div>
 
-        <div className="mt-4 rounded-xl border border-edge bg-panel-muted p-3">
-          <p className="text-sm leading-relaxed text-foreground">{checkpoint.reading}</p>
-        </div>
-
-        {(checkpoint.highlightCycle || checkpoint.highlightMemory) && (
-          <div className="mt-3 flex flex-col gap-2">
-            {checkpoint.highlightCycle && (
-              <CpuCycleVisual active={checkpoint.highlightCycle} compact />
-            )}
-            {checkpoint.highlightMemory && (
-              <MemoryHierarchyVisual active={checkpoint.highlightMemory} compact />
-            )}
+        {isBoot && isPlacing ? (
+          <div className="mt-4">
+            <PlaceStep onComplete={() => setIsPlacing(false)} />
           </div>
-        )}
-
-        {question && (
+        ) : (
           <>
-            <p className="mt-4 text-sm font-medium leading-relaxed text-foreground">
-              {question.scenario}
-            </p>
+            <div className="mt-4 rounded-xl border border-edge bg-panel-muted p-3">
+              <p className="text-sm leading-relaxed text-foreground">{checkpoint.reading}</p>
+            </div>
 
-            <div className="mt-3 flex flex-col gap-2">
-              {question.choices.map((choice, index) => {
-                const isSelected = selectedChoice === index;
-                let style =
-                  "border-edge bg-panel-muted text-foreground hover:border-violet/40";
-                if (feedback) {
-                  if (index === question.correctIndex && (feedback.correct || feedback.revealed)) {
-                    style = "border-success/60 bg-success-soft text-success";
-                  } else if (isSelected && !feedback.correct) {
-                    style = "border-rose-400/50 bg-rose-500/10 text-rose-500";
-                  } else {
-                    style = "border-edge/50 bg-panel text-muted";
-                  }
-                } else if (isSelected) {
-                  style = "border-violet/60 bg-violet-soft text-violet";
-                }
+            {(checkpoint.highlightCycle || checkpoint.highlightMemory) && (
+              <div className="mt-3 flex flex-col gap-2">
+                {checkpoint.highlightCycle && (
+                  <CpuCycleVisual active={checkpoint.highlightCycle} compact />
+                )}
+                {checkpoint.highlightMemory && (
+                  <MemoryHierarchyVisual active={checkpoint.highlightMemory} compact />
+                )}
+              </div>
+            )}
 
-                return (
-                  <button
-                    key={choice}
-                    type="button"
-                    disabled={!!feedback}
-                    onClick={() => onSelect(index)}
-                    className={`rounded-xl border px-3 py-2.5 text-left text-sm transition ${style}`}
-                  >
-                    <span className="mr-2 font-mono text-xs text-muted">
-                      {String.fromCharCode(65 + index)}.
-                    </span>
-                    {choice}
-                  </button>
-                );
-              })}
+            {question && (
+              <>
+                <p className="mt-4 text-sm font-medium leading-relaxed text-foreground">
+                  {question.scenario}
+                </p>
+
+                <div className="mt-3 flex flex-col gap-2">
+                  {question.choices.map((choice, index) => {
+                    const isSelected = selectedChoice === index;
+                    let style =
+                      "border-edge bg-panel-muted text-foreground hover:border-violet/40";
+                    if (feedback) {
+                      if (index === question.correctIndex && (feedback.correct || feedback.revealed)) {
+                        style = "border-success/60 bg-success-soft text-success";
+                      } else if (isSelected && !feedback.correct) {
+                        style = "border-rose-400/50 bg-rose-500/10 text-rose-500";
+                      } else {
+                        style = "border-edge/50 bg-panel text-muted";
+                      }
+                    } else if (isSelected) {
+                      style = "border-violet/60 bg-violet-soft text-violet";
+                    }
+
+                    return (
+                      <button
+                        key={choice}
+                        type="button"
+                        disabled={!!feedback}
+                        onClick={() => onSelect(index)}
+                        className={`rounded-xl border px-3 py-2.5 text-left text-sm transition ${style}`}
+                      >
+                        <span className="mr-2 font-mono text-xs text-muted">
+                          {String.fromCharCode(65 + index)}.
+                        </span>
+                        {choice}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+
+            {feedback && (
+              <div
+                className={`mt-4 rounded-xl border p-3 text-sm ${feedback.correct
+                  ? "border-success/40 bg-success-soft text-success"
+                  : "border-warning/40 bg-warning/10 text-warning"
+                  }`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <p className="font-mono text-xs font-semibold uppercase tracking-wider">
+                    {feedback.correct
+                      ? feedback.unlockedUpgrade
+                        ? `${feedback.unlockedUpgrade} unlocked`
+                        : "Correct"
+                      : feedback.revealed
+                        ? "Incorrect"
+                        : "Not quite"}
+                  </p>
+                  {feedback.credit !== undefined && (
+                    <p className="font-mono text-xs font-semibold">
+                      Points [{feedback.credit}/1]
+                    </p>
+                  )}
+                </div>
+                {(feedback.correct || feedback.revealed) && (
+                  <p className="mt-2 text-xs leading-relaxed text-muted">{feedback.explanation}</p>
+                )}
+                {!feedback.correct && !feedback.revealed && question?.hint && (
+                  hintOpened ? (
+                    <p className="mt-2 text-xs text-warning">Hint: {question.hint}</p>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={onOpenHint}
+                      className="mt-2 rounded-lg border border-warning/40 px-3 py-1.5 font-mono text-xs text-warning"
+                    >
+                      Show hint (max ×0.5 credit)
+                    </button>
+                  )
+                )}
+
+                {!feedback.correct && !feedback.revealed && feedback.attempt && (
+                  <p className="mt-2 font-mono text-[10px] text-muted">
+                    Attempt {feedback.attempt} of 2
+                  </p>
+                )}
+                {!feedback.correct && feedback.revealed && (
+                  <p className="mt-2 text-xs text-warning">
+                    Correct answer: {feedback.correctAnswer}
+                  </p>
+                )}
+              </div>
+            )}
+
+            <div className="mt-5 flex flex-wrap gap-2">
+              {!feedback ? (
+                <button
+                  type="button"
+                  disabled={selectedChoice == null}
+                  onSubmit={onSubmit}
+                  onClick={onSubmit}
+                  className="rounded-lg border border-violet/50 bg-violet-soft px-4 py-2 font-mono text-sm font-semibold text-violet disabled:opacity-40"
+                >
+                  Submit
+                </button>
+              ) : feedback.correct || feedback.revealed ? (
+                <button
+                  type="button"
+                  onClick={onContinue}
+                  className="rounded-lg border border-accent/40 bg-accent-soft px-4 py-2 font-mono text-sm font-semibold text-accent-text"
+                >
+                  {isLastQuestion ? "See result" : "Next"}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onContinue}
+                  className="rounded-lg border border-warning/40 bg-warning/10 px-4 py-2 font-mono text-sm font-semibold text-warning"
+                >
+                  Try Again
+                </button>
+              )}
             </div>
           </>
         )}
 
-        {feedback && (
-          <div
-            className={`mt-4 rounded-xl border p-3 text-sm ${feedback.correct
-              ? "border-success/40 bg-success-soft text-success"
-              : "border-warning/40 bg-warning/10 text-warning"
-              }`}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <p className="font-mono text-xs font-semibold uppercase tracking-wider">
-                {feedback.correct
-                  ? feedback.unlockedUpgrade
-                    ? `${feedback.unlockedUpgrade} unlocked`
-                    : "Correct"
-                  : feedback.revealed
-                    ? "Incorrect"
-                    : "Not quite"}
-              </p>
-              {feedback.credit !== undefined && (
-                <p className="font-mono text-xs font-semibold">
-                  Points [{feedback.credit}/1]
-                </p>
-              )}
-            </div>
-            {(feedback.correct || feedback.revealed) && (
-              <p className="mt-2 text-xs leading-relaxed text-muted">{feedback.explanation}</p>
-            )}
-            {!feedback.correct && !feedback.revealed && question?.hint && (
-              hintOpened ? (
-                <p className="mt-2 text-xs text-warning">Hint: {question.hint}</p>
-              ) : (
-                <button
-                  type="button"
-                  onClick={onOpenHint}
-                  className="mt-2 rounded-lg border border-warning/40 px-3 py-1.5 font-mono text-xs text-warning"
-                >
-                  Show hint (max ×0.5 credit)
-                </button>
-              )
-            )}
-
-            {!feedback.correct && !feedback.revealed && feedback.attempt && (
-              <p className="mt-2 font-mono text-[10px] text-muted">
-                Attempt {feedback.attempt} of 2
-              </p>
-            )}
-            {!feedback.correct && feedback.revealed && (
-              <p className="mt-2 text-xs text-warning">
-                Correct answer: {feedback.correctAnswer}
-              </p>
-            )}
-          </div>
-        )}
-
-        <div className="mt-5 flex flex-wrap gap-2">
-          {!feedback ? (
-            <button
-              type="button"
-              disabled={selectedChoice == null}
-              onClick={onSubmit}
-              className="rounded-lg border border-violet/50 bg-violet-soft px-4 py-2 font-mono text-sm font-semibold text-violet disabled:opacity-40"
-            >
-              Submit
-            </button>
-          ) : feedback.correct || feedback.revealed ? (
-            <button
-              type="button"
-              onClick={onContinue}
-              className="rounded-lg border border-accent/40 bg-accent-soft px-4 py-2 font-mono text-sm font-semibold text-accent-text"
-            >
-              {isLastQuestion ? "See result" : "Next"}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={onContinue}
-              className="rounded-lg border border-warning/40 bg-warning/10 px-4 py-2 font-mono text-sm font-semibold text-warning"
-            >
-              Try Again
-            </button>
-          )}
-        </div>
-
         <p className="mt-5 border-t border-edge pt-3 text-[10px] leading-relaxed text-muted">
           <span className="font-semibold text-foreground">Course basis:</span> CSC 3501 —
           Computer Organization and Design
-          {checkpoint.sources[0] && (
-            <>
-              <br />
-              <span className="font-semibold text-foreground">Further reading:</span>{" "}
-              <a
-                href={checkpoint.sources[0].url}
-                target="_blank"
-                rel="noreferrer"
-                className="text-accent-text underline-offset-2 hover:underline"
-              >
-                {checkpoint.sources[0].label}
-              </a>
-            </>
-          )}
         </p>
       </div>
     </div>
