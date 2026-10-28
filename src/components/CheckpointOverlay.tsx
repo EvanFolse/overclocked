@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { LearningCheckpoint } from "@/data/checkpoints";
 import type { QuizFeedback } from "@/types/game";
 import { CpuCycleVisual } from "@/components/CpuCycleVisual";
@@ -39,10 +39,16 @@ export function CheckpointOverlay({
   onOpenHint,
 }: CheckpointOverlayProps) {
   const question = checkpoint.questions[step];
+  // Check if current checkpoint is Stage 1 base boot
   const isBoot = checkpoint.id === "cpu-basics";
   const isLastQuestion = step >= checkpoint.questions.length - 1;
 
-  const [isPlacing, setIsPlacing] = useState(false);
+  // Manage placement step state for Stage 1
+  const [isPlacing, setIsPlacing] = useState(isBoot);
+
+  useEffect(() => {
+    setIsPlacing(checkpoint.id === "cpu-basics");
+  }, [checkpoint.id, lessonOpen]);
 
   if (!lessonOpen) {
     return (
@@ -62,7 +68,7 @@ export function CheckpointOverlay({
             type="button"
             onClick={() => {
               onOpenLesson();
-              if (isBoot) setIsPlacing(true); 
+              setIsPlacing(isBoot);
             }}
             className="mt-5 w-full rounded-xl border border-warning/50 bg-warning/15 px-4 py-3 font-mono text-sm font-semibold text-warning transition hover:opacity-90"
           >
@@ -75,8 +81,7 @@ export function CheckpointOverlay({
 
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/60 p-3 sm:items-center sm:p-4">
-      <div className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-violet/30 bg-panel p-5 shadow-2xl sm:p-6">
-        <div className="flex items-start justify-between gap-3">
+      <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-violet/30 bg-panel p-5 shadow-2xl sm:p-6">        <div className="flex items-start justify-between gap-3">
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-violet">
               {checkpoint.courseUnit} · Required · {isPlacing ? "Place Parts" : `Step ${step + 1}/${checkpoint.questions.length}`}
@@ -97,6 +102,7 @@ export function CheckpointOverlay({
           </button>
         </div>
 
+        {/* Render Stage 1 Placement grid step */}
         {isBoot && isPlacing ? (
           <div className="mt-4">
             <PlaceStep onComplete={() => setIsPlacing(false)} />
@@ -218,7 +224,6 @@ export function CheckpointOverlay({
                 <button
                   type="button"
                   disabled={selectedChoice == null}
-                  onSubmit={onSubmit}
                   onClick={onSubmit}
                   className="rounded-lg border border-violet/50 bg-violet-soft px-4 py-2 font-mono text-sm font-semibold text-violet disabled:opacity-40"
                 >
