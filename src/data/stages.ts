@@ -11,45 +11,44 @@ export interface StageDef {
   price: number;
 }
 
-/**
- * v1 uses one existing checkpoint per stage so the loop can run this week.
- * Extra checkpoints (hazards, boolean-alu, …) stay in the file but are not launched yet.
- */
+
+   /** TEMPORARY test price in CP. The economy is not decided yet (design doc 5.1: Stage 1 has a small price). */
+
 export const STAGES: StageDef[] = [
   {
     id: 1,
     title: "KNOW CPU",
     goal: "Know what each part is and what it does.",
     checkpointId: "cpu-basics",
-    price: 0,
+    price: 100,
   },
   {
     id: 2,
     title: "The CPU in Motion",
     goal: "See how parts work together in the instruction cycle.",
     checkpointId: "fetch-decode-execute",
-    price: 40,
+    price: 200,
   },
   {
     id: 3,
     title: "Two Ways to Build a CPU",
     goal: "Temporary stand-in: pipeline as a design choice. CISC/RISC quiz comes later.",
     checkpointId: "pipeline",
-    price: 120,
+    price: 400,
   },
   {
     id: 4,
     title: "The Memory Hierarchy",
     goal: "Trade-offs between registers, cache, and distance from the core.",
     checkpointId: "cache-hierarchy",
-    price: 300,
+    price: 800,
   },
   {
     id: 5,
     title: "Beyond the CPU",
     goal: "Where the CPU sits next to parallel hardware.",
     checkpointId: "cpu-vs-gpu",
-    price: 800,
+    price: 1600,
   },
 ];
 

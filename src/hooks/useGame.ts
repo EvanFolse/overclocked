@@ -38,6 +38,7 @@ export interface RoundResult {
   percent: number;
   /** failed: under 70%. pending: passed, but not enough CP yet. passed: passed and unlocked */
   kind: "failed" | "pending" | "passed";
+  reward: number;
 }
 
 /** A fresh random option order for the question the player is currently on. */
@@ -86,6 +87,7 @@ export function useGame() {
         stageTitle: stage?.title ?? "Stage",
         percent: ended.percent,
         kind: ended.pending ? "pending" : ended.passed ? "passed" : "failed",
+        reward: ended.bonus,
       });
     }
     prevAchievements.current = caughtUp.unlockedAchievements;
@@ -224,6 +226,7 @@ export function useGame() {
         stageTitle: stage?.title ?? "Stage",
         percent: ended.percent,
         kind: ended.pending ? "pending" : ended.passed ? "passed" : "failed",
+        reward: ended.bonus,
       });
       if (ended.resolve) {
         setResolveToast(ended.resolve);
@@ -342,6 +345,7 @@ export function useGame() {
     statDelta,
     resolveToast,
     roundResult,
+
     hintOpened: state.checkpointHintOpened,
     openHint,
     clearRoundResult,

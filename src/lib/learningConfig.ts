@@ -4,4 +4,9 @@ export const LEARNING_CONFIG = {
     maxAttempts: 2,
     credit: { first: 1, second: 0.75, withHint: 0.5 },
     groupWeight: { mission: 0.4, mc: 0.35, match: 0.25 },
+    reward: {
+        budgetShareOfPrice: 0.3, // round reward budget = 30% of the stage price (placeholder)
+        streakStep: 0.1,         // +10% per question in a row answered right on the first attempt
+        streakCap: 0.5,          // capped at +50%
+    },
 } as const;

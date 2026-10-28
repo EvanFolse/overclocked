@@ -192,8 +192,7 @@ function GameBoardInner() {
                                 ? "You need 70% to pass. Nothing was spent, so you can try again."
                                 : game.roundResult.kind === "pending"
                                     ? "This stage will unlock automatically as soon as you have enough CP."
-                                    : "Stage unlocked."}
-                        </p>
+                                    : `Stage unlocked. Reward +${game.roundResult.reward} CP.`}                        </p>
                         <button
                             type="button"
                             onClick={game.clearRoundResult}

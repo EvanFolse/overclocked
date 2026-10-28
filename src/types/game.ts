@@ -167,6 +167,12 @@ export interface GameState {
   failedQuestionIds: string[];
   /** One record per settled question, newest last (capped at 500) */
   answerLog: AnswerRecord[];
+  /** Questions in a row answered right on the first attempt. Kept across stages and refreshes. */
+  streak: number;
+  /** CP earned so far in the current round. Paid only if the round is passed. */
+  checkpointReward: number;
+  /** Rewards of passed rounds waiting for enough CP to unlock, keyed by checkpoint id */
+  pendingRewards: Record<string, number>;
   money: number;
   totalEarned: number;
   upgradeLevels: Record<UpgradeId, number>;

@@ -82,6 +82,9 @@ export function createInitialState(now = Date.now()): GameState {
     roundQuestionIds: [],
     failedQuestionIds: [],
     answerLog: [],
+    streak: 0,
+    checkpointReward: 0,
+    pendingRewards: {},
   };
 }
 
@@ -240,6 +243,7 @@ export function startStage(state: GameState, stageId: number): GameState {
     checkpointAttempt: 1,
     checkpointHintOpened: false,
     checkpointScore: 0,
+    checkpointReward: 0,
     roundQuestionIds: bank ? drawRoundIds(bank, state.failedQuestionIds) : [],
   };
 }
@@ -256,19 +260,13 @@ export function settlePendingUnlocks(state: GameState): GameState {
     if (state.money < stage.price) return state;
     const cp = getCheckpoint(stage.checkpointId);
     if (!cp) return state;
-    return finishCheckpoint(state, cp, state).state;
+    return finishCheckpoint(state, cp, state, state.pendingRewards[cp.id] ?? 0).state;
   }
   return state;
 }
 
 export function maybeActivateCheckpoint(state: GameState): GameState {
   return state;
-}
-
-function stageClearBonus(checkpointId: string): number {
-  const stage = getStageByCheckpoint(checkpointId);
-  if (!stage) return 40;
-  return Math.max(40, Math.floor(stage.price * 0.3) || 40);
 }
 
 function trackMastery(
@@ -340,6 +338,31 @@ export function getLearningStats(state: GameState) {
   };
 }
 
+/**
+ * Reward of one settled question (design doc 5.2):
+ *   reward = base value x credit x (1 + streak bonus)
+ * The base value is the item's share of the round reward budget (a share of the stage price).
+ * The streak counts questions in a row answered right on the first attempt:
+ * attempt 2 or a hint neither adds to it nor resets it, a failed question resets it.
+ * The reward is only collected in `checkpointReward`; it is paid when the round is passed.
+ */
+function rewardUpdate(
+  state: GameState,
+  checkpointId: string,
+  weight: number,
+  credit: number,
+  attemptCorrect: 1 | 2 | null
+): Pick<GameState, "streak" | "checkpointReward"> {
+  const { budgetShareOfPrice, streakStep, streakCap } = LEARNING_CONFIG.reward;
+  const price = getStageByCheckpoint(checkpointId)?.price ?? 0;
+  const base = price * budgetShareOfPrice * weight;
+  const streakBonus = Math.min(streakCap, state.streak * streakStep);
+  const reward = base * credit * (1 + streakBonus);
+  const streak =
+    attemptCorrect === 1 ? state.streak + 1 : attemptCorrect === null ? 0 : state.streak;
+  return { streak, checkpointReward: state.checkpointReward + reward };
+}
+
 export const PASS_RATIO = LEARNING_CONFIG.passLine;
 
 /** Credit per question: 1 on the first attempt, 0.75 on the second, 0.5 if the hint was opened */
@@ -370,6 +393,7 @@ function endRound(
     checkpointAttempt: 1,
     checkpointHintOpened: false,
     checkpointScore: 0,
+    checkpointReward: 0,
     roundQuestionIds: [] as string[],
   };
 
@@ -387,6 +411,7 @@ function endRound(
         ...next,
         ...reset,
         pendingUnlocks: [...new Set([...next.pendingUnlocks, cp.id])],
+        pendingRewards: { ...next.pendingRewards, [cp.id]: next.checkpointReward },
       },
       bonus: 0,
       passed: true,
@@ -396,7 +421,7 @@ function endRound(
   }
 
   // Passed and affordable: pay, unlock, reward
-  const done = finishCheckpoint(next, cp, beforeState);
+  const done = finishCheckpoint(next, cp, beforeState, next.checkpointReward);
   return { ...done, passed: true, percent, pending: false };
 }
 
@@ -446,12 +471,17 @@ export function answerCheckpointStep(
 
   // The question is settled: correct (any attempt) or wrong on attempt 2
   const credit = correct ? attemptCredit(attempt, hintUsed) : 0;
+  const attemptCorrect: 1 | 2 | null = correct ? (attempt <= 1 ? 1 : 2) : null;
   next = recordSettled(next, cp.courseUnit, {
     id: question.id,
     concepts: [question.concept],
-    attemptCorrect: correct ? (attempt <= 1 ? 1 : 2) : null,
+    attemptCorrect,
     hintUsed,
   });
+  next = {
+    ...next,
+    ...rewardUpdate(next, cp.id, weightOf(getRoundItems(state), step), credit, attemptCorrect),
+  };
   if (correct) {
     next = {
       ...next,
@@ -541,12 +571,17 @@ export function answerMatchingStep(
 
   // The set is settled: all pairs right (any attempt), or not all right on attempt 2
   const credit = allCorrect ? attemptCredit(attempt, hintUsed) : 0;
+  const attemptCorrect: 1 | 2 | null = allCorrect ? (attempt <= 1 ? 1 : 2) : null;
   next = recordSettled(next, cp.courseUnit, {
     id: item.id,
     concepts: item.concepts,
-    attemptCorrect: allCorrect ? (attempt <= 1 ? 1 : 2) : null,
+    attemptCorrect,
     hintUsed,
   });
+  next = {
+    ...next,
+    ...rewardUpdate(next, cp.id, weightOf(items, step), credit, attemptCorrect),
+  };
   next = {
     ...next,
     checkpointScore: next.checkpointScore + credit * weightOf(items, step),
@@ -597,7 +632,8 @@ export function finishRound(state: GameState): {
 function finishCheckpoint(
   next: GameState,
   cp: NonNullable<ReturnType<typeof getCheckpoint>>,
-  beforeState: GameState
+  beforeState: GameState,
+  reward: number
 ): { state: GameState; resolve: CheckpointResolveResult; bonus: number } {
   const beforeRate = isCpuOnline(beforeState)
     ? BASE_COMPUTE + computeCpuPerformance(beforeState.upgradeLevels).computePerSecond
@@ -619,7 +655,8 @@ function finishCheckpoint(
   }
   const price = getStageByCheckpoint(cp.id)?.price ?? 0;
   const bank = getBank(cp.id);
-  const bonus = stageClearBonus(cp.id);
+  // Order of events (design doc 5.1): price deducted, stage unlocked, then the round reward is paid
+  const bonus = Math.round(reward);
   const completed = [...new Set([...next.completedLearningCheckpoints, cp.id])];
 
   next = {
@@ -633,6 +670,10 @@ function finishCheckpoint(
     checkpointAttempt: 1,
     checkpointHintOpened: false,
     checkpointScore: 0,
+    checkpointReward: 0,
+    pendingRewards: Object.fromEntries(
+      Object.entries(next.pendingRewards).filter(([id]) => id !== cp.id)
+    ),
     roundQuestionIds: [],
     failedQuestionIds: bank
       ? next.failedQuestionIds.filter(
@@ -958,6 +999,9 @@ export function sanitizeLoadedState(raw: unknown): GameState | null {
         ? data.failedQuestionIds.map(String)
         : [],
       answerLog: sanitizeAnswerLog(data.answerLog),
+      streak: Math.max(0, Math.floor(Number(data.streak) || 0)),
+      checkpointReward: Math.max(0, Number(data.checkpointReward) || 0),
+      pendingRewards: sanitizePendingRewards(data.pendingRewards),
     });
 
     state = maybeActivateCheckpoint(state);
@@ -965,6 +1009,16 @@ export function sanitizeLoadedState(raw: unknown): GameState | null {
   } catch {
     return null;
   }
+}
+
+function sanitizePendingRewards(raw: unknown): Record<string, number> {
+  if (!raw || typeof raw !== "object") return {};
+  const out: Record<string, number> = {};
+  for (const [id, value] of Object.entries(raw as Record<string, unknown>)) {
+    const n = Number(value);
+    if (Number.isFinite(n) && n > 0) out[id] = n;
+  }
+  return out;
 }
 
 function sanitizeAnswerLog(raw: unknown): AnswerRecord[] {
