@@ -17,6 +17,8 @@ export interface McQuestion {
     id: string;
     /** The part or concept tested. Used for accuracy tracking (design doc 9.2). */
     concept: string;
+    /** "mission" = reasoning mission (design doc 3). Omitted means a plain multiple-choice question. */
+    group?: "mission" | "mc";
     scenario: string;
     choices: [string, string, string, string, string];
     correctIndex: 0 | 1 | 2 | 3 | 4;

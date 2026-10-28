@@ -70,16 +70,20 @@ function pick<T extends { id: string }>(pool: T[], count: number, failed: Set<st
  *   (required + spare), avoiding items the player already failed where possible.
  */
 export function drawRoundIds(bank: StageBank, failedIds: string[]): string[] {
-    const requiredMc = bank.mc.filter((q) => !q.spare);
+    const missions = bank.mc.filter((q) => q.group === "mission");
+    const plain = bank.mc.filter((q) => q.group !== "mission");
+    const requiredMissions = missions.filter((q) => !q.spare);
+    const requiredPlain = plain.filter((q) => !q.spare);
     const requiredMatch = INCLUDE_MATCHING ? bank.matching.filter((m) => !m.spare) : [];
     if (failedIds.length === 0) {
-        return [...requiredMc, ...requiredMatch].map((item) => item.id);
+        return [...requiredMissions, ...requiredPlain, ...requiredMatch].map((item) => item.id);
     }
 
     const failed = new Set(failedIds);
-    const mc = pick(bank.mc, requiredMc.length, failed);
-    const match = INCLUDE_MATCHING ? pick(bank.matching, requiredMatch.length, failed) : [];
-    return [...mc, ...match].map((item) => item.id);
+    const chosenMissions = pick(missions, requiredMissions.length, failed);
+    const chosenPlain = pick(plain, requiredPlain.length, failed);
+    const chosenMatch = INCLUDE_MATCHING ? pick(bank.matching, requiredMatch.length, failed) : [];
+    return [...chosenMissions, ...chosenPlain, ...chosenMatch].map((item) => item.id);
 }
 
 /** All items of the round that is currently active (empty when no round is active). */
@@ -114,7 +118,7 @@ export function getRoundItems(state: GameState): RoundItem[] {
             return [
                 {
                     kind: "mc",
-                    group: "mc",
+                    group: q.group ?? "mc",
                     id: q.id,
                     concept: q.concept,
                     scenario: q.scenario,
