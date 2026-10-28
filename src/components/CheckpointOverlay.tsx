@@ -6,6 +6,7 @@ import type { QuizFeedback } from "@/types/game";
 import { CpuCycleVisual } from "@/components/CpuCycleVisual";
 import { MemoryHierarchyVisual } from "@/components/MemoryHierarchyVisual";
 import { PlaceStep } from "@/components/learning/PlaceStep";
+import { MatchStep } from "@/components/learning/MatchStep";
 
 interface CheckpointOverlayProps {
   checkpoint: LearningCheckpoint;
@@ -43,11 +44,13 @@ export function CheckpointOverlay({
   const isBoot = checkpoint.id === "cpu-basics";
   const isLastQuestion = step >= checkpoint.questions.length - 1;
 
-  // Manage placement step state for Stage 1
+  // Manage multi-step flow for Stage 1: Placing -> Matching -> Quiz Quiz
   const [isPlacing, setIsPlacing] = useState(isBoot);
+  const [isMatching, setIsMatching] = useState(false);
 
   useEffect(() => {
     setIsPlacing(checkpoint.id === "cpu-basics");
+    setIsMatching(false);
   }, [checkpoint.id, lessonOpen]);
 
   if (!lessonOpen) {
@@ -62,13 +65,14 @@ export function CheckpointOverlay({
           </h2>
           <p className="mt-3 text-sm leading-relaxed text-muted">{checkpoint.stallBody}</p>
           <p className="mt-3 font-mono text-[11px] text-accent-text">
-            Read the short lesson, then pass the questions to unlock parts.
+            Read the short lesson, complete interactive steps, then pass the quiz to unlock parts.
           </p>
           <button
             type="button"
             onClick={() => {
               onOpenLesson();
               setIsPlacing(isBoot);
+              setIsMatching(false);
             }}
             className="mt-5 w-full rounded-xl border border-warning/50 bg-warning/15 px-4 py-3 font-mono text-sm font-semibold text-warning transition hover:opacity-90"
           >
@@ -79,21 +83,36 @@ export function CheckpointOverlay({
     );
   }
 
+  // Determine current subtitle/step title for header
+  const getHeaderTitle = () => {
+    if (isBoot && isPlacing) return "2 · Place Parts on the CPU";
+    if (isBoot && isMatching) return "3 · Match Components & Functions";
+    return checkpoint.title;
+  };
+
+  const getStepIndicator = () => {
+    if (isBoot && isPlacing) return "Place Parts";
+    if (isBoot && isMatching) return "Match Pairs";
+    return `Step ${step + 1}/${checkpoint.questions.length}`;
+  };
+
   return (
     <div className="fixed inset-0 z-40 flex items-end justify-center bg-black/60 p-3 sm:items-center sm:p-4">
-      <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-violet/30 bg-panel p-5 shadow-2xl sm:p-6">        <div className="flex items-start justify-between gap-3">
+      <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-violet/30 bg-panel p-5 shadow-2xl sm:p-6">
+        <div className="flex items-start justify-between gap-3">
           <div>
             <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-violet">
-              {checkpoint.courseUnit} · Required · {isPlacing ? "Place Parts" : `Step ${step + 1}/${checkpoint.questions.length}`}
+              {checkpoint.courseUnit} · Required · {getStepIndicator()}
             </p>
             <h2 className="mt-1 font-mono text-lg font-semibold text-foreground">
-              {isPlacing ? "2 · Place Parts on the CPU" : checkpoint.title}
+              {getHeaderTitle()}
             </h2>
           </div>
           <button
             type="button"
             onClick={() => {
               setIsPlacing(false);
+              setIsMatching(false);
               onCloseLesson();
             }}
             className="rounded-lg border border-edge px-2 py-1 text-xs text-muted hover:text-foreground"
@@ -102,12 +121,27 @@ export function CheckpointOverlay({
           </button>
         </div>
 
-        {/* Render Stage 1 Placement grid step */}
+        {/* Step 1: 2D Die Placement Grid */}
         {isBoot && isPlacing ? (
           <div className="mt-4">
-            <PlaceStep onComplete={() => setIsPlacing(false)} />
+            <PlaceStep
+              onComplete={() => {
+                setIsPlacing(false);
+                setIsMatching(true);
+              }}
+            />
+          </div>
+        ) : isBoot && isMatching ? (
+          /* Step 2: Match Components & Functions */
+          <div className="mt-4">
+            <MatchStep
+              onComplete={() => {
+                setIsMatching(false);
+              }}
+            />
           </div>
         ) : (
+          /* Step 3: Standard Quiz Round */
           <>
             <div className="mt-4 rounded-xl border border-edge bg-panel-muted p-3">
               <p className="text-sm leading-relaxed text-foreground">{checkpoint.reading}</p>
@@ -169,8 +203,8 @@ export function CheckpointOverlay({
             {feedback && (
               <div
                 className={`mt-4 rounded-xl border p-3 text-sm ${feedback.correct
-                  ? "border-success/40 bg-success-soft text-success"
-                  : "border-warning/40 bg-warning/10 text-warning"
+                    ? "border-success/40 bg-success-soft text-success"
+                    : "border-warning/40 bg-warning/10 text-warning"
                   }`}
               >
                 <div className="flex items-start justify-between gap-3">
