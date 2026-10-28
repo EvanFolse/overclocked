@@ -26,7 +26,8 @@ import {
   getRoundItems,
   getRoundQuestions,
   weightOf,
-} from "@/lib/rounds"; import type {
+} from "@/lib/rounds";
+import type {
   Challenge,
   CheckpointResolveResult,
   CourseMastery,
@@ -71,6 +72,8 @@ export function createInitialState(now = Date.now()): GameState {
     completedLearningCheckpoints: [],
     activeCheckpointId: null,
     checkpointStep: 0,
+    checkpointAttempt: 1,
+    checkpointHintOpened: false,
     checkpointMissStreak: 0,
     bonusSuspended: false,
     checkpointScore: 0,
@@ -232,6 +235,8 @@ export function startStage(state: GameState, stageId: number): GameState {
     ...state,
     activeCheckpointId: stage.checkpointId,
     checkpointStep: 0,
+    checkpointAttempt: 1,
+    checkpointHintOpened: false,
     checkpointScore: 0,
     roundQuestionIds: bank ? drawRoundIds(bank, state.failedQuestionIds) : [],
   };
@@ -283,6 +288,7 @@ function trackMastery(
 }
 
 export const PASS_RATIO = LEARNING_CONFIG.passLine;
+
 /** Credit per question: 1 on the first attempt, 0.75 on the second, 0.5 if the hint was opened */
 function attemptCredit(attempt: number, hintUsed: boolean): number {
   const { first, second, withHint } = LEARNING_CONFIG.credit;
@@ -308,6 +314,8 @@ function endRound(
   const reset = {
     activeCheckpointId: null,
     checkpointStep: 0,
+    checkpointAttempt: 1,
+    checkpointHintOpened: false,
     checkpointScore: 0,
     roundQuestionIds: [] as string[],
   };
@@ -339,18 +347,24 @@ function endRound(
   return { ...done, passed: true, percent, pending: false };
 }
 
+/** The player opens the hint. Only possible from the second attempt on. */
+export function openHint(state: GameState): GameState {
+  if (!state.activeCheckpointId) return state;
+  if (state.checkpointAttempt < 2 || state.checkpointHintOpened) return state;
+  return { ...state, checkpointHintOpened: true };
+}
+
 export function answerCheckpointStep(
   state: GameState,
   choiceIndex: number,
-  attempt: number,
-  hintUsed = false
 ): {
   state: GameState;
   feedback: QuizFeedback;
 } | null {
   const cp = getCheckpoint(state.activeCheckpointId);
   if (!cp) return null;
-
+  const attempt = state.checkpointAttempt;
+  const hintUsed = state.checkpointHintOpened;
   const roundQs = getRoundQuestions(state);
   const step = state.checkpointStep;
   const question = roundQs[step];
@@ -359,10 +373,10 @@ export function answerCheckpointStep(
   const correct = choiceIndex === question.correctIndex;
   let next = trackMastery(state, cp.courseUnit, correct);
 
-  // Wrong on the first attempt: let the player retry
+  // Wrong on the first attempt: let the player retry (attempt 2 is saved)
   if (!correct && attempt < LEARNING_CONFIG.maxAttempts) {
     return {
-      state: applyAchievements(next),
+      state: applyAchievements({ ...next, checkpointAttempt: attempt + 1 }),
       feedback: {
         correct: false,
         explanation: "",
@@ -391,7 +405,13 @@ export function answerCheckpointStep(
       }
     }
   }
-  next = { ...next, checkpointMissStreak: 0, bonusSuspended: false };
+  next = {
+    ...next,
+    checkpointMissStreak: 0,
+    bonusSuspended: false,
+    checkpointAttempt: 1,
+    checkpointHintOpened: false,
+  };
 
   // Remember questions that were failed on both attempts (bank stages only)
   if (!correct && getBank(cp.id)) {
@@ -428,12 +448,11 @@ export function answerCheckpointStep(
 export function answerMatchingStep(
   state: GameState,
   answer: number[],
-  attempt: number,
-  hintUsed = false
 ): { state: GameState; feedback: QuizFeedback } | null {
   const cp = getCheckpoint(state.activeCheckpointId);
   if (!cp) return null;
-
+  const attempt = state.checkpointAttempt;
+  const hintUsed = state.checkpointHintOpened;
   const items = getRoundItems(state);
   const step = state.checkpointStep;
   const item = items[step];
@@ -446,7 +465,7 @@ export function answerMatchingStep(
   // Not all pairs right on the first check: the player gets a second attempt
   if (!allCorrect && attempt < LEARNING_CONFIG.maxAttempts) {
     return {
-      state: applyAchievements(next),
+      state: applyAchievements({ ...next, checkpointAttempt: attempt + 1 }),
       feedback: {
         correct: false,
         explanation: "",
@@ -468,6 +487,8 @@ export function answerMatchingStep(
     checkpointScore: next.checkpointScore + credit * weightOf(items, step),
     checkpointMissStreak: 0,
     bonusSuspended: false,
+    checkpointAttempt: 1,
+    checkpointHintOpened: false,
     failedQuestionIds: allCorrect
       ? next.failedQuestionIds
       : [...new Set([...next.failedQuestionIds, item.id])],
@@ -487,6 +508,7 @@ export function answerMatchingStep(
     },
   };
 }
+
 /**
  * Ends the round once every question is settled (saved step is past the last question).
  * Returns null while the round is still in progress.
@@ -543,6 +565,8 @@ function finishCheckpoint(
     pendingUnlocks: next.pendingUnlocks.filter((id) => id !== cp.id),
     activeCheckpointId: null,
     checkpointStep: 0,
+    checkpointAttempt: 1,
+    checkpointHintOpened: false,
     checkpointScore: 0,
     roundQuestionIds: [],
     failedQuestionIds: bank
@@ -854,6 +878,8 @@ export function sanitizeLoadedState(raw: unknown): GameState | null {
       completedLearningCheckpoints,
       activeCheckpointId,
       checkpointStep: Number(data.checkpointStep) || 0,
+      checkpointAttempt: Number(data.checkpointAttempt) === 2 ? 2 : 1,
+      checkpointHintOpened: Boolean(data.checkpointHintOpened),
       checkpointMissStreak: Number(data.checkpointMissStreak) || 0,
       bonusSuspended: Boolean(data.bonusSuspended),
       checkpointScore: Number(data.checkpointScore) || 0,

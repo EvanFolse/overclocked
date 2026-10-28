@@ -18,6 +18,7 @@ import {
   isCpuOnline,
   isProductionStalled,
   maybeActivateCheckpoint,
+  openHint as applyOpenHint,
   pickRandomQuestion,
   purchaseUpgrade,
   getNextStage,
@@ -60,8 +61,6 @@ export function useGame() {
   const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
   const [selectedChoice, setSelectedChoice] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<QuizFeedback | null>(null);
-  const [checkpointAttempt, setCheckpointAttempt] = useState(1);
-  const [hintOpened, setHintOpened] = useState(false);
   /** choiceOrder[displayedIndex] = original option index of the current question */
   const [choiceOrder, setChoiceOrder] = useState<number[]>([]);
   const [resetCount, setResetCount] = useState(0);
@@ -91,9 +90,7 @@ export function useGame() {
     }
     prevAchievements.current = caughtUp.unlockedAchievements;
     prevCheckpoint.current = caughtUp.activeCheckpointId;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional mount hydration
     setState(caughtUp);
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional mount hydration
     setChoiceOrder(orderFor(caughtUp));
     setHydrated(true);
   }, []);
@@ -144,10 +141,6 @@ export function useGame() {
       setFeedback(null);
       setLessonOpen(false);
     }
-    if (!state.activeCheckpointId) {
-      setLessonOpen(false);
-      setCheckpointAttempt(1);
-    }
     prevCheckpoint.current = state.activeCheckpointId;
   }, [state.activeCheckpointId, hydrated]);
 
@@ -160,8 +153,6 @@ export function useGame() {
       setLessonOpen(true);
       setSelectedChoice(null);
       setFeedback(null);
-      setCheckpointAttempt(1);
-      setHintOpened(false);
       setRoundResult(null);
     },
     [state]
@@ -201,7 +192,7 @@ export function useGame() {
   const clearStatDelta = useCallback(() => setStatDelta(null), []);
   const clearResolveToast = useCallback(() => setResolveToast(null), []);
   const clearRoundResult = useCallback(() => setRoundResult(null), []);
-  const openHint = useCallback(() => setHintOpened(true), []);
+  const openHint = useCallback(() => setState((prev) => applyOpenHint(prev)), []);
 
   const submitCheckpointAnswer = useCallback(() => {
     if (selectedChoice == null) return;
@@ -210,24 +201,12 @@ export function useGame() {
     const originalIndex = order[selectedChoice] ?? selectedChoice;
 
     // Compute outside the state updater so the side effects below run exactly once
-    const result = answerCheckpointStep(
-      state,
-      originalIndex,
-      checkpointAttempt,
-      hintOpened
-    );
+    const result = answerCheckpointStep(state, originalIndex);
     if (!result) return;
 
     setState(result.state);
     setFeedback(result.feedback);
-
-    if (result.feedback.correct || result.feedback.revealed) {
-      setCheckpointAttempt(1);
-      setHintOpened(false);
-    } else {
-      setCheckpointAttempt((a) => a + 1);
-    }
-  }, [state, selectedChoice, checkpointAttempt, hintOpened, choiceOrder]);
+  }, [state, selectedChoice, choiceOrder]);
 
   // Called by "Next", "See result" and "Try Again". The player always decides when to move on.
   // - After the last question it ends the round and shows the result.
@@ -302,8 +281,6 @@ export function useGame() {
     setStatDelta(null);
     setResolveToast(null);
     setRoundResult(null);
-    setHintOpened(false);
-    setCheckpointAttempt(1);
     setChoiceOrder([]);
     setResetCount((n) => n + 1);
   }, []);
@@ -359,13 +336,13 @@ export function useGame() {
     selectedChoice,
     setSelectedChoice,
     feedback,
-    checkpointAttempt,
+    checkpointAttempt: state.checkpointAttempt,
     resetCount,
     newAchievement,
     statDelta,
     resolveToast,
     roundResult,
-    hintOpened,
+    hintOpened: state.checkpointHintOpened,
     openHint,
     clearRoundResult,
     clearStatDelta,

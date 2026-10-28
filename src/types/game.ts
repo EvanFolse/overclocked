@@ -175,6 +175,10 @@ export interface GameState {
   completedLearningCheckpoints: string[];
   activeCheckpointId: string | null;
   checkpointStep: number;
+  /** Attempt number (1 or 2) of the current question. Saved, so a refresh is not a free retry. */
+  checkpointAttempt: number;
+  /** Whether the hint of the current question was opened. Saved with the attempt. */
+  checkpointHintOpened: boolean;
   checkpointMissStreak: number;
   bonusSuspended: boolean; // introduct bonus mode;
 }
