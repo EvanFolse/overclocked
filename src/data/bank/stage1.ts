@@ -22,6 +22,104 @@ export const STAGE_1_BANK: StageBank = {
 
     mc: [
         // ---------- Required (8) ----------
+        // ---------- Missions: "What's broken?" (4 required, 1 spare) ----------
+        {
+            id: "s1-ms-01",
+            group: "mission",
+            concept: "ALU",
+            scenario:
+                "An ADD instruction runs, but no sum is ever produced. Which part is missing or failing?",
+            choices: [
+                "Bus Interface Unit",
+                "ALU",
+                "Control Unit",
+                "Clock",
+                "Registers",
+            ],
+            correctIndex: 1,
+            hint: "Think about which part computes, as opposed to storing or directing.",
+            explanation:
+                "The ALU performs the arithmetic. Without it the instruction is fetched and decoded, but nothing computes the sum.",
+            draft: true,
+        },
+        {
+            id: "s1-ms-02",
+            group: "mission",
+            concept: "Program Counter",
+            scenario:
+                "The CPU keeps running the same instruction over and over. Which part is missing or failing?",
+            choices: [
+                "ALU",
+                "Clock",
+                "Cache",
+                "Program Counter",
+                "Instruction Decoder",
+            ],
+            correctIndex: 3,
+            hint: "After each instruction, something must point to the next one. Which part holds that address?",
+            explanation:
+                "The Program Counter holds the address of the next instruction and moves on after each one. If it never advances, the same instruction is fetched again and again.",
+            draft: true,
+        },
+        {
+            id: "s1-ms-03",
+            group: "mission",
+            concept: "Instruction Decoder",
+            scenario:
+                "An instruction arrives, but the CPU cannot tell whether it means add, load or store. Which part is missing or failing?",
+            choices: [
+                "ALU",
+                "Registers",
+                "Instruction Decoder",
+                "Bus Interface Unit",
+                "Clock",
+            ],
+            correctIndex: 2,
+            hint: "The instruction is just a pattern of bits. Which part works out what that pattern asks for?",
+            explanation:
+                "The Instruction Decoder reads the bits of an instruction and works out which operation it asks for and which operands it uses.",
+            draft: true,
+        },
+        {
+            id: "s1-ms-04",
+            group: "mission",
+            concept: "Bus Interface Unit",
+            scenario:
+                "The CPU cannot fetch instructions or data from main memory. Which part is missing or failing?",
+            choices: [
+                "Control Unit",
+                "ALU",
+                "Registers",
+                "Program Counter",
+                "Bus Interface Unit",
+            ],
+            correctIndex: 4,
+            hint: "Which part is the CPU's connection to everything outside the chip?",
+            explanation:
+                "The Bus Interface Unit connects the CPU to main memory and to input/output through the buses.",
+            draft: true,
+        },
+        {
+            // spare mission, only drawn after a failed round
+            id: "s1-ms-05",
+            group: "mission",
+            spare: true,
+            concept: "Clock",
+            scenario:
+                "All parts work, but they act out of step with each other. Which part is missing or failing?",
+            choices: [
+                "Clock",
+                "Registers",
+                "Cache",
+                "ALU",
+                "Instruction Decoder",
+            ],
+            correctIndex: 0,
+            hint: "Think of a drummer keeping the beat. Which part sets the rhythm for every step?",
+            explanation:
+                "The Clock sends regular timing pulses so that every step happens in rhythm.",
+            draft: true,
+        },
         {
             // docx Q1
             id: "s1-mc-01",
