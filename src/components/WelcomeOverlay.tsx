@@ -10,6 +10,7 @@ export function WelcomeOverlay() {
   useEffect(() => {
     try {
       const seen = window.localStorage.getItem(STORAGE_KEY);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- read localStorage after mount
       if (!seen) setVisible(true);
     } catch {
       // If localStorage is unavailable, just show it once per session.
