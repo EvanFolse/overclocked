@@ -149,7 +149,15 @@ export type CourseMastery = Record<
   CourseUnit,
   { correct: number; attempted: number }
 >;
-
+/** One settled question or matching set. Saved so accuracy can be shown on the stage summary. */
+export interface AnswerRecord {
+  id: string;
+  /** The parts or concepts the item tests */
+  concepts: string[];
+  /** Which attempt was correct: 1, 2, or null when both attempts were wrong */
+  attemptCorrect: 1 | 2 | null;
+  hintUsed: boolean;
+}
 export interface GameState {
   /** sum of credits(1/0.75/0.5/0)  earned in the current round*/
   checkpointScore: number;
@@ -157,6 +165,8 @@ export interface GameState {
   pendingUnlocks: string[];
   roundQuestionIds: string[];
   failedQuestionIds: string[];
+  /** One record per settled question, newest last (capped at 500) */
+  answerLog: AnswerRecord[];
   money: number;
   totalEarned: number;
   upgradeLevels: Record<UpgradeId, number>;

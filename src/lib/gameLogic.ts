@@ -28,6 +28,7 @@ import {
   weightOf,
 } from "@/lib/rounds";
 import type {
+  AnswerRecord,
   Challenge,
   CheckpointResolveResult,
   CourseMastery,
@@ -80,6 +81,7 @@ export function createInitialState(now = Date.now()): GameState {
     pendingUnlocks: [],
     roundQuestionIds: [],
     failedQuestionIds: [],
+    answerLog: [],
   };
 }
 
@@ -287,6 +289,57 @@ function trackMastery(
   };
 }
 
+const MAX_ANSWER_LOG = 500;
+
+/**
+ * Called exactly once per question or matching set, when it is settled
+ * (answered correctly on any attempt, or wrong on the last attempt).
+ * Updates the course mastery counters and appends one record to the answer log.
+ */
+function recordSettled(
+  state: GameState,
+  unit: CourseUnit,
+  record: AnswerRecord
+): GameState {
+  const solved = record.attemptCorrect !== null;
+  const withMastery = trackMastery(state, unit, solved);
+  return {
+    ...withMastery,
+    answerLog: [...withMastery.answerLog, record].slice(-MAX_ANSWER_LOG),
+  };
+}
+
+/** Accuracy numbers for the stage summary (design doc 6.3). Display only. */
+export function getLearningStats(state: GameState) {
+  const log = state.answerLog;
+  const total = log.length;
+  const firstTry = log.filter((r) => r.attemptCorrect === 1).length;
+  const solved = log.filter((r) => r.attemptCorrect !== null).length;
+
+  const byConcept = new Map<string, { total: number; firstTry: number }>();
+  for (const r of log) {
+    for (const concept of r.concepts) {
+      const entry = byConcept.get(concept) ?? { total: 0, firstTry: 0 };
+      entry.total += 1;
+      if (r.attemptCorrect === 1) entry.firstTry += 1;
+      byConcept.set(concept, entry);
+    }
+  }
+  const weakest = [...byConcept.entries()]
+    .map(([concept, e]) => ({ concept, total: e.total, firstTryRate: e.firstTry / e.total }))
+    .sort((a, b) => a.firstTryRate - b.firstTryRate || b.total - a.total)
+    .slice(0, 3);
+
+  return {
+    total,
+    /** Share of questions answered right on the first attempt (the better measure of understanding) */
+    firstTryRate: total > 0 ? firstTry / total : null,
+    /** Share of questions finally answered right (retries can inflate this) */
+    finalRate: total > 0 ? solved / total : null,
+    weakest,
+  };
+}
+
 export const PASS_RATIO = LEARNING_CONFIG.passLine;
 
 /** Credit per question: 1 on the first attempt, 0.75 on the second, 0.5 if the hint was opened */
@@ -371,7 +424,7 @@ export function answerCheckpointStep(
   if (!question) return null;
 
   const correct = choiceIndex === question.correctIndex;
-  let next = trackMastery(state, cp.courseUnit, correct);
+  let next: GameState = state;
 
   // Wrong on the first attempt: let the player retry (attempt 2 is saved)
   if (!correct && attempt < LEARNING_CONFIG.maxAttempts) {
@@ -393,6 +446,12 @@ export function answerCheckpointStep(
 
   // The question is settled: correct (any attempt) or wrong on attempt 2
   const credit = correct ? attemptCredit(attempt, hintUsed) : 0;
+  next = recordSettled(next, cp.courseUnit, {
+    id: question.id,
+    concepts: [question.concept],
+    attemptCorrect: correct ? (attempt <= 1 ? 1 : 2) : null,
+    hintUsed,
+  });
   if (correct) {
     next = {
       ...next,
@@ -460,7 +519,7 @@ export function answerMatchingStep(
 
   const matchResult = item.pairs.map((_, i) => answer[i] === i);
   const allCorrect = matchResult.every(Boolean);
-  let next = trackMastery(state, cp.courseUnit, allCorrect);
+  let next: GameState = state;
 
   // Not all pairs right on the first check: the player gets a second attempt
   if (!allCorrect && attempt < LEARNING_CONFIG.maxAttempts) {
@@ -482,6 +541,12 @@ export function answerMatchingStep(
 
   // The set is settled: all pairs right (any attempt), or not all right on attempt 2
   const credit = allCorrect ? attemptCredit(attempt, hintUsed) : 0;
+  next = recordSettled(next, cp.courseUnit, {
+    id: item.id,
+    concepts: item.concepts,
+    attemptCorrect: allCorrect ? (attempt <= 1 ? 1 : 2) : null,
+    hintUsed,
+  });
   next = {
     ...next,
     checkpointScore: next.checkpointScore + credit * weightOf(items, step),
@@ -892,6 +957,7 @@ export function sanitizeLoadedState(raw: unknown): GameState | null {
       failedQuestionIds: Array.isArray(data.failedQuestionIds)
         ? data.failedQuestionIds.map(String)
         : [],
+      answerLog: sanitizeAnswerLog(data.answerLog),
     });
 
     state = maybeActivateCheckpoint(state);
@@ -899,6 +965,26 @@ export function sanitizeLoadedState(raw: unknown): GameState | null {
   } catch {
     return null;
   }
+}
+
+function sanitizeAnswerLog(raw: unknown): AnswerRecord[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .flatMap((entry): AnswerRecord[] => {
+      if (!entry || typeof entry !== "object") return [];
+      const e = entry as Partial<AnswerRecord>;
+      if (typeof e.id !== "string" || !Array.isArray(e.concepts)) return [];
+      const attemptCorrect = e.attemptCorrect === 1 || e.attemptCorrect === 2 ? e.attemptCorrect : null;
+      return [
+        {
+          id: e.id,
+          concepts: e.concepts.map(String),
+          attemptCorrect,
+          hintUsed: Boolean(e.hintUsed),
+        },
+      ];
+    })
+    .slice(-MAX_ANSWER_LOG);
 }
 
 function sanitizeMastery(raw: unknown): CourseMastery {

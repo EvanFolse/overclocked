@@ -79,15 +79,13 @@ export function CheckpointOverlay({
               {checkpoint.title}
             </h2>
           </div>
-          {!isBoot && (
-            <button
-              type="button"
-              onClick={onCloseLesson}
-              className="rounded-lg border border-edge px-2 py-1 text-xs text-muted hover:text-foreground"
-            >
-              Minimize
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={onCloseLesson}
+            className="rounded-lg border border-edge px-2 py-1 text-xs text-muted hover:text-foreground"
+          >
+            Leave
+          </button>
         </div>
 
         <div className="mt-4 rounded-xl border border-edge bg-panel-muted p-3">

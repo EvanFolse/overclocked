@@ -155,44 +155,18 @@ function GameBoardInner() {
                 {drawerBody}
             </GameDrawer>
 
-            {/* Offline boot CTA when no active lesson yet */}
-            {!game.activeCheckpoint &&
-                !game.state.completedLearningCheckpoints.includes("cpu-basics") && (
-                    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/55 p-4">
-                        <div className="w-full max-w-md rounded-2xl border border-violet/40 bg-panel/95 p-6 text-center shadow-2xl backdrop-blur-md">
-                            <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-violet">
-                                Stage 1 · KNOW CPU
-                            </p>
-                            <h2 className="mt-2 font-mono text-xl font-bold text-foreground">
-                                Learn the parts, then unlock them
-                            </h2>
-                            <p className="mt-3 text-sm leading-relaxed text-muted">
-                                Your clock is already ticking and earning CP. Read a short explanation,
-                                then pass the quiz round. CP cannot skip the quiz.
-                            </p>
-                            <button
-                                type="button"
-                                onClick={game.beginBoot}
-                                className="mt-5 w-full rounded-xl border border-violet/50 bg-violet-soft px-4 py-3 font-mono text-sm font-semibold text-violet"
-                            >
-                                Start Stage 1
-                            </button>
-                        </div>
-                    </div>
-                )}
 
-            {!game.activeCheckpoint && (
+            {!(game.activeCheckpoint && game.lessonOpen) && (
                 <StageList state={game.state} onStart={game.beginStage} />
             )}
-
-            {game.activeCheckpoint && (
+            {game.activeCheckpoint && game.lessonOpen && (
                 <CheckpointOverlay
                     checkpoint={game.activeCheckpoint}
                     step={game.displayStep}
                     selectedChoice={game.selectedChoice}
                     feedback={game.feedback}
                     bonusSuspended={game.state.bonusSuspended}
-                    lessonOpen={game.lessonOpen || game.activeCheckpoint.id === "cpu-basics"}
+                    lessonOpen={game.lessonOpen}
                     onOpenLesson={game.openLesson}
                     onCloseLesson={game.closeLesson}
                     onSelect={game.setSelectedChoice}
