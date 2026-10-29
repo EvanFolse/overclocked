@@ -1,7 +1,8 @@
 import { getCheckpoint, type CheckpointQuestion } from "@/data/checkpoints";
 import { STAGE_1_BANK } from "@/data/bank/stage1";
 import type { MatchingSet, StageBank } from "@/data/bank/types";
-import type { GameState } from "@/types/game";
+import type { AnswerRecord, GameState } from "@/types/game";
+import type { ResultGroup } from "@/components/learning/RoundResultCard";
 import { LEARNING_CONFIG } from "@/lib/learningConfig";
 /**
  * Matching sets are already in the question bank, but the matching screen is not built yet.
@@ -173,4 +174,39 @@ export function weightOf(items: RoundItem[], index: number): number {
 
     const group = groupOf(item);
     return GROUP_WEIGHTS[group] / total / counts[group];
+}
+const GROUP_LABEL: Record<RoundGroup, string> = {
+    mission: "Reasoning missions",
+    mc: "Multiple choice",
+    match: "Matching",
+};
+
+/** Credit of one settled question, from its answer record (design doc 4.2). */
+function creditOf(record: AnswerRecord | undefined): number {
+    if (!record || record.attemptCorrect === null) return 0; // not answered, or wrong on both attempts
+    if (record.attemptCorrect === 1) return LEARNING_CONFIG.credit.first;
+    return record.hintUsed ? LEARNING_CONFIG.credit.withHint : LEARNING_CONFIG.credit.second;
+}
+
+/**
+ * Per-group result of the active round, for the result card.
+ * Call it with the state from BEFORE finishRound clears the round.
+ */
+export function getRoundBreakdown(state: GameState): ResultGroup[] {
+    const items = getRoundItems(state);
+    const order: RoundGroup[] = ["mission", "mc", "match"];
+    const present = order.filter((g) => items.some((it) => groupOf(it) === g));
+    const totalWeight = present.reduce((sum, g) => sum + GROUP_WEIGHTS[g], 0);
+
+    return present.map((g) => {
+        const credits = items
+            .filter((it) => groupOf(it) === g)
+            .map((it) => creditOf([...state.answerLog].reverse().find((r) => r.id === it.id)));
+        return {
+            key: g,
+            label: GROUP_LABEL[g],
+            weight: GROUP_WEIGHTS[g] / totalWeight, // same re-sharing rule as weightOf
+            avgCredit: credits.reduce((s, c) => s + c, 0) / credits.length,
+        };
+    });
 }

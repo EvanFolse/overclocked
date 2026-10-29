@@ -28,7 +28,8 @@ import {
 import { getCpuPerformance } from "@/lib/cpuStats";
 import { getCheckpoint } from "@/data/checkpoints";
 import { getStageByCheckpoint } from "@/data/stages";
-import { getBank, getRoundQuestions, shuffleOrder } from "@/lib/rounds";
+import { getBank, getRoundQuestions, getRoundBreakdown, shuffleOrder } from "@/lib/rounds";
+import type { ResultGroup } from "@/components/learning/RoundResultCard";
 import { clearSavedGame, loadGame, saveGame } from "@/lib/storage";
 import { CHALLENGES } from "@/data/questions";
 
@@ -39,6 +40,7 @@ export interface RoundResult {
   /** failed: under 70%. pending: passed, but not enough CP yet. passed: passed and unlocked */
   kind: "failed" | "pending" | "passed";
   reward: number;
+  groups: ResultGroup[];
 }
 
 /** A fresh random option order for the question the player is currently on. */
@@ -88,6 +90,7 @@ export function useGame() {
         percent: ended.percent,
         kind: ended.pending ? "pending" : ended.passed ? "passed" : "failed",
         reward: ended.bonus,
+        groups: getRoundBreakdown(state),
       });
     }
     prevAchievements.current = caughtUp.unlockedAchievements;
@@ -227,6 +230,7 @@ export function useGame() {
         percent: ended.percent,
         kind: ended.pending ? "pending" : ended.passed ? "passed" : "failed",
         reward: ended.bonus,
+        groups: getRoundBreakdown(state),
       });
       if (ended.resolve) {
         setResolveToast(ended.resolve);
