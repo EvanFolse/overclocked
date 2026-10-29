@@ -1,5 +1,7 @@
 "use client";
-
+import { RoundResultCard } from "@/components/learning/RoundResultCard";
+import { StageLayout } from "@/components/learning/StageLayout";
+import { LEARNING_CONFIG } from "@/lib/learningConfig";
 import { useCallback, useState, type ReactNode } from "react";
 import { useGame } from "@/hooks/useGame";
 import { GameHUD } from "@/components/GameHUD";
@@ -18,6 +20,7 @@ import { SettingsView } from "@/components/drawer/SettingsView";
 import { SourcesView } from "@/components/drawer/SourcesView";
 import { ThemeProvider } from "@/lib/theme";
 import { getCurrentEra } from "@/data/eras";
+import { getCpuRank } from "@/lib/cpuRanks";
 
 function GameBoardInner() {
     const game = useGame();
@@ -129,6 +132,7 @@ function GameBoardInner() {
                     levels={game.state.upgradeLevels}
                     cpuLevel={game.cpuLevel}
                     upgradeFlash={game.upgradeFlash}
+                    rank={getCpuRank(game.state.completedLearningCheckpoints)}
                 />
             </div>
 
@@ -162,6 +166,7 @@ function GameBoardInner() {
             {game.activeCheckpoint && game.lessonOpen && (
                 <CheckpointOverlay
                     checkpoint={game.activeCheckpoint}
+                    cp={game.state.money}
                     step={game.displayStep}
                     selectedChoice={game.selectedChoice}
                     feedback={game.feedback}
@@ -178,30 +183,26 @@ function GameBoardInner() {
             )}
 
             {game.roundResult && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4">
-                    <div className="w-full max-w-md rounded-2xl border border-violet/40 bg-panel/95 p-6 text-center shadow-2xl backdrop-blur-md">
-                        <p className="font-mono text-[10px] uppercase tracking-[0.28em] text-violet">
-                            {game.roundResult.stageTitle}
-                        </p>
-                        <h2 className="mt-2 font-mono text-xl font-bold text-foreground">
-                            {game.roundResult.kind === "failed" ? "Round not passed" : "Round passed"}
-                        </h2>
-                        <p className="mt-3 text-sm leading-relaxed text-muted">
-                            Score {Math.round(game.roundResult.percent * 100)}%.{" "}
-                            {game.roundResult.kind === "failed"
-                                ? "You need 70% to pass. Nothing was spent, so you can try again."
-                                : game.roundResult.kind === "pending"
-                                    ? "This stage will unlock automatically as soon as you have enough CP."
-                                    : `Stage unlocked. Reward +${game.roundResult.reward} CP.`}                        </p>
-                        <button
-                            type="button"
-                            onClick={game.clearRoundResult}
-                            className="mt-5 w-full rounded-xl border border-violet/50 bg-violet-soft px-4 py-3 font-mono text-sm font-semibold text-violet"
-                        >
-                            OK
-                        </button>
-                    </div>
-                </div>
+                <StageLayout
+                    title={game.roundResult.stageTitle.toUpperCase()}
+                    subtitle="LEARN → PLACE → ROUND → UNLOCK"
+                    currentStep="round"
+                    cp={game.state.money}
+                >
+                    <RoundResultCard
+                        stageLabel={game.roundResult.stageTitle.toUpperCase()}
+                        groups={game.roundResult.groups}
+                        passLine={LEARNING_CONFIG.passLine}
+                        kind={game.roundResult.kind}
+                        reward={game.roundResult.reward}
+                        onContinue={() => {
+                            const failed = game.roundResult?.kind === "failed";
+                            game.clearRoundResult();
+                            // 不及格时点 Try again,如果这一关还在进行中就重新打开
+                            if (failed && game.activeCheckpoint) game.openLesson();
+                        }}
+                    />
+                </StageLayout>
             )}
 
             <UpgradeFeedback
