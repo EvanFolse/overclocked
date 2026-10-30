@@ -1,5 +1,6 @@
 "use client";
 
+import { TutorLauncher } from "@/components/TutorLauncher";
 import { useState, useEffect } from "react";
 import type { LearningCheckpoint } from "@/data/checkpoints";
 import type { MatchResult, QuizFeedback } from "@/types/game";
@@ -248,6 +249,8 @@ export function CheckpointOverlay({
         onLeave={onCloseLesson}
       >
         {phase === "learn" && <LearnStep onComplete={() => setPhase("place")} />}
+
+        {(phase === "learn" || phase === "place") && <TutorLauncher stage={1} />}
 
         {phase === "place" && (
           <div className="mx-auto max-w-5xl rounded-2xl border border-edge bg-panel p-6 shadow-lg">

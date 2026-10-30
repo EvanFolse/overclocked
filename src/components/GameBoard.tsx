@@ -1,4 +1,6 @@
 "use client";
+import { ReviewPages } from "@/components/learning/ReviewPages";
+import { TutorLauncher } from "@/components/TutorLauncher";
 import { UnlockCelebration } from "@/components/learning/UnlockCelebration";
 import { getRoundMatchSets } from "@/lib/rounds";
 import { RoundResultCard } from "@/components/learning/RoundResultCard";
@@ -28,6 +30,8 @@ function GameBoardInner() {
     const game = useGame();
     // True while the unlock celebration page is shown (after the round result)
     const [celebrate, setCelebrate] = useState(false);
+    // True while the paged explanation is shown (after a failed round result)
+    const [reviewing, setReviewing] = useState(false);
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [section, setSection] = useState<DrawerSection>("upgrades");
     const [practiceOpen, setPracticeOpen] = useState(false);
@@ -188,7 +192,11 @@ function GameBoardInner() {
                 />
             )}
 
-            {game.roundResult && !celebrate && (
+            {!game.activeCheckpoint && !game.roundResult && !game.autoUnlock && !practiceOpen && (
+                <TutorLauncher stage={Math.min(5, game.state.completedLearningCheckpoints.length + 1)} />
+            )}
+
+            {game.roundResult && !celebrate && !reviewing && (
                 <StageLayout
                     title={game.roundResult.stageTitle.toUpperCase()}
                     subtitle="LEARN → PLACE → ROUND → UNLOCK"
@@ -205,6 +213,11 @@ function GameBoardInner() {
                             // A passed round shows the unlock page before the CPU changes
                             if (game.roundResult?.kind === "passed" && game.unlockInfo) {
                                 setCelebrate(true);
+                                return;
+                            }
+                            // A failed round shows the paged explanation before going back to the stages
+                            if (game.roundResult?.kind === "failed" && game.reviewPages.length > 0) {
+                                setReviewing(true);
                                 return;
                             }
                             const failed = game.roundResult?.kind === "failed";
@@ -232,6 +245,16 @@ function GameBoardInner() {
                     info={game.autoUnlock}
                     money={game.state.money}
                     onNext={game.finishAutoUnlock}
+                />
+            )}
+
+            {game.roundResult && reviewing && (
+                <ReviewPages
+                    pages={game.reviewPages}
+                    onDone={() => {
+                        setReviewing(false);
+                        game.clearRoundResult();
+                    }}
                 />
             )}
 

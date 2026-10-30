@@ -1,5 +1,6 @@
 "use client";
 
+import { buildReviewPages, type ReviewPage, type WrongPick } from "@/lib/review";
 import type { UnlockInfo } from "@/lib/gameLogic";
 import type { MatchResult } from "@/types/game";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -80,6 +81,10 @@ export function useGame() {
   const [roundResult, setRoundResult] = useState<RoundResult | null>(null);
   // Data for the unlock celebration page. Only set for a passed round that was paid for.
   const [unlockInfo, setUnlockInfo] = useState<UnlockInfo | null>(null);
+  // Paged explanation after a failed round (design doc 6.1)
+  const [reviewPages, setReviewPages] = useState<ReviewPage[]>([]);
+  // Wrong options picked during this round. Kept in memory only (lost on page refresh).
+  const wrongPicks = useRef<WrongPick[]>([]);
   const prevAchievements = useRef<string[]>([]);
   const prevCheckpoint = useRef<string | null>(null);
 
@@ -249,6 +254,7 @@ export function useGame() {
   const clearRoundResult = useCallback(() => {
     setRoundResult(null);
     setUnlockInfo(null);
+    setReviewPages([]);
   }, []);
   const openHint = useCallback(() => setState((prev) => applyOpenHint(prev)), []);
 
@@ -267,6 +273,13 @@ export function useGame() {
     // Compute outside the state updater so the side effects below run exactly once
     const result = answerCheckpointStep(state, originalIndex);
     if (!result) return;
+// Remember wrong picks for the paged explanation after a failed round (design doc 6.1)
+const askedId = getRoundQuestions(state)[state.checkpointStep]?.id;
+if (askedId && !result.feedback.correct) {
+  const known = wrongPicks.current.some((p) => p.id === askedId && p.choice === originalIndex);
+  if (!known) wrongPicks.current = [...wrongPicks.current, { id: askedId, choice: originalIndex }];
+}
+
 
     setState(result.state);
     setFeedback(result.feedback);
@@ -289,6 +302,9 @@ export function useGame() {
           ? buildUnlockInfo(state.activeCheckpointId, ended.bonus)
           : null
       );
+      // Paged explanation for a failed round (design doc 6.1)
+      setReviewPages(ended.passed ? [] : buildReviewPages(state, wrongPicks.current));
+      wrongPicks.current = [];
       setRoundResult({
         stageTitle: stage?.title ?? "Stage",
         percent: ended.percent,
@@ -418,6 +434,7 @@ export function useGame() {
     openHint,
     settleMatchSet,
     unlockInfo,
+    reviewPages,
     autoUnlock,
     finishAutoUnlock,
     shownState,
