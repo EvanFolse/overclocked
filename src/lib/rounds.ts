@@ -8,7 +8,7 @@ import { LEARNING_CONFIG } from "@/lib/learningConfig";
  * Matching sets are already in the question bank, but the matching screen is not built yet.
  * Switch this to true when the matching screen is part of the game.
  */
-export const INCLUDE_MATCHING = false;
+export const INCLUDE_MATCHING = true;
 
 export type RoundGroup = "mission" | "mc" | "match";
 
@@ -209,4 +209,10 @@ export function getRoundBreakdown(state: GameState): ResultGroup[] {
             avgCredit: credits.reduce((s, c) => s + c, 0) / credits.length,
         };
     });
+}
+/** Only the matching sets of the active round. */
+export function getRoundMatchSets(state: GameState): RoundMatching[] {
+    return getRoundItems(state).filter(
+        (item): item is Extract<RoundItem, { kind: "match" }> => item.kind === "match"
+    );
 }

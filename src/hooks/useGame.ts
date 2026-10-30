@@ -1,5 +1,7 @@
 "use client";
 
+import type { UnlockInfo } from "@/lib/gameLogic";
+import type { MatchResult } from "@/types/game";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   CheckpointResolveResult,
@@ -10,6 +12,8 @@ import type {
 } from "@/types/game";
 import {
   answerCheckpointStep,
+  answerMatchSet,
+  buildUnlockInfo,
   answerQuestion,
   createInitialState,
   finishRound,
@@ -74,8 +78,51 @@ export function useGame() {
     null
   );
   const [roundResult, setRoundResult] = useState<RoundResult | null>(null);
+  // Data for the unlock celebration page. Only set for a passed round that was paid for.
+  const [unlockInfo, setUnlockInfo] = useState<UnlockInfo | null>(null);
   const prevAchievements = useRef<string[]>([]);
   const prevCheckpoint = useRef<string | null>(null);
+
+  // What the 3D CPU shows. While the round result is on screen it stays on the OLD build,
+  // so the new parts appear (with their animation) when the player presses Continue.
+  const [shownState, setShownState] = useState(state);
+  const [shownFlash, setShownFlash] = useState(0);
+
+  // Auto-unlock celebration: a round passed without enough CP unlocks later, inside the income
+  // tick. Detect that moment while rendering, so the 3D CPU never jumps ahead of the celebration.
+  const pendingKey = state.pendingUnlocks.join(",");
+  const [pendingSnap, setPendingSnap] = useState({
+    key: pendingKey,
+    ids: state.pendingUnlocks,
+    rewards: state.pendingRewards,
+  });
+  const [autoUnlock, setAutoUnlock] = useState<UnlockInfo | null>(null);
+  let celebratingAuto = autoUnlock !== null;
+  if (pendingSnap.key !== pendingKey) {
+    setPendingSnap({ key: pendingKey, ids: state.pendingUnlocks, rewards: state.pendingRewards });
+    // An id that left the pending list AND is now completed was unlocked automatically
+    // (a game reset also empties the list, but then the id is not completed)
+    const settledId = pendingSnap.ids.find(
+      (id) => !state.pendingUnlocks.includes(id) && state.completedLearningCheckpoints.includes(id)
+    );
+    if (hydrated && settledId) {
+      const info = buildUnlockInfo(settledId, Math.round(pendingSnap.rewards[settledId] ?? 0));
+      if (info) {
+        setAutoUnlock(info);
+        celebratingAuto = true;
+      }
+    }
+  }
+  const finishAutoUnlock = useCallback(() => {
+    setAutoUnlock(null);
+    setUpgradeFlash((f) => f + 1); // flash when the new parts appear
+  }, []);
+
+  // Keep the CPU on the old build while a round result or the celebration is on screen
+  if (!roundResult && !celebratingAuto) {
+    if (shownState !== state) setShownState(state);
+    if (shownFlash !== upgradeFlash) setShownFlash(upgradeFlash);
+  }
 
   useEffect(() => {
     const loaded = tickIncome(loadGame(), Date.now());
@@ -84,6 +131,9 @@ export function useGame() {
     const caughtUp = ended ? ended.state : loaded;
     if (ended) {
       const stage = getStageByCheckpoint(loaded.activeCheckpointId);
+      // Keep the CPU on the pre-round build until the player presses Continue
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional mount hydration
+      setShownState(loaded);
       // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional mount hydration
       setRoundResult({
         stageTitle: stage?.title ?? "Stage",
@@ -196,8 +246,17 @@ export function useGame() {
 
   const clearStatDelta = useCallback(() => setStatDelta(null), []);
   const clearResolveToast = useCallback(() => setResolveToast(null), []);
-  const clearRoundResult = useCallback(() => setRoundResult(null), []);
+  const clearRoundResult = useCallback(() => {
+    setRoundResult(null);
+    setUnlockInfo(null);
+  }, []);
   const openHint = useCallback(() => setState((prev) => applyOpenHint(prev)), []);
+
+  // Settle one matching set (design doc 4.2). Matching is played before the quiz.
+  const settleMatchSet = useCallback(
+    (r: MatchResult) => setState((prev) => answerMatchSet(prev, r)),
+    []
+  );
 
   const submitCheckpointAnswer = useCallback(() => {
     if (selectedChoice == null) return;
@@ -225,6 +284,11 @@ export function useGame() {
       setSelectedChoice(null);
       setFeedback(null);
       setLessonOpen(false);
+      setUnlockInfo(
+        ended.passed && !ended.pending && state.activeCheckpointId
+          ? buildUnlockInfo(state.activeCheckpointId, ended.bonus)
+          : null
+      );
       setRoundResult({
         stageTitle: stage?.title ?? "Stage",
         percent: ended.percent,
@@ -352,6 +416,14 @@ export function useGame() {
 
     hintOpened: state.checkpointHintOpened,
     openHint,
+    settleMatchSet,
+    unlockInfo,
+    autoUnlock,
+    finishAutoUnlock,
+    shownState,
+    shownFlash,
+    shownCpuLevel: getCpuLevel(shownState),
+    shownCpuOnline: isCpuOnline(shownState),
     clearRoundResult,
     clearStatDelta,
     clearResolveToast,

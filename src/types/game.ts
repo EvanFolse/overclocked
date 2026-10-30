@@ -259,3 +259,9 @@ export const DIFFICULTY_LABELS: Record<ChallengeDifficulty, string> = {
   3: "Application",
   4: "Architecture Reasoning",
 };
+export interface MatchResult {
+  setId: string;
+  concepts: string[];
+  attemptCorrect: 1 | 2 | null;
+  hintUsed: boolean;
+}

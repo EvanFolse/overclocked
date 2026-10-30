@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import type { LearningCheckpoint } from "@/data/checkpoints";
-import type { QuizFeedback } from "@/types/game";
+import type { MatchResult, QuizFeedback } from "@/types/game";
+import type { RoundMatching } from "@/lib/rounds";
 import { CpuCycleVisual } from "@/components/CpuCycleVisual";
 import { MemoryHierarchyVisual } from "@/components/MemoryHierarchyVisual";
 import { LearnStep } from "@/components/learning/LearnStep";
@@ -26,6 +27,10 @@ interface CheckpointOverlayProps {
   onContinue: () => void;
   hintOpened: boolean;
   onOpenHint: () => void;
+  /** Matching sets of the active round (empty when matching is switched off) */
+  matchSets?: RoundMatching[];
+  /** Reports one settled matching set to the game engine */
+  onMatchSettled?: (result: MatchResult) => void;
   cp?: number; 
 }
 
@@ -43,6 +48,8 @@ export function CheckpointOverlay({
   onContinue,
   hintOpened,
   onOpenHint,
+  matchSets = [],
+  onMatchSettled,
   cp,
 }: CheckpointOverlayProps) {
   const question = checkpoint.questions[step];
@@ -244,13 +251,17 @@ export function CheckpointOverlay({
 
         {phase === "place" && (
           <div className="mx-auto max-w-5xl rounded-2xl border border-edge bg-panel p-6 shadow-lg">
-            <PlaceStep onComplete={() => setPhase("match")} />
+            <PlaceStep onComplete={() => setPhase(matchSets.length > 0 ? "match" : "quiz")} />
           </div>
         )}
 
         {phase === "match" && (
           <div className="mx-auto max-w-5xl rounded-2xl border border-edge bg-panel p-6 shadow-lg">
-            <MatchStep onComplete={() => setPhase("quiz")} />
+            <MatchStep
+              sets={matchSets}
+              onSetSettled={(r) => onMatchSettled?.(r)}
+              onComplete={() => setPhase("quiz")}
+            />
           </div>
         )}
 

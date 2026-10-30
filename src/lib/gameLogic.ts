@@ -3,6 +3,7 @@ import { getCheckpoint, type CheckpointId } from "@/data/checkpoints";
 import { STAGES, getStage, getStageByCheckpoint, type StageDef } from "@/data/stages";
 import { CHALLENGES } from "@/data/questions";
 import { LEARNING_CONFIG } from "@/lib/learningConfig";
+import type { MatchResult } from "@/types/game"
 import {
   BASE_COMPUTE,
   BOOT_UNLOCKS,
@@ -431,7 +432,22 @@ export function openHint(state: GameState): GameState {
   if (state.checkpointAttempt < 2 || state.checkpointHintOpened) return state;
   return { ...state, checkpointHintOpened: true };
 }
-
+export function answerMatchSet(state: GameState, r: MatchResult): GameState {
+  const cp = getCheckpoint(state.activeCheckpointId);
+  if (!cp) return state;
+  const credit = r.attemptCorrect === null ? 0 : attemptCredit(r.attemptCorrect, r.hintUsed);
+  let next = recordSettled(state, cp.courseUnit, {
+    id: r.setId,
+    concepts: r.concepts,
+    attemptCorrect: r.attemptCorrect,
+    hintUsed: r.hintUsed,
+  });
+  const items = getRoundItems(state);
+  const idx = items.findIndex((it) => it.id === r.setId);
+  if (idx < 0) return next;
+  next = { ...next, ...rewardUpdate(next, cp.id, weightOf(items, idx), credit, r.attemptCorrect) };
+  return applyAchievements(next);
+}
 export function answerCheckpointStep(
   state: GameState,
   choiceIndex: number,
@@ -623,8 +639,9 @@ export function finishRound(state: GameState): {
 } | null {
   const cp = getCheckpoint(state.activeCheckpointId);
   if (!cp) return null;
-  const items = getRoundItems(state);
-  if (items.length === 0 || state.checkpointStep < items.length) return null;
+  // Matching sets are played before the quiz, so only quiz questions count as steps
+  const quizCount = getRoundQuestions(state).length;
+  if (quizCount === 0 || state.checkpointStep < quizCount) return null;
   const end = endRound(state, cp, state);
   return { ...end, state: applyAchievements(end.state) };
 }
@@ -1058,3 +1075,26 @@ function sanitizeMastery(raw: unknown): CourseMastery {
 }
 
 export type { CheckpointId };
+/** Data for the unlock celebration page (design doc 5.1). */
+export interface UnlockInfo {
+  stageNumber: number;
+  stageTitle: string;
+  price: number;
+  /** CP paid for the round (already rounded) */
+  reward: number;
+  next: { number: number; title: string; price: number } | null;
+}
+
+export function buildUnlockInfo(checkpointId: string, reward: number): UnlockInfo | null {
+  const i = STAGES.findIndex((s) => s.checkpointId === checkpointId);
+  const stage = STAGES[i];
+  if (!stage) return null;
+  const nextStage = STAGES[i + 1];
+  return {
+    stageNumber: i + 1,
+    stageTitle: stage.title,
+    price: stage.price,
+    reward,
+    next: nextStage ? { number: i + 2, title: nextStage.title, price: nextStage.price } : null,
+  };
+}

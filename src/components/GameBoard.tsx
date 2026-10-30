@@ -1,4 +1,6 @@
 "use client";
+import { UnlockCelebration } from "@/components/learning/UnlockCelebration";
+import { getRoundMatchSets } from "@/lib/rounds";
 import { RoundResultCard } from "@/components/learning/RoundResultCard";
 import { StageLayout } from "@/components/learning/StageLayout";
 import { LEARNING_CONFIG } from "@/lib/learningConfig";
@@ -24,6 +26,8 @@ import { getCpuRank } from "@/lib/cpuRanks";
 
 function GameBoardInner() {
     const game = useGame();
+    // True while the unlock celebration page is shown (after the round result)
+    const [celebrate, setCelebrate] = useState(false);
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [section, setSection] = useState<DrawerSection>("upgrades");
     const [practiceOpen, setPracticeOpen] = useState(false);
@@ -127,12 +131,12 @@ function GameBoardInner() {
             <div className="absolute inset-0 z-0">
                 <CpuVisual
                     immersive
-                    offline={!game.cpuOnline}
-                    state={game.state}
-                    levels={game.state.upgradeLevels}
-                    cpuLevel={game.cpuLevel}
-                    upgradeFlash={game.upgradeFlash}
-                    rank={getCpuRank(game.state.completedLearningCheckpoints)}
+                    offline={!game.shownCpuOnline}
+                    state={game.shownState}
+                    levels={game.shownState.upgradeLevels}
+                    cpuLevel={game.shownCpuLevel}
+                    upgradeFlash={game.shownFlash}
+                    rank={getCpuRank(game.shownState.completedLearningCheckpoints)}
                 />
             </div>
 
@@ -179,10 +183,12 @@ function GameBoardInner() {
                     onContinue={game.nextCheckpointStep}
                     hintOpened={game.hintOpened}
                     onOpenHint={game.openHint}
+                    matchSets={getRoundMatchSets(game.state)}
+                    onMatchSettled={game.settleMatchSet}
                 />
             )}
 
-            {game.roundResult && (
+            {game.roundResult && !celebrate && (
                 <StageLayout
                     title={game.roundResult.stageTitle.toUpperCase()}
                     subtitle="LEARN → PLACE → ROUND → UNLOCK"
@@ -196,6 +202,11 @@ function GameBoardInner() {
                         kind={game.roundResult.kind}
                         reward={game.roundResult.reward}
                         onContinue={() => {
+                            // A passed round shows the unlock page before the CPU changes
+                            if (game.roundResult?.kind === "passed" && game.unlockInfo) {
+                                setCelebrate(true);
+                                return;
+                            }
                             const failed = game.roundResult?.kind === "failed";
                             game.clearRoundResult();
                             // 不及格时点 Try again,如果这一关还在进行中就重新打开
@@ -205,9 +216,28 @@ function GameBoardInner() {
                 </StageLayout>
             )}
 
+            {game.roundResult && celebrate && game.unlockInfo && (
+                <UnlockCelebration
+                    info={game.unlockInfo}
+                    money={game.state.money}
+                    onNext={() => {
+                        setCelebrate(false);
+                        game.clearRoundResult();
+                    }}
+                />
+            )}
+
+            {game.autoUnlock && (
+                <UnlockCelebration
+                    info={game.autoUnlock}
+                    money={game.state.money}
+                    onNext={game.finishAutoUnlock}
+                />
+            )}
+
             <UpgradeFeedback
                 delta={game.statDelta}
-                resolve={game.resolveToast}
+                resolve={game.roundResult ? null : game.resolveToast}
                 onDismissDelta={game.clearStatDelta}
                 onDismissResolve={game.clearResolveToast}
             />

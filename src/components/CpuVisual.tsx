@@ -167,7 +167,7 @@ export function CpuVisual({
     return (
       <div className={`relative h-full w-full ${offline ? "grayscale-[0.45] opacity-80" : ""}`}>
         <div
-          key={upgradeFlash}
+          key={`upgrade-flash-${upgradeFlash}`}
           className="pointer-events-none absolute inset-0 z-20 animate-upgrade-flash bg-accent/10"
         />
         <Canvas
@@ -186,7 +186,7 @@ export function CpuVisual({
         )}
         {banner !== null && banner > 0 && (
           <div
-            key={banner}
+            key={`banner-${banner}`}
             className="pointer-events-none absolute left-1/2 top-[28%] z-30 animate-toast-in rounded-2xl border border-edge bg-panel/80 px-6 py-3 text-center backdrop-blur"
           >
             <p className="font-mono text-[10px] uppercase tracking-[0.4em] text-accent-text">Rank up</p>
