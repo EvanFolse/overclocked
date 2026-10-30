@@ -1,97 +1,96 @@
 "use client";
 
-import { CHECKPOINTS } from "@/data/checkpoints";
-import { getCourseMasteryPercents } from "@/lib/gameLogic";
+import { STAGES } from "@/data/stages";
+import { getCourseMasteryPercents, isStageComplete } from "@/lib/gameLogic";
+import { formatMoney } from "@/lib/format";
 import { COURSE_UNITS, type GameState } from "@/types/game";
 import type { LearningCheckpoint } from "@/data/checkpoints";
 
 interface LearningViewProps {
   state: GameState;
   activeCheckpoint: LearningCheckpoint | null;
-  onOpenCheckpoint: () => void;
+  onStartStage: (stageId: number) => void;
   onPractice: () => void;
 }
 
 export function LearningView({
   state,
   activeCheckpoint,
-  onOpenCheckpoint,
-  onPractice,
+  onStartStage,
+  onPractice: _onPractice,
 }: LearningViewProps) {
   const mastery = getCourseMasteryPercents(state);
-  const completed = new Set(state.completedLearningCheckpoints);
 
   return (
     <div className="flex flex-col gap-5">
       <div>
         <h2 className="font-mono text-sm font-semibold uppercase tracking-widest text-violet">
-          Learning
+          Stages
         </h2>
         <p className="mt-1 text-xs text-muted">
-          Required architecture checkpoints unlock CPU features. Production pauses until
-          each is solved.
+          CP keeps growing while you learn. Knowledge unlocks the next stage.
+          Prices are placeholders.
         </p>
       </div>
 
-      {activeCheckpoint ? (
-        <div className="rounded-xl border border-warning/40 bg-warning/10 p-3">
-          <p className="font-mono text-[10px] uppercase tracking-wider text-warning">
-            Active Checkpoint
-          </p>
-          <p className="mt-1 font-mono text-sm font-semibold text-foreground">
-            {activeCheckpoint.title}
-          </p>
-          <p className="mt-1 text-xs text-muted">{activeCheckpoint.stallBody}</p>
-          <button
-            type="button"
-            onClick={onOpenCheckpoint}
-            className="mt-3 w-full rounded-lg border border-warning/50 bg-warning/15 px-3 py-2 font-mono text-xs font-semibold text-warning"
-          >
-            Continue Lesson
-          </button>
-        </div>
-      ) : (
-        <div className="rounded-xl border border-edge bg-panel-muted p-3">
-          <p className="text-xs text-muted">
-            No active stall. Keep upgrading — the next architectural wall will pause the
-            CPU when it matters.
-          </p>
-          <button
-            type="button"
-            onClick={onPractice}
-            className="mt-3 w-full rounded-lg border border-violet/40 bg-violet-soft px-3 py-2 font-mono text-xs font-semibold text-violet"
-          >
-            Optional Practice Challenge
-          </button>
-        </div>
-      )}
+      <ol className="flex flex-col gap-2">
+        {STAGES.map((stage) => {
+          const done = isStageComplete(state, stage);
+          const active = activeCheckpoint?.id === stage.checkpointId;
+          const previous = STAGES.find((item) => item.id === stage.id - 1);
+          const locked = Boolean(previous && !isStageComplete(state, previous));
+          const shortfall = Math.max(0, stage.price - state.money);
+          const canStart = !done && !locked && !state.activeCheckpointId && shortfall <= 0;
 
-      <div>
-        <h3 className="font-mono text-[10px] uppercase tracking-widest text-muted">
-          Checkpoint Path
-        </h3>
-        <ol className="mt-2 flex flex-col gap-1.5">
-          {CHECKPOINTS.map((cp) => {
-            const done = completed.has(cp.id);
-            const active = activeCheckpoint?.id === cp.id;
-            return (
-              <li
-                key={cp.id}
-                className={`rounded-lg border px-2.5 py-2 font-mono text-[11px] ${
-                  active
-                    ? "border-warning/40 bg-warning/10 text-warning"
-                    : done
-                      ? "border-success/30 bg-success-soft text-success"
-                      : "border-edge bg-panel text-muted"
-                }`}
-              >
-                {done ? "✓ " : active ? "● " : "○ "}
-                {cp.title}
-              </li>
-            );
-          })}
-        </ol>
-      </div>
+          return (
+            <li
+              key={stage.id}
+              className={`rounded-xl border p-3 ${
+                active
+                  ? "border-warning/40 bg-warning/10"
+                  : done
+                    ? "border-success/30 bg-success-soft"
+                    : "border-edge bg-panel"
+              }`}
+            >
+              <p className="font-mono text-[10px] uppercase tracking-wider text-muted">
+                Stage {stage.id}
+                {done ? " · cleared" : active ? " · in progress" : locked ? " · locked" : ""}
+              </p>
+              <p className="mt-1 font-mono text-sm font-semibold text-foreground">
+                {stage.title}
+              </p>
+              <p className="mt-1 text-xs text-muted">{stage.goal}</p>
+              <p className="mt-2 font-mono text-[11px] text-accent-text">
+                Price {formatMoney(stage.price)}
+              </p>
+              {canStart && (
+                <button
+                  type="button"
+                  onClick={() => onStartStage(stage.id)}
+                  className="mt-3 w-full rounded-lg border border-violet/40 bg-violet-soft px-3 py-2 font-mono text-xs font-semibold text-violet"
+                >
+                  Start Stage {stage.id}
+                </button>
+              )}
+              {!done && !locked && !active && shortfall > 0 && (
+                <p className="mt-2 font-mono text-[11px] text-warning">
+                  Need {formatMoney(shortfall)} more
+                </p>
+              )}
+              {active && (
+                <button
+                  type="button"
+                  onClick={() => onStartStage(stage.id)}
+                  className="mt-3 w-full rounded-lg border border-warning/50 bg-warning/15 px-3 py-2 font-mono text-xs font-semibold text-warning"
+                >
+                  Continue Stage {stage.id}
+                </button>
+              )}
+            </li>
+          );
+        })}
+      </ol>
 
       <div>
         <h3 className="font-mono text-[10px] uppercase tracking-widest text-muted">

@@ -149,8 +149,30 @@ export type CourseMastery = Record<
   CourseUnit,
   { correct: number; attempted: number }
 >;
-
+/** One settled question or matching set. Saved so accuracy can be shown on the stage summary. */
+export interface AnswerRecord {
+  id: string;
+  /** The parts or concepts the item tests */
+  concepts: string[];
+  /** Which attempt was correct: 1, 2, or null when both attempts were wrong */
+  attemptCorrect: 1 | 2 | null;
+  hintUsed: boolean;
+}
 export interface GameState {
+  /** sum of credits(1/0.75/0.5/0)  earned in the current round*/
+  checkpointScore: number;
+  /** Checkpoints whose round was passed but the stage price is not paid yet */
+  pendingUnlocks: string[];
+  roundQuestionIds: string[];
+  failedQuestionIds: string[];
+  /** One record per settled question, newest last (capped at 500) */
+  answerLog: AnswerRecord[];
+  /** Questions in a row answered right on the first attempt. Kept across stages and refreshes. */
+  streak: number;
+  /** CP earned so far in the current round. Paid only if the round is passed. */
+  checkpointReward: number;
+  /** Rewards of passed rounds waiting for enough CP to unlock, keyed by checkpoint id */
+  pendingRewards: Record<string, number>;
   money: number;
   totalEarned: number;
   upgradeLevels: Record<UpgradeId, number>;
@@ -169,6 +191,12 @@ export interface GameState {
   completedLearningCheckpoints: string[];
   activeCheckpointId: string | null;
   checkpointStep: number;
+  /** Attempt number (1 or 2) of the current question. Saved, so a refresh is not a free retry. */
+  checkpointAttempt: number;
+  /** Whether the hint of the current question was opened. Saved with the attempt. */
+  checkpointHintOpened: boolean;
+  checkpointMissStreak: number;
+  bonusSuspended: boolean; // introduct bonus mode;
 }
 
 export interface CheckpointResolveResult {
@@ -186,10 +214,18 @@ export interface QuizFeedback {
   explanation: string;
   correctAnswer: string;
   bonus: number;
+  credit?: number;
   unlockedUpgrade?: UpgradeId;
   wasBottleneck?: boolean;
   courseUnit?: CourseUnit;
   hint?: string;
+  hint2?: string; // second hint; more details
+  attempt?: number; // set up attempt times per question
+  revealed?: boolean;
+  roundPassed?: boolean;
+  roundPercent?: number;
+  pendingUnlock?: boolean;
+  matchResult?: boolean[];
 }
 
 export type ThemeMode = "light" | "dark";
@@ -223,3 +259,9 @@ export const DIFFICULTY_LABELS: Record<ChallengeDifficulty, string> = {
   3: "Application",
   4: "Architecture Reasoning",
 };
+export interface MatchResult {
+  setId: string;
+  concepts: string[];
+  attemptCorrect: 1 | 2 | null;
+  hintUsed: boolean;
+}

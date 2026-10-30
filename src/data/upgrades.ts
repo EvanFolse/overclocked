@@ -414,7 +414,7 @@ export const EMPTY_UPGRADE_LEVELS: Record<UpgradeId, number> = {
   cooling: 0,
 };
 
-export const STARTING_UNLOCKS: UpgradeId[] = [];
+export const STARTING_UNLOCKS: UpgradeId[] = ["clock"];
 
 /** Core parts granted when the intro checkpoint finishes */
 export const BOOT_UNLOCKS: UpgradeId[] = [

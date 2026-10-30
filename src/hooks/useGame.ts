@@ -1,30 +1,64 @@
 "use client";
 
+import type { UnlockInfo } from "@/lib/gameLogic";
+import type { MatchResult } from "@/types/game";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type {
   CheckpointResolveResult,
+  GameState,
   QuizFeedback,
   StatDelta,
   UpgradeId,
 } from "@/types/game";
 import {
   answerCheckpointStep,
+  answerMatchSet,
+  buildUnlockInfo,
   answerQuestion,
   createInitialState,
+  finishRound,
   getCpuLevel,
   getIncomePerSecond,
   isCpuOnline,
   isProductionStalled,
   maybeActivateCheckpoint,
+  openHint as applyOpenHint,
   pickRandomQuestion,
   purchaseUpgrade,
-  startBootSequence,
+  getNextStage,
+  startStage,
   tickIncome,
 } from "@/lib/gameLogic";
 import { getCpuPerformance } from "@/lib/cpuStats";
 import { getCheckpoint } from "@/data/checkpoints";
+import { getStageByCheckpoint } from "@/data/stages";
+import { getBank, getRoundQuestions, getRoundBreakdown, shuffleOrder } from "@/lib/rounds";
+import type { ResultGroup } from "@/components/learning/RoundResultCard";
 import { clearSavedGame, loadGame, saveGame } from "@/lib/storage";
 import { CHALLENGES } from "@/data/questions";
+
+export interface RoundResult {
+  stageTitle: string;
+  /** 0 to 1 */
+  percent: number;
+  /** failed: under 70%. pending: passed, but not enough CP yet. passed: passed and unlocked */
+  kind: "failed" | "pending" | "passed";
+  reward: number;
+  groups: ResultGroup[];
+}
+
+/** A fresh random option order for the question the player is currently on. */
+function orderFor(s: GameState): number[] {
+  const q = getRoundQuestions(s)[s.checkpointStep];
+  return q ? shuffleOrder(q.choices.length) : [];
+}
+
+/** The option order to use for question `step`: the stored one if it fits, otherwise the original order. */
+function resolveOrder(s: GameState, order: number[], step: number): number[] {
+  const q = getRoundQuestions(s)[step];
+  if (!q) return [];
+  return order.length === q.choices.length ? order : q.choices.map((_, i) => i);
+}
 
 export function useGame() {
   const [state, setState] = useState(createInitialState);
@@ -34,21 +68,85 @@ export function useGame() {
   const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
   const [selectedChoice, setSelectedChoice] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<QuizFeedback | null>(null);
+  /** choiceOrder[displayedIndex] = original option index of the current question */
+  const [choiceOrder, setChoiceOrder] = useState<number[]>([]);
+  const [resetCount, setResetCount] = useState(0);
   const [lessonOpen, setLessonOpen] = useState(false);
   const [newAchievement, setNewAchievement] = useState<string | null>(null);
   const [statDelta, setStatDelta] = useState<StatDelta | null>(null);
   const [resolveToast, setResolveToast] = useState<CheckpointResolveResult | null>(
     null
   );
+  const [roundResult, setRoundResult] = useState<RoundResult | null>(null);
+  // Data for the unlock celebration page. Only set for a passed round that was paid for.
+  const [unlockInfo, setUnlockInfo] = useState<UnlockInfo | null>(null);
   const prevAchievements = useRef<string[]>([]);
   const prevCheckpoint = useRef<string | null>(null);
 
+  // What the 3D CPU shows. While the round result is on screen it stays on the OLD build,
+  // so the new parts appear (with their animation) when the player presses Continue.
+  const [shownState, setShownState] = useState(state);
+  const [shownFlash, setShownFlash] = useState(0);
+
+  // Auto-unlock celebration: a round passed without enough CP unlocks later, inside the income
+  // tick. Detect that moment while rendering, so the 3D CPU never jumps ahead of the celebration.
+  const pendingKey = state.pendingUnlocks.join(",");
+  const [pendingSnap, setPendingSnap] = useState({
+    key: pendingKey,
+    ids: state.pendingUnlocks,
+    rewards: state.pendingRewards,
+  });
+  const [autoUnlock, setAutoUnlock] = useState<UnlockInfo | null>(null);
+  let celebratingAuto = autoUnlock !== null;
+  if (pendingSnap.key !== pendingKey) {
+    setPendingSnap({ key: pendingKey, ids: state.pendingUnlocks, rewards: state.pendingRewards });
+    // An id that left the pending list AND is now completed was unlocked automatically
+    // (a game reset also empties the list, but then the id is not completed)
+    const settledId = pendingSnap.ids.find(
+      (id) => !state.pendingUnlocks.includes(id) && state.completedLearningCheckpoints.includes(id)
+    );
+    if (hydrated && settledId) {
+      const info = buildUnlockInfo(settledId, Math.round(pendingSnap.rewards[settledId] ?? 0));
+      if (info) {
+        setAutoUnlock(info);
+        celebratingAuto = true;
+      }
+    }
+  }
+  const finishAutoUnlock = useCallback(() => {
+    setAutoUnlock(null);
+    setUpgradeFlash((f) => f + 1); // flash when the new parts appear
+  }, []);
+
+  // Keep the CPU on the old build while a round result or the celebration is on screen
+  if (!roundResult && !celebratingAuto) {
+    if (shownState !== state) setShownState(state);
+    if (shownFlash !== upgradeFlash) setShownFlash(upgradeFlash);
+  }
+
   useEffect(() => {
-    const caughtUp = tickIncome(loadGame(), Date.now());
+    const loaded = tickIncome(loadGame(), Date.now());
+    // If the page was refreshed after the last question was settled, finish that round now
+    const ended = loaded.activeCheckpointId ? finishRound(loaded) : null;
+    const caughtUp = ended ? ended.state : loaded;
+    if (ended) {
+      const stage = getStageByCheckpoint(loaded.activeCheckpointId);
+      // Keep the CPU on the pre-round build until the player presses Continue
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional mount hydration
+      setShownState(loaded);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional mount hydration
+      setRoundResult({
+        stageTitle: stage?.title ?? "Stage",
+        percent: ended.percent,
+        kind: ended.pending ? "pending" : ended.passed ? "passed" : "failed",
+        reward: ended.bonus,
+        groups: getRoundBreakdown(state),
+      });
+    }
     prevAchievements.current = caughtUp.unlockedAchievements;
     prevCheckpoint.current = caughtUp.activeCheckpointId;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional mount hydration
     setState(caughtUp);
+    setChoiceOrder(orderFor(caughtUp));
     setHydrated(true);
   }, []);
 
@@ -98,18 +196,26 @@ export function useGame() {
       setFeedback(null);
       setLessonOpen(false);
     }
-    if (!state.activeCheckpointId) {
-      setLessonOpen(false);
-    }
     prevCheckpoint.current = state.activeCheckpointId;
   }, [state.activeCheckpointId, hydrated]);
 
+  const beginStage = useCallback(
+    (stageId: number) => {
+      // Compute outside the state updater so the first question is shuffled exactly once
+      const next = startStage(state, stageId);
+      setState(next);
+      setChoiceOrder(orderFor(next));
+      setLessonOpen(true);
+      setSelectedChoice(null);
+      setFeedback(null);
+      setRoundResult(null);
+    },
+    [state]
+  );
+
   const beginBoot = useCallback(() => {
-    setState((prev) => startBootSequence(prev));
-    setLessonOpen(true);
-    setSelectedChoice(null);
-    setFeedback(null);
-  }, []);
+    beginStage(1);
+  }, [beginStage]);
 
   const openLesson = useCallback(() => {
     setState((prev) => {
@@ -140,26 +246,66 @@ export function useGame() {
 
   const clearStatDelta = useCallback(() => setStatDelta(null), []);
   const clearResolveToast = useCallback(() => setResolveToast(null), []);
+  const clearRoundResult = useCallback(() => {
+    setRoundResult(null);
+    setUnlockInfo(null);
+  }, []);
+  const openHint = useCallback(() => setState((prev) => applyOpenHint(prev)), []);
+
+  // Settle one matching set (design doc 4.2). Matching is played before the quiz.
+  const settleMatchSet = useCallback(
+    (r: MatchResult) => setState((prev) => answerMatchSet(prev, r)),
+    []
+  );
 
   const submitCheckpointAnswer = useCallback(() => {
     if (selectedChoice == null) return;
-    setState((prev) => {
-      const result = answerCheckpointStep(prev, selectedChoice);
-      if (!result) return prev;
-      setFeedback(result.feedback);
-      if (result.completedCheckpoint && result.resolve) {
-        setResolveToast(result.resolve);
-        setUpgradeFlash((f) => f + 1);
-        setLessonOpen(false);
-      }
-      return result.state;
-    });
-  }, [selectedChoice]);
+    // The player picked a displayed position. Convert it to the original option index.
+    const order = resolveOrder(state, choiceOrder, state.checkpointStep);
+    const originalIndex = order[selectedChoice] ?? selectedChoice;
 
+    // Compute outside the state updater so the side effects below run exactly once
+    const result = answerCheckpointStep(state, originalIndex);
+    if (!result) return;
+
+    setState(result.state);
+    setFeedback(result.feedback);
+  }, [state, selectedChoice, choiceOrder]);
+
+  // Called by "Next", "See result" and "Try Again". The player always decides when to move on.
+  // - After the last question it ends the round and shows the result.
+  // - Otherwise it shows the next question (or the same one again for a second attempt)
+  //   with a freshly shuffled set of options.
   const nextCheckpointStep = useCallback(() => {
+    const ended = finishRound(state);
+    if (ended) {
+      const stage = getStageByCheckpoint(state.activeCheckpointId);
+      setState(ended.state);
+      setSelectedChoice(null);
+      setFeedback(null);
+      setLessonOpen(false);
+      setUnlockInfo(
+        ended.passed && !ended.pending && state.activeCheckpointId
+          ? buildUnlockInfo(state.activeCheckpointId, ended.bonus)
+          : null
+      );
+      setRoundResult({
+        stageTitle: stage?.title ?? "Stage",
+        percent: ended.percent,
+        kind: ended.pending ? "pending" : ended.passed ? "passed" : "failed",
+        reward: ended.bonus,
+        groups: getRoundBreakdown(state),
+      });
+      if (ended.resolve) {
+        setResolveToast(ended.resolve);
+        setUpgradeFlash((f) => f + 1);
+      }
+      return;
+    }
     setSelectedChoice(null);
     setFeedback(null);
-  }, []);
+    setChoiceOrder(orderFor(state));
+  }, [state]);
 
   const openPractice = useCallback((preferUnlock = false) => {
     setState((prev) => {
@@ -194,6 +340,7 @@ export function useGame() {
 
   const resetGame = useCallback(() => {
     clearSavedGame();
+    window.localStorage.removeItem("overclocked-welcome-seen-v1");
     const fresh = createInitialState();
     setState(fresh);
     prevAchievements.current = [];
@@ -204,10 +351,43 @@ export function useGame() {
     setActiveQuestionId(null);
     setStatDelta(null);
     setResolveToast(null);
+    setRoundResult(null);
+    setChoiceOrder([]);
+    setResetCount((n) => n + 1);
   }, []);
 
   const activeQuestion = CHALLENGES.find((q) => q.id === activeQuestionId) ?? null;
-  const activeCheckpoint = getCheckpoint(state.activeCheckpointId);
+
+  // What the quiz overlay shows: the questions of this round, the current one with
+  // shuffled options, and the reading from the question bank when the stage has one.
+  const baseCheckpoint = getCheckpoint(state.activeCheckpointId);
+  const roundQuestions = getRoundQuestions(state);
+  // When a question is settled (answered right, or answer revealed), the saved step has
+  // already moved on to the next question. While that result is on screen, keep showing
+  // the question that was just answered, so the next question is not revealed early.
+  const settledFeedback = !!feedback && (feedback.correct || !!feedback.revealed);
+  const displayStep =
+    settledFeedback && state.activeCheckpointId
+      ? Math.max(0, state.checkpointStep - 1)
+      : state.checkpointStep;
+  const shownOrder = resolveOrder(state, choiceOrder, displayStep);
+  const bank = getBank(state.activeCheckpointId);
+  const activeCheckpoint = baseCheckpoint
+    ? {
+      ...baseCheckpoint,
+      reading: bank?.reading ?? baseCheckpoint.reading,
+      questions: roundQuestions.map((q, i) =>
+        i === displayStep
+          ? {
+            ...q,
+            choices: shownOrder.map((o) => q.choices[o]!),
+            correctIndex: shownOrder.indexOf(q.correctIndex),
+          }
+          : q
+      ),
+    }
+    : null;
+
   const cpuStats = getCpuPerformance(state);
 
   return {
@@ -221,17 +401,35 @@ export function useGame() {
     pulse,
     upgradeFlash,
     activeCheckpoint,
+    displayStep,
     lessonOpen,
     activeQuestion,
     selectedChoice,
     setSelectedChoice,
     feedback,
+    checkpointAttempt: state.checkpointAttempt,
+    resetCount,
     newAchievement,
     statDelta,
     resolveToast,
+    roundResult,
+
+    hintOpened: state.checkpointHintOpened,
+    openHint,
+    settleMatchSet,
+    unlockInfo,
+    autoUnlock,
+    finishAutoUnlock,
+    shownState,
+    shownFlash,
+    shownCpuLevel: getCpuLevel(shownState),
+    shownCpuOnline: isCpuOnline(shownState),
+    clearRoundResult,
     clearStatDelta,
     clearResolveToast,
     beginBoot,
+    beginStage,
+    nextStage: getNextStage(state),
     openLesson,
     closeLesson,
     submitCheckpointAnswer,

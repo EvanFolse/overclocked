@@ -20,8 +20,8 @@ export type CheckpointId =
 
 export interface CheckpointQuestion {
   scenario: string;
-  choices: [string, string, string, string];
-  correctIndex: 0 | 1 | 2 | 3;
+  choices: string[];
+  correctIndex: number;
   explanation: string;
   hint: string;
   /** Unlocked when this step is answered correctly (intro / multi-step) */

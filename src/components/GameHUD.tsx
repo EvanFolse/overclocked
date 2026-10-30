@@ -16,8 +16,8 @@ export function GameHUD({
   money,
   incomePerSecond,
   eraName,
-  cpuOnline,
-  stalled,
+  cpuOnline: _cpuOnline,
+  stalled: _stalled,
   menuOpen,
   onToggleMenu,
 }: GameHUDProps) {
@@ -29,7 +29,7 @@ export function GameHUD({
             OVERCLOCKED
           </h1>
           <p className="mt-0.5 truncate font-mono text-[10px] uppercase tracking-wider text-muted sm:text-[11px]">
-            {!cpuOnline ? "Offline" : stalled ? "Stalled" : eraName}
+            {eraName}
           </p>
         </div>
 
@@ -40,12 +40,8 @@ export function GameHUD({
           <p className="mt-0.5 font-mono text-2xl font-bold tabular-nums text-success sm:text-3xl">
             {formatMoney(money)}
           </p>
-          <p
-            className={`mt-0.5 font-mono text-xs tabular-nums sm:text-sm ${
-              stalled ? "text-warning" : "text-accent-text"
-            }`}
-          >
-            {stalled ? "0 CP/sec · paused" : `+${formatRate(incomePerSecond)}`}
+          <p className="mt-0.5 font-mono text-xs tabular-nums text-accent-text sm:text-sm">
+            {`+${formatRate(incomePerSecond)}`}
           </p>
         </div>
 
