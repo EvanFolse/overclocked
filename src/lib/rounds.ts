@@ -1,5 +1,5 @@
 import { getCheckpoint, type CheckpointQuestion } from "@/data/checkpoints";
-import { STAGE_1_BANK } from "@/data/bank/stage1";
+import { getStageContent } from "@/stages/registry";
 import type { MatchingSet, StageBank } from "@/data/bank/types";
 import type { AnswerRecord, GameState } from "@/types/game";
 import type { ResultGroup } from "@/components/learning/RoundResultCard";
@@ -32,16 +32,11 @@ export type RoundItem =
     | ({ kind: "match" } & RoundMatching);
 
 /**
- * Stages that already use the new question bank, keyed by checkpoint id.
- * Other stages keep using the questions inside checkpoints.ts until their bank is written.
+ * The question bank of a stage, from the stage registry (src/stages/registry.ts).
+ * Stages without a bank keep using the questions inside checkpoints.ts.
  */
-const BANKS: Record<string, StageBank> = {
-    "cpu-basics": STAGE_1_BANK,
-};
-
 export function getBank(checkpointId: string | null | undefined): StageBank | null {
-    if (!checkpointId) return null;
-    return BANKS[checkpointId] ?? null;
+    return getStageContent(checkpointId)?.bank ?? null;
 }
 
 function shuffled<T>(items: T[]): T[] {

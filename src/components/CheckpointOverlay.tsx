@@ -7,8 +7,10 @@ import type { MatchResult, QuizFeedback } from "@/types/game";
 import type { RoundMatching } from "@/lib/rounds";
 import { CpuCycleVisual } from "@/components/CpuCycleVisual";
 import { MemoryHierarchyVisual } from "@/components/MemoryHierarchyVisual";
-import { LearnStep } from "@/components/learning/LearnStep";
-import { PlaceStep } from "@/components/learning/PlaceStep";
+import { ReadingStep } from "@/components/learning/ReadingStep";
+import { getStageContent } from "@/stages/registry";
+import { getStageFlow } from "@/stages/ui";
+import { getStageByCheckpoint } from "@/data/stages";
 import { MatchStep } from "@/components/learning/MatchStep";
 import { RoundView } from "@/components/learning/RoundView";
 import { StageLayout, type StageStepKey } from "@/components/learning/StageLayout";
@@ -54,14 +56,18 @@ export function CheckpointOverlay({
   cp,
 }: CheckpointOverlayProps) {
   const question = checkpoint.questions[step];
-  const isBoot = checkpoint.id === "cpu-basics";
+  // A stage listed in the stage registry uses the new flow: Learn -> Place -> Match -> Quiz
+  const stageContent = getStageContent(checkpoint.id);
+  const isBoot = !!stageContent;
+  const stageDef = getStageByCheckpoint(checkpoint.id);
+  const stageNo = stageDef?.id ?? 1;
   const isLastQuestion = step >= checkpoint.questions.length - 1;
 
   // Stage 1 flow: learn -> place -> match -> quiz. Other checkpoints go straight to quiz.
   const [phase, setPhase] = useState<BootPhase>(isBoot ? "learn" : "quiz");
 
   useEffect(() => {
-    setPhase(checkpoint.id === "cpu-basics" ? "learn" : "quiz");
+    setPhase(getStageContent(checkpoint.id) ? "learn" : "quiz");
   }, [checkpoint.id, lessonOpen]);
 
   if (!lessonOpen) {
@@ -86,7 +92,7 @@ export function CheckpointOverlay({
             }}
             className="mt-5 w-full rounded-xl border border-warning/50 bg-warning/15 px-4 py-3 font-mono text-sm font-semibold text-warning transition hover:opacity-90"
           >
-            {isBoot ? "Start Stage 1" : "Start quiz round"}
+            {isBoot ? `Start Stage ${stageNo}` : "Start quiz round"}
           </button>
         </div>
       </div>
@@ -237,24 +243,35 @@ export function CheckpointOverlay({
 
   
   if (isBoot) {
+    const flow = getStageFlow(checkpoint.id);
+    // After Learn: Place if the stage has one, otherwise Match (if any), otherwise the quiz
+    const afterLearn = () => setPhase(flow.Place ? "place" : matchSets.length > 0 ? "match" : "quiz");
     const layoutStep: StageStepKey =
       phase === "learn" ? "learn" : phase === "quiz" ? "round" : "place";
 
     return (
       <StageLayout
-        title="STAGE 1 · KNOW THE CPU"
+        title={
+          stageContent?.layoutTitle ??
+          `STAGE ${stageNo} · ${(stageDef?.title ?? checkpoint.title).toUpperCase()}`
+        }
         subtitle="LEARN → PLACE → ROUND → UNLOCK"
         currentStep={layoutStep}
         cp={cp}
         onLeave={onCloseLesson}
       >
-        {phase === "learn" && <LearnStep onComplete={() => setPhase("place")} />}
+        {phase === "learn" &&
+          (flow.Learn ? (
+            <flow.Learn onComplete={afterLearn} />
+          ) : (
+            <ReadingStep reading={checkpoint.reading} onComplete={afterLearn} />
+          ))}
 
-        {(phase === "learn" || phase === "place") && <TutorLauncher stage={1} />}
+        {(phase === "learn" || phase === "place") && <TutorLauncher stage={stageNo} />}
 
-        {phase === "place" && (
+        {phase === "place" && flow.Place && (
           <div className="mx-auto max-w-5xl rounded-2xl border border-edge bg-panel p-6 shadow-lg">
-            <PlaceStep onComplete={() => setPhase(matchSets.length > 0 ? "match" : "quiz")} />
+            <flow.Place onComplete={() => setPhase(matchSets.length > 0 ? "match" : "quiz")} />
           </div>
         )}
 
@@ -270,6 +287,7 @@ export function CheckpointOverlay({
 
         {phase === "quiz" && (
           <RoundView
+            checkpointId={checkpoint.id}
             question={question}
             step={step}
             total={checkpoint.questions.length}

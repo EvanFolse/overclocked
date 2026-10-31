@@ -3,10 +3,11 @@
 import { useEffect, useState } from "react";
 import type { CheckpointQuestion } from "@/data/checkpoints";
 import type { QuizFeedback } from "@/types/game";
-import { STAGE_1_BANK } from "@/data/bank/stage1";
-import { STAGE_1_CPU_VIEWS, STAGE_1_EMPHASIS } from "@/data/bank/stage1CpuViews";
+import { getStageContent } from "@/stages/registry";
 
 interface RoundViewProps {
+    /** Checkpoint id of the stage. Used to find its bank and mission views in the registry. */
+    checkpointId: string;
     question: CheckpointQuestion | undefined;
     step: number;
     total: number;
@@ -29,6 +30,7 @@ const NODE_STYLE = {
 } as const;
 
 export function RoundView({
+    checkpointId,
     question,
     step,
     total,
@@ -54,10 +56,12 @@ export function RoundView({
 
     if (!question) return null;
 
-    const meta = STAGE_1_BANK.mc.find((m) => m.scenario === question.scenario);
+    const content = getStageContent(checkpointId);
+    const bank = content?.bank;
+    const meta = bank?.mc.find((m) => m.scenario === question.scenario);
     const isMission = meta?.group === "mission";
-    const view = isMission && meta ? STAGE_1_CPU_VIEWS[meta.id] : undefined;
-    const missionCount = STAGE_1_BANK.mc.filter((m) => m.group === "mission" && !m.spare).length;
+    const view = isMission && meta ? content?.missionViews?.[meta.id] : undefined;
+    const missionCount = (bank?.mc ?? []).filter((m) => m.group === "mission" && !m.spare).length;
 
     const wrongOnce = wrongSteps.includes(step);
     const solved = !!feedback && (feedback.correct || !!feedback.revealed);
@@ -85,7 +89,7 @@ export function RoundView({
     // Mission: first sentence is the headline and the rest is the subtitle. Multiple choice: the whole sentence.
     const [headline, ...rest] = isMission ? question.scenario.split(/(?<=[.?!])\s+/) : [question.scenario];
     const subtitle = rest.join(" ");
-    const emphasis = view?.emphasis ?? (meta ? STAGE_1_EMPHASIS[meta.id] : undefined);
+    const emphasis = view?.emphasis ?? (meta ? content?.emphasis?.[meta.id] : undefined);
 
     const renderHeadline = () => {
         if (emphasis && headline.includes(emphasis)) {
