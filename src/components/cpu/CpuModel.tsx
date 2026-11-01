@@ -1,5 +1,6 @@
 "use client";
-
+import { RankParts } from "@/components/cpu/RankParts";
+import type { CpuRank } from "@/lib/cpuRanks";
 import { useLayoutEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
@@ -11,6 +12,8 @@ export type UpgradeLevels = Record<UpgradeId, number>;
 interface CpuModelProps {
   levels: UpgradeLevels;
   upgradeFlash: number;
+  rank?: CpuRank;
+  rankInstant?: boolean;
 }
 
 const MATERIALS = {
@@ -292,7 +295,7 @@ function DieBlocks({
   );
 }
 
-export function CpuModel({ levels, upgradeFlash }: CpuModelProps) {
+export function CpuModel({ levels, upgradeFlash, rank = 0 , rankInstant = false }: CpuModelProps) {
   const groupRef = useRef<THREE.Group>(null);
   const dieLightRef = useRef<THREE.PointLight>(null);
   const flashRef = useRef(0);
@@ -365,7 +368,8 @@ export function CpuModel({ levels, upgradeFlash }: CpuModelProps) {
       </mesh>
 
       <TinyCaps packageSize={packageSize} />
-      <DieBlocks levels={levels} dieSize={dieSize} showDetail={showDetail} />
+      <DieBlocks levels={levels} dieSize={dieSize} showDetail={showDetail && rank === 0} />
+      <RankParts rank={rank} instant={rankInstant} />
       <PinGrid size={packageSize} density={pinDensity} />
       <CompactCooler level={levels.cooling} packageSize={packageSize} />
 

@@ -37,8 +37,8 @@ export function UpgradePanel({
         </h2>
         <p className="mt-1 text-xs text-muted">
           {stalled
-            ? "Production is paused — finish the active lesson to upgrade again."
-            : "Buy meaningful silicon. Locked parts unlock through Learning checkpoints."}
+            ? "Finish the quiz round to keep unlocking parts."
+            : "Spend CP to upgrade unlocked parts. Locked parts unlock by passing a stage quiz."}
         </p>
       </div>
 
