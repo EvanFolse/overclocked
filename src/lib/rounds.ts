@@ -196,7 +196,7 @@ export function getRoundBreakdown(state: GameState): ResultGroup[] {
     return present.map((g) => {
         const credits = items
             .filter((it) => groupOf(it) === g)
-            .map((it) => creditOf([...state.answerLog].reverse().find((r) => r.id === it.id)));
+            .map((it) => creditOf([...state.answerLog].reverse().find((r) => r.id === it.id && r.source !== "chip")));
         return {
             key: g,
             label: GROUP_LABEL[g],

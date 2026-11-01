@@ -157,6 +157,8 @@ export interface AnswerRecord {
   /** Which attempt was correct: 1, 2, or null when both attempts were wrong */
   attemptCorrect: 1 | 2 | null;
   hintUsed: boolean;
+  /** "chip" for a golden chip review. Not part of any round score. */
+  source?: "chip";
 }
 export interface GameState {
   /** sum of credits(1/0.75/0.5/0)  earned in the current round*/

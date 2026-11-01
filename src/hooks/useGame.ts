@@ -1,5 +1,6 @@
 "use client";
 
+import type { ChipAnswer } from "@/lib/gameLogic";
 import {
   buildReviewPages,
   type MatchMistakeRecord,
@@ -20,6 +21,8 @@ import {
   answerCheckpointStep,
   answerMatchSet,
   buildUnlockInfo,
+  recordChipAnswer,
+  awardChipReward,
   answerQuestion,
   createInitialState,
   finishRound,
@@ -257,6 +260,16 @@ export function useGame() {
   }, []);
 
   const clearStatDelta = useCallback(() => setStatDelta(null), []);
+
+  // Golden chip (design doc 5.3): record the answers and pay the bonus
+  const recordChip = useCallback(
+    (a: ChipAnswer) => setState((prev) => recordChipAnswer(prev, a)),
+    []
+  );
+  const rewardChip = useCallback(
+    (amount: number) => setState((prev) => awardChipReward(prev, amount)),
+    []
+  );
   const clearResolveToast = useCallback(() => setResolveToast(null), []);
   const clearRoundResult = useCallback(() => {
     setRoundResult(null);
@@ -450,6 +463,8 @@ if (askedId && !result.feedback.correct) {
     hintOpened: state.checkpointHintOpened,
     openHint,
     settleMatchSet,
+    recordChip,
+    rewardChip,
     unlockInfo,
     reviewPages,
     autoUnlock,

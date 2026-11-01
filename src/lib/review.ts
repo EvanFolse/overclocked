@@ -187,3 +187,18 @@ export function buildReviewPages(
 
   return pages.slice(0, MAX_PAGES);
 }
+
+/**
+ * A short note on how to tell the chosen answer from the right one, from the stage glossary.
+ * Used by the golden chip. Returns null when nothing is known about the two options.
+ */
+export function buildQuickFix(checkpointId: string, picked: string, correct: string): string | null {
+  const content = getStageContent(checkpointId);
+  const glossary = content?.glossary ?? [];
+  const contrasts = content?.contrasts ?? [];
+  const pt = findTerm(glossary, picked);
+  const ct = findTerm(glossary, correct);
+  if (!pt || !ct || pt.id === ct.id) return null;
+  const c = findContrast(contrasts, pt.id, ct.id);
+  return c ? c.text : `${pt.name}: ${pt.text}\n${ct.name}: ${ct.text}`;
+}
