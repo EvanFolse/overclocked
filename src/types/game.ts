@@ -260,8 +260,18 @@ export const DIFFICULTY_LABELS: Record<ChallengeDifficulty, string> = {
   4: "Architecture Reasoning",
 };
 export interface MatchResult {
+  /** Wrong pairings made while solving the set (used for the explanation after the round) */
+  mistakes?: MatchMistake[];
   setId: string;
   concepts: string[];
   attemptCorrect: 1 | 2 | null;
   hintUsed: boolean;
+}
+
+/** One wrong pairing made in a matching set (design doc 6.1). */
+export interface MatchMistake {
+  /** The left-hand item that was paired wrongly */
+  item: string;
+  /** The item whose description it was paired with, or null for the distractor */
+  confusedWith: string | null;
 }

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { RoundMatching } from "@/lib/rounds";
 import { shuffleOrder } from "@/lib/rounds";
-import type { MatchResult } from "@/types/game";
+import type { MatchMistake, MatchResult } from "@/types/game";
 
 interface MatchStepProps {
     /** The matching sets of the active round (from getRoundMatchSets). Must not be empty. */
@@ -36,6 +36,8 @@ export function MatchStep({ sets, onSetSettled, onComplete }: MatchStepProps) {
     const [shuffleSeed, setShuffleSeed] = useState(0);
 
     const timerRef = useRef<number | null>(null);
+    // Wrong pairings of the current set, reported when the set is settled (design doc 6.1)
+    const mistakesRef = useRef<MatchMistake[]>([]);
 
     useEffect(() => {
         return () => {
@@ -119,11 +121,23 @@ export function MatchStep({ sets, onSetSettled, onComplete }: MatchStepProps) {
             concepts: matchSet.concepts,
             attemptCorrect,
             hintUsed: hintOpened,
+            mistakes: mistakesRef.current,
         });
     };
 
     const validatePairs = (pairs: Record<string, string>) => {
         const wrong = leftItems.filter((item) => correctPairs[item.id] !== pairs[item.id]).map((item) => item.id);
+
+        // Remember what each wrong card was paired with
+        for (const id of wrong) {
+            const left = leftItems.find((l) => l.id === id);
+            const rightId = pairs[id];
+            if (!left || !rightId) continue;
+            const confusedWith =
+                rightId === "r_distractor" ? null : (matchSet.pairs[Number(rightId.slice(1))]?.item ?? null);
+            const known = mistakesRef.current.some((m) => m.item === left.text && m.confusedWith === confusedWith);
+            if (!known) mistakesRef.current = [...mistakesRef.current, { item: left.text, confusedWith }];
+        }
 
         // All right: credit depends on which attempt it was (x1 / x0.75 / x0.5 with hint)
         if (wrong.length === 0) {
@@ -189,6 +203,7 @@ export function MatchStep({ sets, onSetSettled, onComplete }: MatchStepProps) {
             setHintOpened(false);
             setHintVisible(false);
             setShuffleSeed(0);
+            mistakesRef.current = [];
         } else {
             onComplete();
         }

@@ -1,6 +1,11 @@
 "use client";
 
-import { buildReviewPages, type ReviewPage, type WrongPick } from "@/lib/review";
+import {
+  buildReviewPages,
+  type MatchMistakeRecord,
+  type ReviewPage,
+  type WrongPick,
+} from "@/lib/review";
 import type { UnlockInfo } from "@/lib/gameLogic";
 import type { MatchResult } from "@/types/game";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -85,6 +90,8 @@ export function useGame() {
   const [reviewPages, setReviewPages] = useState<ReviewPage[]>([]);
   // Wrong options picked during this round. Kept in memory only (lost on page refresh).
   const wrongPicks = useRef<WrongPick[]>([]);
+  // Wrong pairings of matching sets during this round. Also kept in memory only.
+  const matchMistakes = useRef<MatchMistakeRecord[]>([]);
   const prevAchievements = useRef<string[]>([]);
   const prevCheckpoint = useRef<string | null>(null);
 
@@ -260,7 +267,16 @@ export function useGame() {
 
   // Settle one matching set (design doc 4.2). Matching is played before the quiz.
   const settleMatchSet = useCallback(
-    (r: MatchResult) => setState((prev) => answerMatchSet(prev, r)),
+    (r: MatchResult) => {
+      // Remember the wrong pairings for the explanation after the round (design doc 6.1)
+      if (r.mistakes?.length) {
+        matchMistakes.current = [
+          ...matchMistakes.current,
+          ...r.mistakes.map((m) => ({ ...m, setId: r.setId })),
+        ];
+      }
+      setState((prev) => answerMatchSet(prev, r));
+    },
     []
   );
 
@@ -303,8 +319,9 @@ if (askedId && !result.feedback.correct) {
           : null
       );
       // Paged explanation for a failed round (design doc 6.1)
-      setReviewPages(ended.passed ? [] : buildReviewPages(state, wrongPicks.current));
+      setReviewPages(buildReviewPages(state, wrongPicks.current, matchMistakes.current));
       wrongPicks.current = [];
+      matchMistakes.current = [];
       setRoundResult({
         stageTitle: stage?.title ?? "Stage",
         percent: ended.percent,

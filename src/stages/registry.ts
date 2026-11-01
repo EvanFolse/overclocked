@@ -2,6 +2,8 @@ import type { StageBank } from "@/data/bank/types";
 import type { CpuView } from "@/data/bank/stage1CpuViews";
 import { STAGE_1_BANK } from "@/data/bank/stage1";
 import { STAGE_1_CPU_VIEWS, STAGE_1_EMPHASIS } from "@/data/bank/stage1CpuViews";
+import type { Contrast, GlossaryTerm } from "@/stages/glossary";
+import { STAGE_1_CONTRASTS, STAGE_1_GLOSSARY } from "@/stages/stage1Glossary";
 
 /**
  * Content of one stage. A stage that is listed here uses the new flow
@@ -21,6 +23,10 @@ export interface StageContent {
   emphasis?: Record<string, string>;
   /** Optional: header text of the stage screens. Default: "STAGE <n> · <TITLE>" from stages.ts */
   layoutTitle?: string;
+  /** Optional: short explanations of the parts or concepts named in answer options (Tutor, design doc 6.1) */
+  glossary?: GlossaryTerm[];
+  /** Optional: how to tell two glossary terms apart */
+  contrasts?: Contrast[];
 }
 
 export const STAGE_CONTENT: StageContent[] = [
@@ -30,6 +36,8 @@ export const STAGE_CONTENT: StageContent[] = [
     missionViews: STAGE_1_CPU_VIEWS,
     emphasis: STAGE_1_EMPHASIS,
     layoutTitle: "STAGE 1 · KNOW THE CPU",
+    glossary: STAGE_1_GLOSSARY,
+    contrasts: STAGE_1_CONTRASTS,
   },
 ];
 

@@ -210,14 +210,14 @@ function GameBoardInner() {
                         kind={game.roundResult.kind}
                         reward={game.roundResult.reward}
                         onContinue={() => {
+                            // Mistakes of the round are explained first (pass: pop-up, fail: timed pages)
+                            if (game.reviewPages.length > 0) {
+                                setReviewing(true);
+                                return;
+                            }
                             // A passed round shows the unlock page before the CPU changes
                             if (game.roundResult?.kind === "passed" && game.unlockInfo) {
                                 setCelebrate(true);
-                                return;
-                            }
-                            // A failed round shows the paged explanation before going back to the stages
-                            if (game.roundResult?.kind === "failed" && game.reviewPages.length > 0) {
-                                setReviewing(true);
                                 return;
                             }
                             const failed = game.roundResult?.kind === "failed";
@@ -251,8 +251,14 @@ function GameBoardInner() {
             {game.roundResult && reviewing && (
                 <ReviewPages
                     pages={game.reviewPages}
+                    mode={game.roundResult?.kind === "failed" ? "fail" : "pass"}
                     onDone={() => {
                         setReviewing(false);
+                        // After the corrections a paid-for pass goes on to the unlock page
+                        if (game.roundResult?.kind === "passed" && game.unlockInfo) {
+                            setCelebrate(true);
+                            return;
+                        }
                         game.clearRoundResult();
                     }}
                 />
