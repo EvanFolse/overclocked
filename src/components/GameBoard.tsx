@@ -1,4 +1,5 @@
 "use client";
+import { GoldenChip } from "@/components/GoldenChip";
 import { ReviewPages } from "@/components/learning/ReviewPages";
 import { TutorLauncher } from "@/components/TutorLauncher";
 import { UnlockCelebration } from "@/components/learning/UnlockCelebration";
@@ -32,6 +33,8 @@ function GameBoardInner() {
     const [celebrate, setCelebrate] = useState(false);
     // True while the paged explanation is shown (after a failed round result)
     const [reviewing, setReviewing] = useState(false);
+    // True while the Tutor panel is open (the golden chip stays away)
+    const [tutorOpen, setTutorOpen] = useState(false);
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [section, setSection] = useState<DrawerSection>("upgrades");
     const [practiceOpen, setPracticeOpen] = useState(false);
@@ -193,7 +196,10 @@ function GameBoardInner() {
             )}
 
             {!game.activeCheckpoint && !game.roundResult && !game.autoUnlock && !practiceOpen && (
-                <TutorLauncher stage={Math.min(5, game.state.completedLearningCheckpoints.length + 1)} />
+                <TutorLauncher
+                    stage={Math.min(5, game.state.completedLearningCheckpoints.length + 1)}
+                    onOpenChange={setTutorOpen}
+                />
             )}
 
             {game.roundResult && !celebrate && !reviewing && (
@@ -263,6 +269,23 @@ function GameBoardInner() {
                     }}
                 />
             )}
+
+            <GoldenChip
+                state={game.state}
+                incomePerSecond={game.incomePerSecond}
+                blocked={
+                    !!game.activeCheckpoint ||
+                    !!game.roundResult ||
+                    !!game.autoUnlock ||
+                    drawerOpen ||
+                    practiceOpen ||
+                    tutorOpen ||
+                    celebrate ||
+                    reviewing
+                }
+                onAnswer={game.recordChip}
+                onReward={game.rewardChip}
+            />
 
             <UpgradeFeedback
                 delta={game.statDelta}

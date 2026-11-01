@@ -1052,6 +1052,7 @@ function sanitizeAnswerLog(raw: unknown): AnswerRecord[] {
           concepts: e.concepts.map(String),
           attemptCorrect,
           hintUsed: Boolean(e.hintUsed),
+          ...(e.source === "chip" ? { source: "chip" as const } : {}),
         },
       ];
     })
@@ -1097,4 +1098,34 @@ export function buildUnlockInfo(checkpointId: string, reward: number): UnlockInf
     reward,
     next: nextStage ? { number: i + 2, title: nextStage.title, price: nextStage.price } : null,
   };
+}
+
+/** One question answered during a golden chip (design doc 5.3). */
+export interface ChipAnswer {
+  checkpointId: string;
+  questionId: string;
+  concept: string;
+  correct: boolean;
+}
+
+/**
+ * Records a golden chip answer. It only goes into the answer log (for the accuracy statistics).
+ * It does not touch scores, streaks, mastery, unlocks or failed questions.
+ */
+export function recordChipAnswer(state: GameState, a: ChipAnswer): GameState {
+  const record: AnswerRecord = {
+    id: a.questionId,
+    concepts: [a.concept],
+    attemptCorrect: a.correct ? 1 : null,
+    hintUsed: false,
+    source: "chip",
+  };
+  return { ...state, answerLog: [...state.answerLog, record].slice(-MAX_ANSWER_LOG) };
+}
+
+/** Pays a golden chip bonus in CP. */
+export function awardChipReward(state: GameState, amount: number): GameState {
+  const gain = Math.max(0, Math.round(amount));
+  if (gain === 0) return state;
+  return { ...state, money: state.money + gain, totalEarned: state.totalEarned + gain };
 }

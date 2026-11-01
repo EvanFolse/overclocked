@@ -6,6 +6,8 @@ import { getTutorTopics, type TutorTopic } from "@/data/tutor";
 interface TutorLauncherProps {
     /** Highest stage unlocked or being read. Decides which topics are shown. */
     stage: number;
+    /** Called when the panel opens or closes (the golden chip stays away while it is open) */
+    onOpenChange?: (open: boolean) => void;
 }
 
 interface ChatMessage {
@@ -126,7 +128,7 @@ function TypedText({
  * pick a topic -> pick a question -> read the fixed answer.
  * The parent decides where it is shown (never during a round).
  */
-export function TutorLauncher({ stage }: TutorLauncherProps) {
+export function TutorLauncher({ stage, onOpenChange }: TutorLauncherProps) {
     const [open, setOpen] = useState(false);
     const [messages, setMessages] = useState<ChatMessage[]>([{ id: 0, role: "tutor", text: GREETING }]);
     const [topic, setTopic] = useState<TutorTopic | null>(null);
@@ -140,6 +142,11 @@ export function TutorLauncher({ stage }: TutorLauncherProps) {
     const scrollRef = useRef<HTMLDivElement>(null);
 
     const topics = getTutorTopics(stage);
+
+    // Tell the parent when the panel opens or closes
+    useEffect(() => {
+        onOpenChange?.(open);
+    }, [open, onOpenChange]);
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect -- read the user's motion preference once
