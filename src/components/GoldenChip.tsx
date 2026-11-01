@@ -131,6 +131,7 @@ export function GoldenChip({ state, incomePerSecond, blocked, onAnswer, onReward
     // Every 30 seconds: 10 percent chance
     useEffect(() => {
         const id = window.setInterval(() => {
+            console.log("[chip tick]", { phase: phaseRef.current, blocked: blockedRef.current, has: hasChipQuestions(stateRef.current), done: stateRef.current.completedLearningCheckpoints });
             if (Math.random() < CHANCE) spawn();
         }, CHECK_EVERY_MS);
         return () => window.clearInterval(id);
