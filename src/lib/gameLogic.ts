@@ -445,7 +445,12 @@ export function answerMatchSet(state: GameState, r: MatchResult): GameState {
   const items = getRoundItems(state);
   const idx = items.findIndex((it) => it.id === r.setId);
   if (idx < 0) return next;
-  next = { ...next, ...rewardUpdate(next, cp.id, weightOf(items, idx), credit, r.attemptCorrect) };
+  const weight = weightOf(items, idx);
+  next = {
+    ...next,
+    ...rewardUpdate(next, cp.id, weight, credit, r.attemptCorrect),
+    checkpointScore: next.checkpointScore + credit * weight,
+  };
   return applyAchievements(next);
 }
 export function answerCheckpointStep(

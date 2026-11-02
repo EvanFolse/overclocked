@@ -244,6 +244,8 @@ export function CheckpointOverlay({
   
   if (isBoot) {
     const flow = getStageFlow(checkpoint.id);
+    // A stage may bring its own matching screen
+    const MatchComponent = flow.Match ?? MatchStep;
     // After Learn: Place if the stage has one, otherwise Match (if any), otherwise the quiz
     const afterLearn = () => setPhase(flow.Place ? "place" : matchSets.length > 0 ? "match" : "quiz");
     const layoutStep: StageStepKey =
@@ -277,7 +279,7 @@ export function CheckpointOverlay({
 
         {phase === "match" && (
           <div className="mx-auto max-w-5xl rounded-2xl border border-edge bg-panel p-6 shadow-lg">
-            <MatchStep
+            <MatchComponent
               sets={matchSets}
               onSetSettled={(r) => onMatchSettled?.(r)}
               onComplete={() => setPhase("quiz")}
