@@ -1,6 +1,7 @@
 import type { StageBank } from "@/data/bank/types";
 import type { CpuView } from "@/data/bank/stage1CpuViews";
 import { STAGE_1_BANK } from "@/data/bank/stage1";
+import { STAGE_2_BANK } from "@/data/bank/stage2";
 import { STAGE_1_CPU_VIEWS, STAGE_1_EMPHASIS } from "@/data/bank/stage1CpuViews";
 import type { Contrast, GlossaryTerm } from "@/stages/glossary";
 import { STAGE_1_CONTRASTS, STAGE_1_GLOSSARY } from "@/stages/stage1Glossary";
@@ -38,6 +39,10 @@ export const STAGE_CONTENT: StageContent[] = [
     layoutTitle: "STAGE 1 · KNOW THE CPU",
     glossary: STAGE_1_GLOSSARY,
     contrasts: STAGE_1_CONTRASTS,
+  },
+  {
+    checkpointId: "fetch-decode-execute",
+    bank: STAGE_2_BANK,
   },
 ];
 
