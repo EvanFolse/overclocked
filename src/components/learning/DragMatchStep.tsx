@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import type { RoundMatching } from "@/lib/rounds";
 import { shuffleOrder } from "@/lib/rounds";
+import { Confetti } from "@/components/learning/fx/Confetti";
 import type { MatchMistake, MatchResult } from "@/types/game";
 
 interface DragMatchStepProps {
@@ -29,6 +30,8 @@ const CSS = `
 @keyframes dm-snap{0%{transform:scale(.9)}60%{transform:scale(1.05)}100%{transform:scale(1)}}
 @keyframes dm-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-5px)}40%{transform:translateX(5px)}60%{transform:translateX(-3px)}80%{transform:translateX(3px)}}
 @keyframes dm-wire{from{background-position:0 0}to{background-position:16px 0}}
+@keyframes dm-glow{0%{box-shadow:0 0 0 0 rgba(5,150,105,.6)}100%{box-shadow:0 0 0 14px rgba(5,150,105,0)}}
+.dm-glow{animation:dm-glow .8s ease-out}
 .dm-snap{animation:dm-snap .35s ease-out}
 .dm-shake{animation:dm-shake .4s}
 .dm-wire-live{background-image:repeating-linear-gradient(90deg,currentColor 0 6px,transparent 6px 10px);animation:dm-wire .6s linear infinite}
@@ -59,6 +62,7 @@ export function DragMatchStep({ sets, onSetSettled, onComplete }: DragMatchStepP
     const [busy, setBusy] = useState(false);
     const [feedback, setFeedback] = useState<string | null>(null);
     const [isCompleted, setIsCompleted] = useState(false);
+    const [celebrate, setCelebrate] = useState(0); // counts perfect sets, used as the confetti key
 
     const [attempt, setAttempt] = useState<1 | 2>(1);
     const [hintOpened, setHintOpened] = useState(false);
@@ -125,6 +129,7 @@ export function DragMatchStep({ sets, onSetSettled, onComplete }: DragMatchStepP
         if (wrong.length === 0) {
             setLockedIds(slotList.map((s) => s.id));
             setFeedback("All stations wired correctly! Excellent work.");
+            setCelebrate((n) => n + 1);
             setIsCompleted(true);
             setHintVisible(false);
             settle(attempt);
@@ -257,6 +262,7 @@ export function DragMatchStep({ sets, onSetSettled, onComplete }: DragMatchStepP
             setBusy(false);
             setFeedback(null);
             setIsCompleted(false);
+            setCelebrate(0);
             setAttempt(1);
             setHintOpened(false);
             setHintVisible(false);
@@ -275,7 +281,7 @@ export function DragMatchStep({ sets, onSetSettled, onComplete }: DragMatchStepP
         const dragging = drag !== null && drag.cardId === cardId;
 
         let style = "border-edge bg-panel hover:border-accent hover:shadow-md cursor-grab";
-        if (locked) style = "border-success/60 bg-success-soft text-success cursor-default";
+        if (locked) style = "dm-glow border-success/60 bg-success-soft text-success cursor-default";
         else if (wrong) style = "dm-shake border-rose-400 bg-rose-500/10 text-rose-500 cursor-default";
         else if (selected === cardId) style = "border-accent bg-accent-soft text-accent-text shadow-md cursor-grab";
         else if (slotId) style = "border-violet/50 bg-violet-soft cursor-grab";
@@ -351,7 +357,7 @@ export function DragMatchStep({ sets, onSetSettled, onComplete }: DragMatchStepP
                         let slotStyle = "border-edge/80 bg-panel/60";
                         if (locked) slotStyle = "border-success/50 bg-success-soft/40";
                         else if (wrong) slotStyle = "border-rose-400/70 bg-rose-500/5";
-                        else if (hover) slotStyle = "border-accent bg-accent-soft";
+                        else if (hover) slotStyle = "border-accent bg-accent-soft scale-[1.01] shadow-md";
 
                         const wire = locked ? "bg-success" : hover ? "dm-wire-live text-accent" : "bg-edge";
 
@@ -359,7 +365,7 @@ export function DragMatchStep({ sets, onSetSettled, onComplete }: DragMatchStepP
                             <div key={s.id} className="grid grid-cols-[minmax(0,0.9fr)_2rem_minmax(0,1.7fr)] items-center">
                                 <div
                                     className={`rounded-lg border px-3 py-3 font-mono text-xs font-semibold ${
-                                        locked ? "border-success/60 bg-success-soft text-success" : "border-edge bg-panel"
+                                        locked ? "fx-pop border-success/60 bg-success-soft text-success" : "border-edge bg-panel"
                                     }`}
                                 >
                                     {locked && "✓ "}
@@ -371,7 +377,7 @@ export function DragMatchStep({ sets, onSetSettled, onComplete }: DragMatchStepP
                                     onClick={() => {
                                         if (selected && !locked) place(selected, s.id);
                                     }}
-                                    className={`flex min-h-[4rem] items-stretch rounded-lg border-2 border-dashed p-1.5 transition-colors ${slotStyle}`}
+                                    className={`flex min-h-[4rem] items-stretch rounded-lg border-2 border-dashed p-1.5 transition ${slotStyle}`}
                                 >
                                     {cardId ? (
                                         <div className="w-full">{renderCard(cardId, s.id)}</div>
@@ -385,6 +391,8 @@ export function DragMatchStep({ sets, onSetSettled, onComplete }: DragMatchStepP
                 </div>
             </div>
 
+            {celebrate > 0 && <Confetti key={celebrate} />}
+
             {/* The card tray */}
             <div className="mt-4 rounded-2xl border border-dashed border-edge p-4">
                 <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.25em] text-muted">
@@ -394,8 +402,12 @@ export function DragMatchStep({ sets, onSetSettled, onComplete }: DragMatchStepP
                     {trayCards.length === 0 && (
                         <span className="font-mono text-[11px] text-muted">All cards are on the board.</span>
                     )}
-                    {trayCards.map((id) => (
-                        <div key={id} className="max-w-[16rem] flex-1 basis-[11rem]">
+                    {trayCards.map((id, n) => (
+                        <div
+                            key={`${matchSet.id}-${shuffleSeed}-${id}`}
+                            className="fx-cell max-w-[16rem] flex-1 basis-[11rem]"
+                            style={{ animationDelay: `${n * 60}ms` }}
+                        >
                             {renderCard(id, null)}
                         </div>
                     ))}
@@ -404,7 +416,8 @@ export function DragMatchStep({ sets, onSetSettled, onComplete }: DragMatchStepP
 
             {feedback && (
                 <div
-                    className={`mt-3 rounded-lg border p-3 font-mono text-xs ${
+                    key={feedback}
+                    className={`fx-slide ${isCompleted ? "" : "fx-shake"} mt-3 rounded-lg border p-3 font-mono text-xs ${
                         isCompleted
                             ? "border-success/40 bg-success-soft text-success"
                             : "border-warning/40 bg-warning/10 text-warning"
@@ -418,7 +431,7 @@ export function DragMatchStep({ sets, onSetSettled, onComplete }: DragMatchStepP
                 <button
                     type="button"
                     onClick={nextSet}
-                    className="mt-4 w-full rounded-xl bg-accent py-3 font-mono text-sm font-bold text-accent-text shadow-lg transition hover:opacity-90"
+                    className="fx-pop mt-4 w-full rounded-xl bg-accent py-3 font-mono text-sm font-bold text-white shadow-lg transition hover:opacity-90"
                 >
                     {setIndex + 1 < sets.length ? "NEXT SET →" : "CONTINUE →"}
                 </button>
