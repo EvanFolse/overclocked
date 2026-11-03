@@ -1,6 +1,8 @@
 import type { ComponentType } from "react";
 import { LearnStep } from "@/components/learning/LearnStep";
+import { LearnStepMemory } from "@/components/learning/LearnStepMemory";
 import { PlaceStep } from "@/components/learning/PlaceStep";
+import { PlaceStepMemory } from "@/components/learning/PlaceStepMemory";
 
 export interface StepProps {
   onComplete: () => void;
@@ -18,6 +20,7 @@ export interface StageFlow {
 
 export const STAGE_FLOW: Record<string, StageFlow> = {
   "cpu-basics": { Learn: LearnStep, Place: PlaceStep },
+  "cache-hierarchy": { Learn: LearnStepMemory, Place: PlaceStepMemory },
 };
 
 export function getStageFlow(checkpointId: string | null | undefined): StageFlow {
