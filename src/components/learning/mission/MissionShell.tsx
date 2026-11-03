@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import type { Phase } from "./useMissionAttempts";
+import { Confetti } from "../fx/Confetti";
 
 interface Props {
   eyebrow: string;
@@ -25,6 +26,7 @@ interface Props {
 export function MissionShell(p: Props) {
   const done = p.phase === "solved" || p.phase === "revealed";
   const canHint = p.attempt >= 2 && !done;
+  const creditLabel = p.attempt <= 1 ? "x1 PERFECT" : p.hintOpened ? "x0.5" : "x0.75";
 
   return (
     <div className="mx-auto grid max-w-6xl gap-5 md:grid-cols-[1fr_290px]">
@@ -42,9 +44,12 @@ export function MissionShell(p: Props) {
 
         <div className="mt-6">{p.children}</div>
 
+        {p.phase === "solved" && <Confetti key={p.attempt} />}
+
         {p.feedback && (
           <div
-            className={`mt-5 rounded-xl border px-4 py-3 text-sm ${
+            key={`${p.phase}-${p.attempt}`}
+            className={`fx-slide ${p.phase === "wrong" ? "fx-shake" : ""} mt-5 rounded-xl border px-4 py-3 text-sm ${
               p.phase === "solved"
                 ? "border-success/50 bg-success-soft text-success"
                 : "border-red-400/50 bg-red-500/10 text-red-500"
@@ -102,8 +107,8 @@ export function MissionShell(p: Props) {
           </button>
         )}
         {done && (
-          <p className="text-center font-mono text-xs uppercase tracking-widest text-muted">
-            {p.phase === "solved" ? "Solved" : "Answer revealed"}
+          <p className={`fx-pop rounded-lg border px-3 py-2 text-center font-mono text-xs font-bold uppercase tracking-widest ${p.phase === "solved" ? "border-success/50 bg-success-soft text-success" : "border-edge text-muted"}`}>
+            {p.phase === "solved" ? `Solved · ${creditLabel}` : "Answer revealed"}
           </p>
         )}
       </aside>

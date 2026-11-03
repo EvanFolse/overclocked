@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import type { CheckpointQuestion } from "@/data/checkpoints";
 import type { QuizFeedback } from "@/types/game";
 import { getStageContent } from "@/stages/registry";
+import { Confetti } from "@/components/learning/fx/Confetti";
 
 interface RoundViewProps {
     /** Checkpoint id of the stage. Used to find its bank and mission views in the registry. */
@@ -106,7 +107,7 @@ export function RoundView({
     };
 
     const dotClass = (c: number | null, i: number) => {
-        if (c === null) return i === step ? "bg-accent" : "bg-edge";
+        if (c === null) return i === step ? "bg-accent animate-pulse" : "bg-edge";
         if (c >= 1) return "bg-success";
         if (c > 0) return "bg-amber-400";
         return "bg-red-500";
@@ -117,14 +118,14 @@ export function RoundView({
             "flex w-full items-center gap-4 rounded-xl border px-4 py-3.5 text-left text-base transition";
         if (feedback) {
             if (index === question.correctIndex && solved) {
-                return `${base} border-success bg-success/10 font-semibold`;
+                return `${base} fx-pop border-success bg-success/10 font-semibold`;
             }
             if (index === selectedChoice && !feedback.correct) {
-                return `${base} border-red-500/60 bg-red-500/10 text-muted line-through`;
+                return `${base} fx-shake border-red-500/60 bg-red-500/10 text-muted line-through`;
             }
             return `${base} border-edge text-muted`;
         }
-        return `${base} border-edge bg-panel hover:border-accent hover:shadow-sm`;
+        return `${base} border-edge bg-panel hover:-translate-y-0.5 hover:border-accent hover:shadow-md`;
     };
 
     const canHint = !!question.hint && !solved && (wrongOnce || notQuite);
@@ -154,7 +155,7 @@ export function RoundView({
                     ))}
                 </div>
                 <p className="font-mono text-xs tracking-widest text-muted">
-                    STREAK <b className="text-foreground">{streak}</b> · ATTEMPT{" "}
+                    STREAK <b className="text-foreground">{streak}</b>{streak >= 2 ? " 🔥" : ""} · ATTEMPT{" "}
                     <b className="text-foreground">{attempt}</b> / 2
                 </p>
             </div>
@@ -287,6 +288,8 @@ export function RoundView({
                     </div>
                 </section>
             </div>
+
+            {solved && feedback?.correct && <Confetti key={step} />}
 
             {/* Hint pop-up: bottom-right, stays until confirmed */}
             {hintFor === step && !solved && question.hint && (

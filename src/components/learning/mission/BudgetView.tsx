@@ -75,14 +75,14 @@ export function BudgetView({ onSettle }: { onSettle: (r: MissionResult) => void 
         <>
           <div className={`rounded-xl border px-3 py-3 ${over ? "border-red-400/60 bg-red-500/10" : "border-success/50 bg-success-soft"}`}>
             <p className="font-mono text-[10px] uppercase tracking-widest text-muted">Your order</p>
-            <p className="mt-1 font-mono text-4xl font-bold">{sched.cycles}</p>
+            <p key={sched.cycles} className="fx-pop mt-1 font-mono text-4xl font-bold">{sched.cycles}</p>
             <p className="text-xs text-muted">
               cycles to finish · budget {BUDGET_CYCLES} · {sched.stalls} stall{sched.stalls === 1 ? "" : "s"}
             </p>
           </div>
           <div className="relative h-2.5 rounded-full bg-edge">
             <div
-              className={`h-full rounded-full ${over ? "bg-red-500" : "bg-success"}`}
+              className={`h-full rounded-full transition-all duration-500 ${over ? "bg-red-500" : "bg-success"}`}
               style={{ width: `${Math.min(100, (sched.cycles / COLS) * 100)}%` }}
             />
             <span

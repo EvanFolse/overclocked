@@ -93,7 +93,7 @@ export function SpotView({ onSettle }: { onSettle: (r: MissionResult) => void })
         onCycleClick={locked ? undefined : setCycle}
         look={(row, cell) =>
           done && hits.includes(cell.cycle) && (cell.stage === "IF" || (cell.stage === "MEM" && row.instr.op === "lw"))
-            ? { style: { boxShadow: "0 0 0 3px #ef4444" } }
+            ? { className: "fx-ring", style: { boxShadow: "0 0 0 3px #ef4444" } }
             : undefined
         }
       />

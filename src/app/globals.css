@@ -145,3 +145,41 @@ body {
 .rank-stat-flash {
   animation: rank-stat-flash 0.9s ease-out;
 }
+/* ---- learning game effects ---- */
+@keyframes fx-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-7px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(3px); }
+}
+@keyframes fx-pop {
+  0% { transform: scale(0.9); }
+  55% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+@keyframes fx-cell-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.8); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes fx-slide {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes fx-ring {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+  50% { box-shadow: 0 0 0 5px rgba(239, 68, 68, 0.55); }
+}
+@keyframes fx-confetti {
+  0% { opacity: 1; transform: translate(0, 0) rotate(0); }
+  100% { opacity: 0; transform: translate(var(--x), calc(var(--y) + 140px)) rotate(var(--r)); }
+}
+.fx-shake { animation: fx-shake 0.4s ease-in-out; }
+.fx-pop { animation: fx-pop 0.35s ease-out; }
+.fx-cell { animation: fx-cell-in 0.35s ease-out backwards; }
+.fx-slide { animation: fx-slide 0.3s ease-out; }
+.fx-ring { animation: fx-ring 1.3s ease-in-out infinite; }
+.fx-confetti { position: absolute; border-radius: 2px; animation: fx-confetti 1.1s ease-out forwards; }
+@media (prefers-reduced-motion: reduce) {
+  .fx-shake, .fx-pop, .fx-cell, .fx-slide, .fx-ring, .fx-confetti { animation: none !important; }
+}

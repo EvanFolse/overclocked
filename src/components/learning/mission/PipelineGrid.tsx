@@ -14,6 +14,7 @@ export const STAGE_STYLE: Record<Stage, { bg: string; bd: string; fg: string }> 
 export interface CellLook {
   text?: string;
   style?: CSSProperties;
+  className?: string;
 }
 
 interface Props {
@@ -94,9 +95,9 @@ export function PipelineGrid({ rows, cols, activeCycle, headerBadge, onCycleClic
               };
               return (
                 <div
-                  key={c}
-                  className="flex h-10 items-center justify-center rounded-lg border-2 font-mono text-xs font-bold"
-                  style={style}
+                  key={`${row.instr.id}-${c}-${cell.stage}-${cell.held ? "h" : "r"}`}
+                  className={`fx-cell flex h-10 items-center justify-center rounded-lg border-2 font-mono text-xs font-bold ${custom?.className ?? ""}`}
+                  style={{ ...style, animationDelay: `${c * 45}ms` }}
                 >
                   {custom?.text ?? cell.stage}
                 </div>

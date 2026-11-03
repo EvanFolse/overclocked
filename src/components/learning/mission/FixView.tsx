@@ -121,6 +121,7 @@ export function FixView({ onSettle }: { onSettle: (r: MissionResult) => void }) 
           if (solved && cell.cycle === 4 && (row.instr.id === "I2" || row.instr.id === "I3")) {
             return {
               text: "✗",
+              className: "fx-shake",
               style: { background: "#fee2e2", borderColor: "#ef4444", color: "#b91c1c", borderStyle: "dashed" },
             };
           }
