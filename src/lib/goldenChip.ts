@@ -30,25 +30,15 @@ interface PoolItem {
 function chipPool(state: GameState, anyStage: boolean): PoolItem[] {
   const out: PoolItem[] = [];
   for (const content of STAGE_CONTENT) {
-    if (!anyStage && !state.completedLearningCheckpoints.includes(content.checkpointId)) continue;
+    // Any stage that has a bank can be asked, passed or not (anyStage is kept for the callers)
+    void anyStage;
+    void state;
     for (const q of content.bank.mc) {
       if (q.group === "mission") continue;
       out.push({ checkpointId: content.checkpointId, q });
     }
   }
   return out;
-}
-
-/**
- * Spaced review: questions the player got wrong come first, never-asked ones next,
- * and a question that was just reviewed correctly is unlikely to come back soon.
- */
-function weightOf(state: GameState, id: string): number {
-  const last = [...state.answerLog].reverse().find((r) => r.id === id);
-  if (!last) return 2;
-  if (last.attemptCorrect === null) return 5;
-  if (last.attemptCorrect === 2) return 3;
-  return last.source === "chip" ? 0.4 : 1;
 }
 
 function build(item: PoolItem): ChipQuestion {
@@ -66,7 +56,8 @@ function build(item: PoolItem): ChipQuestion {
 }
 
 export function hasChipQuestions(state: GameState): boolean {
-  return chipPool(state, false).length > 0;
+  // No chip before the first stage is passed; after that every bank question is in the pool
+  return state.completedLearningCheckpoints.length > 0 && chipPool(state, true).length > 0;
 }
 
 export interface PickOptions {
@@ -86,11 +77,6 @@ export function pickChipQuestion(state: GameState, opts: PickOptions = {}): Chip
   const items = preferred.length > 0 ? preferred : all;
   if (items.length === 0) return null;
 
-  const weights = items.map((it) => weightOf(state, it.q.id));
-  let r = Math.random() * weights.reduce((a, b) => a + b, 0);
-  for (let i = 0; i < items.length; i++) {
-    r -= weights[i]!;
-    if (r <= 0) return build(items[i]!);
-  }
-  return build(items[items.length - 1]!);
+  // Plain random pick
+  return build(items[Math.floor(Math.random() * items.length)]!);
 }

@@ -8,7 +8,7 @@ import type { GameState } from "@/types/game";
 
 // Design doc 5.3. The numbers are placeholders from the design doc.
 const CHECK_EVERY_MS = 30_000; // roll the dice every 30 seconds
-const CHANCE = 0.1; // 10 percent
+const CHANCE = 0.3; // 30 percent
 const STAY_MS = 10_000; // the chip stays about 10 seconds
 const BONUS_SECONDS = 120; // reward: about 2 minutes of current income
 
@@ -133,6 +133,29 @@ export function GoldenChip({ state, incomePerSecond, blocked, onAnswer, onReward
         const id = window.setInterval(() => {
             if (Math.random() < CHANCE) spawn();
         }, CHECK_EVERY_MS);
+        return () => window.clearInterval(id);
+    }, [spawn]);
+
+    // Every finished stage guarantees one chip: remember it, and show it once nothing else is open
+    const doneCount = state.completedLearningCheckpoints.length;
+    const prevDoneRef = useRef(doneCount);
+    const dueRef = useRef(false);
+    useEffect(() => {
+        if (doneCount > prevDoneRef.current) dueRef.current = true;
+        prevDoneRef.current = doneCount;
+    }, [doneCount]);
+    useEffect(() => {
+        const id = window.setInterval(() => {
+            if (
+                dueRef.current &&
+                phaseRef.current === "idle" &&
+                !blockedRef.current &&
+                hasChipQuestions(stateRef.current)
+            ) {
+                dueRef.current = false;
+                spawn();
+            }
+        }, 1000);
         return () => window.clearInterval(id);
     }, [spawn]);
 
