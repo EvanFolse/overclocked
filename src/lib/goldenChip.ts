@@ -30,9 +30,8 @@ interface PoolItem {
 function chipPool(state: GameState, anyStage: boolean): PoolItem[] {
   const out: PoolItem[] = [];
   for (const content of STAGE_CONTENT) {
-    // Any stage that has a bank can be asked, passed or not (anyStage is kept for the callers)
-    void anyStage;
-    void state;
+    // Only stages the player has passed (anyStage is a development override)
+    if (!anyStage && !state.completedLearningCheckpoints.includes(content.checkpointId)) continue;
     for (const q of content.bank.mc) {
       if (q.group === "mission") continue;
       out.push({ checkpointId: content.checkpointId, q });
@@ -57,7 +56,7 @@ function build(item: PoolItem): ChipQuestion {
 
 export function hasChipQuestions(state: GameState): boolean {
   // No chip before the first stage is passed; after that every bank question is in the pool
-  return state.completedLearningCheckpoints.length > 0 && chipPool(state, true).length > 0;
+  return chipPool(state, false).length > 0;
 }
 
 export interface PickOptions {
