@@ -4,7 +4,7 @@ import { TutorLauncher } from "@/components/TutorLauncher";
 import { useState, useEffect } from "react";
 import type { LearningCheckpoint } from "@/data/checkpoints";
 import type { MatchResult, QuizFeedback } from "@/types/game";
-import type { RoundMatching } from "@/lib/rounds";
+import type { RoundMatching, RoundMission } from "@/lib/rounds";
 import { CpuCycleVisual } from "@/components/CpuCycleVisual";
 import { MemoryHierarchyVisual } from "@/components/MemoryHierarchyVisual";
 import { ReadingStep } from "@/components/learning/ReadingStep";
@@ -14,8 +14,9 @@ import { getStageByCheckpoint } from "@/data/stages";
 import { MatchStep } from "@/components/learning/MatchStep";
 import { RoundView } from "@/components/learning/RoundView";
 import { StageLayout, type StageStepKey } from "@/components/learning/StageLayout";
+import { MissionRunner } from "@/components/learning/mission/MissionRunner";
 
-type BootPhase = "learn" | "place" | "match" | "quiz";
+type BootPhase = "learn" | "place" | "mission" | "match" | "quiz" | "finish";
 interface CheckpointOverlayProps {
   checkpoint: LearningCheckpoint;
   step: number;
@@ -34,6 +35,9 @@ interface CheckpointOverlayProps {
   matchSets?: RoundMatching[];
   /** Reports one settled matching set to the game engine */
   onMatchSettled?: (result: MatchResult) => void;
+  /** Interactive missions of the active round (played first) */
+  missions?: RoundMission[];
+  onMissionSettled?: (result: MatchResult) => void;
   cp?: number; 
 }
 
@@ -53,6 +57,8 @@ export function CheckpointOverlay({
   onOpenHint,
   matchSets = [],
   onMatchSettled,
+  missions = [],
+  onMissionSettled,
   cp,
 }: CheckpointOverlayProps) {
   const question = checkpoint.questions[step];
@@ -66,9 +72,27 @@ export function CheckpointOverlay({
   // Stage 1 flow: learn -> place -> match -> quiz. Other checkpoints go straight to quiz.
   const [phase, setPhase] = useState<BootPhase>(isBoot ? "learn" : "quiz");
 
+  // Stage 2 order: Mission -> MC -> Match. The matching sets come last, so the round ends after them.
+  const [matchDone, setMatchDone] = useState(false);
+  const playMatchLast = missions.length > 0 && matchSets.length > 0;
+
   useEffect(() => {
     setPhase(getStageContent(checkpoint.id) ? "learn" : "quiz");
+    setMatchDone(false);
   }, [checkpoint.id, lessonOpen]);
+
+  // The round ends from an effect, so it sees the state that already includes the last matching set
+  useEffect(() => {
+    if (phase === "finish") onContinue();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
+
+  // After a refresh every MC may already be answered while the matching sets are still open
+  useEffect(() => {
+    if (phase === "quiz" && playMatchLast && !matchDone && !feedback && step >= checkpoint.questions.length) {
+      setPhase("match");
+    }
+  }, [phase, playMatchLast, matchDone, feedback, step, checkpoint.questions.length]);
 
   if (!lessonOpen) {
     return (
@@ -247,9 +271,23 @@ export function CheckpointOverlay({
     // A stage may bring its own matching screen
     const MatchComponent = flow.Match ?? MatchStep;
     // After Learn: Place if the stage has one, otherwise Match (if any), otherwise the quiz
-    const afterLearn = () => setPhase(flow.Place ? "place" : matchSets.length > 0 ? "match" : "quiz");
+    const firstRound: BootPhase = missions.length > 0 ? "mission" : matchSets.length > 0 ? "match" : "quiz";
+    const afterLearn = () => setPhase(flow.Place ? "place" : firstRound);
+    // With missions, Match comes after the last MC: that click goes to Match, the round ends after Match
+    const quizSettled = !!feedback && (feedback.correct || !!feedback.revealed);
+    const handleQuizContinue = () => {
+      if (playMatchLast && !matchDone && isLastQuestion && quizSettled) {
+        setPhase("match");
+        return;
+      }
+      onContinue();
+    };
     const layoutStep: StageStepKey =
-      phase === "learn" ? "learn" : phase === "quiz" ? "round" : "place";
+      phase === "learn"
+        ? "learn"
+        : phase === "quiz" || phase === "mission" || phase === "finish" || (phase === "match" && playMatchLast)
+          ? "round"
+          : "place";
 
     return (
       <StageLayout
@@ -273,8 +311,16 @@ export function CheckpointOverlay({
 
         {phase === "place" && flow.Place && (
           <div className="mx-auto max-w-5xl rounded-2xl border border-edge bg-panel p-6 shadow-lg">
-            <flow.Place onComplete={() => setPhase(matchSets.length > 0 ? "match" : "quiz")} />
+            <flow.Place onComplete={() => setPhase(firstRound)} />
           </div>
+        )}
+
+        {phase === "mission" && missions.length > 0 && (
+          <MissionRunner
+            missions={missions}
+            onSettled={(r) => onMissionSettled?.(r)}
+            onComplete={() => setPhase("quiz")}
+          />
         )}
 
         {phase === "match" && (
@@ -282,7 +328,14 @@ export function CheckpointOverlay({
             <MatchComponent
               sets={matchSets}
               onSetSettled={(r) => onMatchSettled?.(r)}
-              onComplete={() => setPhase("quiz")}
+              onComplete={() => {
+                if (playMatchLast) {
+                  setMatchDone(true);
+                  setPhase("finish");
+                } else {
+                  setPhase("quiz");
+                }
+              }}
             />
           </div>
         )}
@@ -299,7 +352,7 @@ export function CheckpointOverlay({
             isLastQuestion={isLastQuestion}
             onSelect={onSelect}
             onSubmit={onSubmit}
-            onContinue={onContinue}
+            onContinue={handleQuizContinue}
             onOpenHint={onOpenHint}
           />
         )}

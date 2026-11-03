@@ -166,6 +166,8 @@ export interface GameState {
   /** Checkpoints whose round was passed but the stage price is not paid yet */
   pendingUnlocks: string[];
   roundQuestionIds: string[];
+  /** Missions and matching sets settled in the current round (they are played outside checkpointStep) */
+  roundSettledIds?: string[];
   failedQuestionIds: string[];
   /** One record per settled question, newest last (capped at 500) */
   answerLog: AnswerRecord[];

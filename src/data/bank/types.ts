@@ -91,8 +91,20 @@ export interface OpenQuestion {
     draft?: boolean;
 }
 
+/** Interactive mission that runs on the pipeline simulator (not a choice question). */
+export interface MissionItem {
+    id: string;
+    variant: "spot" | "fix" | "budget";
+    /** Main concept, used for accuracy tracking */
+    concept: string;
+    concepts: string[];
+    spare?: boolean;
+}
+
 export interface StageBank {
     stageId: StageNumber;
+    /** Interactive missions. They are played first in the round. */
+    missions?: MissionItem[];
     /** Short reading shown before the quiz round (60 to 120 words). */
     reading: string;
     readingDraft?: boolean;

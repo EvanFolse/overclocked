@@ -20,6 +20,7 @@ import type {
 import {
   answerCheckpointStep,
   answerMatchSet,
+  answerMissionSet,
   buildUnlockInfo,
   recordChipAnswer,
   awardChipReward,
@@ -293,6 +294,11 @@ export function useGame() {
     []
   );
 
+  // Settle one mission (Spot it, Fix it, Beat the budget). Same credit rules as a matching set.
+  const settleMission = useCallback((r: MatchResult) => {
+    setState((prev) => answerMissionSet(prev, r));
+  }, []);
+
   const submitCheckpointAnswer = useCallback(() => {
     if (selectedChoice == null) return;
     // The player picked a displayed position. Convert it to the original option index.
@@ -463,6 +469,7 @@ if (askedId && !result.feedback.correct) {
     hintOpened: state.checkpointHintOpened,
     openHint,
     settleMatchSet,
+    settleMission,
     recordChip,
     rewardChip,
     unlockInfo,

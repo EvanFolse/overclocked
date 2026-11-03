@@ -3,7 +3,7 @@ import { GoldenChip } from "@/components/GoldenChip";
 import { ReviewPages } from "@/components/learning/ReviewPages";
 import { TutorLauncher } from "@/components/TutorLauncher";
 import { UnlockCelebration } from "@/components/learning/UnlockCelebration";
-import { getRoundMatchSets } from "@/lib/rounds";
+import { getRoundMatchSets, getRoundMissions } from "@/lib/rounds";
 import { RoundResultCard } from "@/components/learning/RoundResultCard";
 import { StageLayout } from "@/components/learning/StageLayout";
 import { LEARNING_CONFIG } from "@/lib/learningConfig";
@@ -192,6 +192,8 @@ function GameBoardInner() {
                     onOpenHint={game.openHint}
                     matchSets={getRoundMatchSets(game.state)}
                     onMatchSettled={game.settleMatchSet}
+                    missions={getRoundMissions(game.state)}
+                    onMissionSettled={game.settleMission}
                 />
             )}
 

@@ -1,6 +1,6 @@
 import { getCheckpoint, type CheckpointQuestion } from "@/data/checkpoints";
 import { getStageContent } from "@/stages/registry";
-import type { MatchingSet, StageBank } from "@/data/bank/types";
+import type { MatchingSet, MissionItem, StageBank } from "@/data/bank/types";
 import type { AnswerRecord, GameState } from "@/types/game";
 import type { ResultGroup } from "@/components/learning/RoundResultCard";
 import { LEARNING_CONFIG } from "@/lib/learningConfig";
@@ -26,10 +26,12 @@ export interface RoundQuestion extends CheckpointQuestion {
 }
 
 export type RoundMatching = MatchingSet;
+export type RoundMission = MissionItem;
 
 export type RoundItem =
     | ({ kind: "mc" } & RoundQuestion)
-    | ({ kind: "match" } & RoundMatching);
+    | ({ kind: "match" } & RoundMatching)
+    | ({ kind: "mission" } & RoundMission);
 
 /**
  * The question bank of a stage, from the stage registry (src/stages/registry.ts).
@@ -67,19 +69,21 @@ function pick<T extends { id: string }>(pool: T[], count: number, failed: Set<st
  */
 export function drawRoundIds(bank: StageBank, failedIds: string[]): string[] {
     const missions = bank.mc.filter((q) => q.group === "mission");
+    // Interactive missions have no spares: every round plays all of them, before anything else
+    const interactive = (bank.missions ?? []).filter((m) => !m.spare);
     const plain = bank.mc.filter((q) => q.group !== "mission");
     const requiredMissions = missions.filter((q) => !q.spare);
     const requiredPlain = plain.filter((q) => !q.spare);
     const requiredMatch = INCLUDE_MATCHING ? bank.matching.filter((m) => !m.spare) : [];
     if (failedIds.length === 0) {
-        return [...requiredMissions, ...requiredPlain, ...requiredMatch].map((item) => item.id);
+        return [...interactive, ...requiredMissions, ...requiredPlain, ...requiredMatch].map((item) => item.id);
     }
 
     const failed = new Set(failedIds);
     const chosenMissions = pick(missions, requiredMissions.length, failed);
     const chosenPlain = pick(plain, requiredPlain.length, failed);
     const chosenMatch = INCLUDE_MATCHING ? pick(bank.matching, requiredMatch.length, failed) : [];
-    return [...chosenMissions, ...chosenPlain, ...chosenMatch].map((item) => item.id);
+    return [...interactive, ...chosenMissions, ...chosenPlain, ...chosenMatch].map((item) => item.id);
 }
 
 /** All items of the round that is currently active (empty when no round is active). */
@@ -104,11 +108,16 @@ export function getRoundItems(state: GameState): RoundItem[] {
         state.roundQuestionIds.length > 0
             ? state.roundQuestionIds
             : [
+                ...(bank.missions ?? []).filter((m) => !m.spare).map((m) => m.id),
                 ...bank.mc.filter((q) => !q.spare).map((q) => q.id),
                 ...(INCLUDE_MATCHING ? bank.matching.filter((m) => !m.spare).map((m) => m.id) : []),
             ];
 
     return ids.flatMap((id): RoundItem[] => {
+        const ms = (bank.missions ?? []).find((item) => item.id === id);
+        if (ms) {
+            return [{ kind: "mission", id: ms.id, variant: ms.variant, concept: ms.concept, concepts: ms.concepts }];
+        }
         const q = bank.mc.find((item) => item.id === id);
         if (q) {
             return [
@@ -150,7 +159,8 @@ export function getRoundQuestions(state: GameState): RoundQuestion[] {
 }
 
 function groupOf(item: RoundItem): RoundGroup {
-    return item.kind === "match" ? "match" : item.group;
+    if (item.kind === "match") return "match";
+    return item.kind === "mission" ? "mission" : item.group;
 }
 
 /**
@@ -209,5 +219,12 @@ export function getRoundBreakdown(state: GameState): ResultGroup[] {
 export function getRoundMatchSets(state: GameState): RoundMatching[] {
     return getRoundItems(state).filter(
         (item): item is Extract<RoundItem, { kind: "match" }> => item.kind === "match"
+    );
+}
+
+/** Only the missions of the active round. */
+export function getRoundMissions(state: GameState): RoundMission[] {
+    return getRoundItems(state).filter(
+        (item): item is Extract<RoundItem, { kind: "mission" }> => item.kind === "mission"
     );
 }

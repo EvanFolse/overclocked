@@ -246,6 +246,7 @@ export function startStage(state: GameState, stageId: number): GameState {
     checkpointScore: 0,
     checkpointReward: 0,
     roundQuestionIds: bank ? drawRoundIds(bank, state.failedQuestionIds) : [],
+    roundSettledIds: [],
   };
 }
 
@@ -396,6 +397,7 @@ function endRound(
     checkpointScore: 0,
     checkpointReward: 0,
     roundQuestionIds: [] as string[],
+    roundSettledIds: [] as string[],
   };
 
   // Failed round: nothing is paid, nothing unlocks
@@ -433,6 +435,7 @@ export function openHint(state: GameState): GameState {
   return { ...state, checkpointHintOpened: true };
 }
 export function answerMatchSet(state: GameState, r: MatchResult): GameState {
+  if ((state.roundSettledIds ?? []).includes(r.setId)) return state; // a replayed set is not scored twice
   const cp = getCheckpoint(state.activeCheckpointId);
   if (!cp) return state;
   const credit = r.attemptCorrect === null ? 0 : attemptCredit(r.attemptCorrect, r.hintUsed);
@@ -443,6 +446,7 @@ export function answerMatchSet(state: GameState, r: MatchResult): GameState {
     hintUsed: r.hintUsed,
   });
   const items = getRoundItems(state);
+  next = { ...next, roundSettledIds: [...(state.roundSettledIds ?? []), r.setId] };
   const idx = items.findIndex((it) => it.id === r.setId);
   if (idx < 0) return next;
   const weight = weightOf(items, idx);
@@ -647,6 +651,12 @@ export function finishRound(state: GameState): {
   // Matching sets are played before the quiz, so only quiz questions count as steps
   const quizCount = getRoundQuestions(state).length;
   if (quizCount === 0 || state.checkpointStep < quizCount) return null;
+  // A round with missions also waits for every mission and matching set (played outside the step counter)
+  const roundItems = getRoundItems(state);
+  if (roundItems.some((it) => it.kind === "mission")) {
+    const settled = state.roundSettledIds ?? [];
+    if (roundItems.some((it) => it.kind !== "mc" && !settled.includes(it.id))) return null;
+  }
   const end = endRound(state, cp, state);
   return { ...end, state: applyAchievements(end.state) };
 }
@@ -697,6 +707,7 @@ function finishCheckpoint(
       Object.entries(next.pendingRewards).filter(([id]) => id !== cp.id)
     ),
     roundQuestionIds: [],
+    roundSettledIds: [],
     failedQuestionIds: bank
       ? next.failedQuestionIds.filter(
         (id) => !bank.mc.some((q) => q.id === id) && !bank.matching.some((m) => m.id === id)
@@ -1021,6 +1032,7 @@ export function sanitizeLoadedState(raw: unknown): GameState | null {
         ? data.failedQuestionIds.map(String)
         : [],
       answerLog: sanitizeAnswerLog(data.answerLog),
+      roundSettledIds: Array.isArray(data.roundSettledIds) ? data.roundSettledIds.map(String) : [],
       streak: Math.max(0, Math.floor(Number(data.streak) || 0)),
       checkpointReward: Math.max(0, Number(data.checkpointReward) || 0),
       pendingRewards: sanitizePendingRewards(data.pendingRewards),
@@ -1133,4 +1145,9 @@ export function awardChipReward(state: GameState, amount: number): GameState {
   const gain = Math.max(0, Math.round(amount));
   if (gain === 0) return state;
   return { ...state, money: state.money + gain, totalEarned: state.totalEarned + gain };
+}
+
+/** A mission (Spot it, Fix it, Beat the budget) is settled exactly like a matching set. */
+export function answerMissionSet(state: GameState, r: MatchResult): GameState {
+  return answerMatchSet(state, r);
 }

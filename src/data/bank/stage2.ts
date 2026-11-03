@@ -16,6 +16,13 @@ import type { StageBank } from "@/data/bank/types";
 export const STAGE_2_BANK: StageBank = {
     stageId: 2,
 
+    /** Interactive missions (Spot it, Fix it, Beat the budget). Answers come from the simulator. */
+    missions: [
+        { id: "s2-mission-spot", variant: "spot", concept: "Structural hazard", concepts: ["Structural hazard"] },
+        { id: "s2-mission-fix", variant: "fix", concept: "Control hazard", concepts: ["Control hazard", "Flush"] },
+        { id: "s2-mission-budget", variant: "budget", concept: "Forwarding and reordering", concepts: ["Forwarding", "Instruction reordering"] },
+    ],
+
     reading:
         "Every instruction goes through five steps: fetch (IF), decode (ID), execute (EX), memory access (MEM) and write back (WB). Without a pipeline the CPU finishes one instruction before it starts the next, so most of the hardware sits idle. A pipeline overlaps the instructions: while one is executing, the next is being decoded and a third is being fetched, like a laundry line. Each instruction still takes about the same time, but more instructions finish every second. The overlap is fragile. An instruction can need a result that is not ready yet (data hazard), two instructions can need the same hardware (structural hazard), or a branch can make the fetched instructions wrong (control hazard).",
     readingDraft: true,
