@@ -169,7 +169,7 @@ export function StageScreen({ stageId, cp, cps, completedCount, onComplete, onEx
               />
             </div>
           </div>
-          <TutorBubble tag={msg.tag} text={msg.text} />
+          <TutorBubble stageId={stageId} tag={msg.tag} text={msg.text} />
         </div>
 
         {/* Right: tabs + evidence log */}
