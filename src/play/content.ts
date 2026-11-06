@@ -8,12 +8,20 @@ export interface StageCopy {
   mission: string; // mechanic name from the design doc
   tip: string;     // 1-2 sentences, a hint not the answer
   why: string;     // shown only after the player acts
+  cards?: { part: string; analogy: string; color: string; icon: string }[]; // optional TIP cards
 }
 
 export const STAGE_COPY: Record<number, StageCopy> = {
   1: {
     title: "Know the CPU",
     mission: "BUILD & DIAGNOSE",
+    cards: [
+      { part: "ALU", analogy: "Calculator", color: "#f5c242", icon: "🧮" },
+      { part: "CONTROL UNIT", analogy: "Boss", color: "#a994f5", icon: "👑" },
+      { part: "REGISTERS", analogy: "Notepad", color: "#4ec3d0", icon: "📝" },
+      { part: "CLOCK", analogy: "Beat", color: "#5fd3a0", icon: "🥁" },
+      { part: "CACHE", analogy: "Pocket", color: "#5b8def", icon: "👝" },
+    ],
     tip: "Every part has a job. Think calculator, boss, notepad, beat and pocket.",
     why: "The ALU performs arithmetic and logic. No ALU, no sum.",
   },

@@ -2,7 +2,8 @@
 import { useEffect, useState } from "react";
 import { Backdrop } from "./Backdrop";
 import { STAGE_COPY, STAGE_PLAYS } from "./content";
-import type { Evidence, StageResult, StageTab } from "./types";
+import { TutorBubble } from "./TutorBubble";
+import type { Coach, Evidence, StageResult, StageTab } from "./types";
 
 const TABS: StageTab[] = ["tip", "play", "why", "feedback", "unseen"];
 const TAB_COLOR: Record<StageTab, string> = {
@@ -42,6 +43,7 @@ export function StageScreen({ stageId, cp, cps, completedCount, onComplete, onEx
   const [tab, setTab] = useState<StageTab>("tip");
   const [main, setMain] = useState<StageResult | null>(null);
   const [unseen, setUnseen] = useState<StageResult | null>(null);
+  const [coach, setCoach] = useState<Coach | null>(null);
   const [ev, setEv] = useState<Record<"main" | "unseen", Evidence>>({
     main: { ...EMPTY }, unseen: { ...EMPTY },
   });
@@ -56,8 +58,14 @@ export function StageScreen({ stageId, cp, cps, completedCount, onComplete, onEx
   const phase: "main" | "unseen" = tab === "unseen" ? "unseen" : "main";
   const evidence = ev[phase];
   const showPanelSlot = tab === "play" || (tab === "unseen" && !unseen);
-
   const rankName = RANKS[Math.min(completedCount, RANKS.length - 1)];
+
+  const msg: Coach =
+    tab === "why"
+      ? { tag: "WHY", text: copy.why }
+      : tab === "feedback" && main
+        ? { tag: "RESULT", text: `Attempts: ${main.attempts} · Hints: ${main.hints}` }
+        : coach ?? { tag: "TIP", text: copy.tip };
 
   return (
     <div
@@ -95,10 +103,7 @@ export function StageScreen({ stageId, cp, cps, completedCount, onComplete, onEx
             <span style={{ ...pill, color: "#38bdf8" }}>
               Stage {stageId} · {copy.title}
             </span>
-            <button
-              onClick={onExit}
-              style={{ ...pill, color: "#e6f1ff", cursor: "pointer" }}
-            >
+            <button onClick={onExit} style={{ ...pill, color: "#e6f1ff", cursor: "pointer" }}>
               ← Back
             </button>
           </div>
@@ -136,29 +141,35 @@ export function StageScreen({ stageId, cp, cps, completedCount, onComplete, onEx
       <div
         style={{
           position: "relative", flex: 1, minHeight: 0, display: "grid",
-          gridTemplateColumns: "minmax(0, 1.7fr) minmax(320px, 1fr)", gap: 20,
+          gridTemplateColumns: "minmax(0, 1.7fr) minmax(340px, 1fr)", gap: 20,
         }}
       >
-        {/* Left: play area */}
-        <div style={{ ...panel, padding: 22, overflow: "auto" }}>
-          <Play
-            key={phase}
-            phase={phase}
-            tab={tab}
-            panelEl={panelEl}
-            onEvidence={(e) =>
-              setEv((prev) => ({ ...prev, [phase]: { ...prev[phase], ...e } }))
-            }
-            onAdvance={(t) => setTab((cur) => (cur === "tip" && t === "play" ? "play" : cur))}
-            onDone={(r) => {
-              if (phase === "main") {
-                setMain(r);
-                setTab("why");
-              } else {
-                setUnseen(r);
-              }
-            }}
-          />
+        {/* Left: play area (centered) + Tutor bar */}
+        <div style={{ display: "grid", gridTemplateRows: "1fr auto", gap: 14, minHeight: 0 }}>
+          <div style={{ ...panel, padding: 24, overflow: "auto", display: "flex", minHeight: 0 }}>
+            <div style={{ margin: "auto", width: "100%", maxWidth: 1000 }}>
+              <Play
+                key={phase}
+                phase={phase}
+                tab={tab}
+                panelEl={panelEl}
+                onEvidence={(e) =>
+                  setEv((prev) => ({ ...prev, [phase]: { ...prev[phase], ...e } }))
+                }
+                onCoach={setCoach}
+                onAdvance={(t) => setTab((cur) => (cur === "tip" && t === "play" ? "play" : cur))}
+                onDone={(r) => {
+                  if (phase === "main") {
+                    setMain(r);
+                    setTab("why");
+                  } else {
+                    setUnseen(r);
+                  }
+                }}
+              />
+            </div>
+          </div>
+          <TutorBubble tag={msg.tag} text={msg.text} />
         </div>
 
         {/* Right: tabs + evidence log */}
@@ -185,7 +196,28 @@ export function StageScreen({ stageId, cp, cps, completedCount, onComplete, onEx
               {tab === "tip" && (
                 <>
                   <Label color={TAB_COLOR.tip}>TIP · THINK OF IT LIKE THIS</Label>
-                  <p style={{ margin: 0, fontSize: 16, lineHeight: 1.5 }}>{copy.tip}</p>
+                  {copy.cards ? (
+                    <div style={{ display: "grid", gap: 10 }}>
+                      {copy.cards.map((c) => (
+                        <div
+                          key={c.part}
+                          style={{
+                            display: "flex", alignItems: "center", gap: 16, padding: "12px 16px",
+                            borderRadius: 14, border: `1px solid ${c.color}66`,
+                            background: `${c.color}14`,
+                          }}
+                        >
+                          <span style={{ fontSize: 34, width: 44, textAlign: "center" }}>{c.icon}</span>
+                          <div>
+                            <div style={{ fontSize: 12, letterSpacing: 1.5, opacity: 0.7 }}>{c.part}</div>
+                            <div style={{ fontSize: 24, fontWeight: 800 }}>= {c.analogy}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p style={{ margin: 0, fontSize: 16, lineHeight: 1.5 }}>{copy.tip}</p>
+                  )}
                 </>
               )}
 
