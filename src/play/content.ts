@@ -1,3 +1,4 @@
+import { Stage1Play } from "./stage1/Stage1Play";
 import type { ComponentType } from "react";
 import type { StagePlayProps } from "./types";
 import { PlaceholderPlay } from "./PlaceholderPlay";
@@ -44,7 +45,7 @@ export const STAGE_COPY: Record<number, StageCopy> = {
 
 /** Swap in a real play component per stage as each one is built. */
 export const STAGE_PLAYS: Record<number, ComponentType<StagePlayProps>> = {
-  1: PlaceholderPlay,
+  1: Stage1Play,
   2: PlaceholderPlay,
   3: PlaceholderPlay,
   4: PlaceholderPlay,
