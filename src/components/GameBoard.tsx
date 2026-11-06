@@ -1,4 +1,5 @@
 "use client";
+import { IntroScreen } from "@/play/IntroScreen";
 import { getStage as getStageDef } from "@/data/stages";
 import { StageOverlay } from "@/play/StageOverlay";
 import { NO_QUIZ } from "@/play/flags";
@@ -177,6 +178,7 @@ function GameBoardInner() {
             {!(game.activeCheckpoint && game.lessonOpen) && game.playingStage == null && (
                 <StageList state={game.state} onStart={NO_QUIZ ? game.startPlay : game.beginStage} />
             )}
+            {NO_QUIZ && <IntroScreen />}
             {NO_QUIZ && game.playingStage != null && (
                 <StageOverlay
                     stageId={game.playingStage}
@@ -304,7 +306,7 @@ function GameBoardInner() {
                 onDismissDelta={game.clearStatDelta}
                 onDismissResolve={game.clearResolveToast}
             />
-            <WelcomeOverlay key={game.resetCount} />
+            {!NO_QUIZ && <WelcomeOverlay key={game.resetCount} />}
             <AchievementToast achievementId={game.newAchievement} />
         </div>
     );
