@@ -1,5 +1,7 @@
 export type StageTab = "tip" | "play" | "why" | "feedback" | "unseen";
 
+export type Mood = "idle" | "think" | "oops" | "cheer";
+
 export interface StageResult {
   attempts: number;
   hints: number;
@@ -13,10 +15,12 @@ export interface Evidence {
   status: string;
 }
 
-/** One line the Tutor says in the bar under the play area */
+/** One line the Tutor says right now. color/mood are optional extras for the Tutor. */
 export interface Coach {
   tag: string;
   text: string;
+  color?: string;
+  mood?: Mood;
 }
 
 export interface StagePlayProps {
@@ -26,8 +30,10 @@ export interface StagePlayProps {
   /** container in the right panel; a stage portals its mission UI into it */
   panelEl: HTMLElement | null;
   onEvidence: (e: Partial<Evidence>) => void;
-  /** what the Tutor says right now (bottom bar) */
+  /** what the Tutor says right now (speech bubble) */
   onCoach: (c: Coach) => void;
+  /** what the player should do next (GOAL line) */
+  onGoal: (text: string) => void;
   /** ask the shell to move on (only tip -> play is honoured) */
   onAdvance: (tab: StageTab) => void;
   onDone: (result: StageResult) => void;

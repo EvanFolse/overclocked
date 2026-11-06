@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import type { StagePlayProps } from "../types";
+import type { Mood, StagePlayProps } from "../types";
+import { PART_INFO } from "../tutor/script";
 
 type PartId = "clock" | "control" | "cache" | "registers" | "alu";
 type Status = "ok" | "stuck" | "waiting";
@@ -82,7 +83,7 @@ const smallBtn = {
   background: "#0b1b3a", color: "#e6f1ff", cursor: "pointer", fontSize: 12,
 } as const;
 
-export function Stage1Play({ phase, panelEl, onEvidence, onCoach, onAdvance, onDone }: StagePlayProps) {
+export function Stage1Play({ phase, panelEl, onEvidence, onCoach, onGoal, onAdvance, onDone }: StagePlayProps) {
   const fault = FAULTS[phase];
   const [step, setStep] = useState<"build" | "diagnose">(phase === "main" ? "build" : "diagnose");
   const [placed, setPlaced] = useState<PartId[]>([]);
@@ -96,7 +97,9 @@ export function Stage1Play({ phase, panelEl, onEvidence, onCoach, onAdvance, onD
   const [busy, setBusy] = useState(false);
   const timers = useRef<number[]>([]);
 
-  const say = (tag: string, text: string) => onCoach({ tag, text });
+  const say = (tag: string, text: string, color?: string, mood?: Mood) =>
+    onCoach({ tag, text, color, mood });
+  const describe = (id: PartId) => PART_INFO[id].what;
   const later = (fn: () => void, ms: number) => {
     timers.current.push(window.setTimeout(fn, ms));
   };
@@ -127,11 +130,9 @@ export function Stage1Play({ phase, panelEl, onEvidence, onCoach, onAdvance, onD
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fixed]);
 
-  function grab() {
-    if (step === "build" && placed.length === 0 && wrongDrops === 0) {
-      onAdvance("play");
-      say("GOAL", "Drag each part onto the die. Build a working CPU.");
-    }
+  function grab(id: PartId) {
+    if (step === "build") onAdvance("play");
+    say(PARTS[id].label, describe(id), PARTS[id].color, "idle");
   }
 
   function drop(slot: PartId, part: PartId) {
@@ -144,7 +145,7 @@ export function Stage1Play({ phase, panelEl, onEvidence, onCoach, onAdvance, onD
         setWrongDrops((n) => n + 1);
         setFlash(slot);
         later(() => setFlash(null), 450);
-        say("NOTE", `${PARTS[part].label} doesn't belong there. Try another spot.`);
+        say(PARTS[part].label, `${describe(part)} Wrong spot, try another.`, PARTS[part].color, "oops");
         return;
       }
       const next = [...placed, part];
@@ -153,7 +154,7 @@ export function Stage1Play({ phase, panelEl, onEvidence, onCoach, onAdvance, onD
       onEvidence({ status: "BUILDING" });
       if (next.length === TRAY.length) {
         setBusy(true);
-        say("GOAL", "All five parts online. Running ADD R1, R2, R3 ...");
+        say(PARTS[part].label, `${describe(part)} That's all five. Running the instruction...`, PARTS[part].color, "cheer");
         later(() => {
           setStep("diagnose");
           setBusy(false);
@@ -161,7 +162,7 @@ export function Stage1Play({ phase, panelEl, onEvidence, onCoach, onAdvance, onD
           onEvidence({ status: "DIAGNOSING" });
         }, 1500);
       } else {
-        say("GOAL", `${PARTS[part].label} online. ${TRAY.length - next.length} to go.`);
+        say(PARTS[part].label, `${describe(part)} Online ✓`, PARTS[part].color, "cheer");
       }
       return;
     }
@@ -171,10 +172,10 @@ export function Stage1Play({ phase, panelEl, onEvidence, onCoach, onAdvance, onD
     setRepairs(n);
     if (part === fault.missing) {
       setFixed(true);
-      say("RESULT", fault.fixed);
+      say("RESULT", fault.fixed, undefined, "cheer");
       onEvidence({ attempts: n, status: "FIXED" });
     } else {
-      say("NOTE", fault.wrong[part] ?? "Still broken.");
+      say(PARTS[part].label, `${describe(part)} ${fault.wrong[part] ?? "Still broken."}`, PARTS[part].color, "oops");
       onEvidence({ attempts: n, status: "WRONG PART" });
     }
   }
@@ -190,6 +191,20 @@ export function Stage1Play({ phase, panelEl, onEvidence, onCoach, onAdvance, onD
     onEvidence({ hints: n });
     say("HINT", fault.hint);
   }
+
+  const goalText = fixed
+    ? "Nice work! Moving on..."
+    : step === "build"
+      ? busy
+        ? "Watch the instruction run..."
+        : `Drag a part onto the die · ${placed.length} of ${TRAY.length} placed`
+      : probesUsed.length === 0
+        ? "Probe the chip, then fill the empty socket."
+        : "Put the right part into the empty socket.";
+  useEffect(() => {
+    onGoal(goalText);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [goalText]);
 
   const missingRegs = step === "diagnose" && fault.missing === "registers" && !fixed;
   const regs: [string, string][] = [
@@ -367,10 +382,10 @@ export function Stage1Play({ phase, panelEl, onEvidence, onCoach, onAdvance, onD
                   draggable={!fixed && !busy}
                   onDragStart={(e) => {
                     e.dataTransfer.setData("text/plain", id);
-                    grab();
+                    grab(id);
                   }}
                   onClick={() => {
-                    grab();
+                    grab(id);
                     setSelected(selected === id ? null : id);
                   }}
                   style={{

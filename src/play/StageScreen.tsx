@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Backdrop } from "./Backdrop";
 import { STAGE_COPY, STAGE_PLAYS } from "./content";
 import { TutorBubble } from "./TutorBubble";
+import { BriefingScreen } from "./BriefingScreen";
 import type { Coach, Evidence, StageResult, StageTab } from "./types";
 
 const TABS: StageTab[] = ["tip", "play", "why", "feedback", "unseen"];
@@ -44,6 +45,8 @@ export function StageScreen({ stageId, cp, cps, completedCount, onComplete, onEx
   const [main, setMain] = useState<StageResult | null>(null);
   const [unseen, setUnseen] = useState<StageResult | null>(null);
   const [coach, setCoach] = useState<Coach | null>(null);
+  const [goal, setGoal] = useState<string | null>(null);
+  const [briefing, setBriefing] = useState(true);
   const [ev, setEv] = useState<Record<"main" | "unseen", Evidence>>({
     main: { ...EMPTY }, unseen: { ...EMPTY },
   });
@@ -66,6 +69,15 @@ export function StageScreen({ stageId, cp, cps, completedCount, onComplete, onEx
       : tab === "feedback" && main
         ? { tag: "RESULT", text: `Attempts: ${main.attempts} · Hints: ${main.hints}` }
         : coach ?? { tag: "TIP", text: copy.tip };
+
+  const goalText =
+    tab === "why"
+      ? "Read why it works, then continue."
+      : tab === "feedback"
+        ? "Check your numbers, then try the new task."
+        : tab === "unseen" && unseen
+          ? "Press FINISH STAGE."
+          : goal ?? "Get ready!";
 
   return (
     <div
@@ -157,6 +169,7 @@ export function StageScreen({ stageId, cp, cps, completedCount, onComplete, onEx
                   setEv((prev) => ({ ...prev, [phase]: { ...prev[phase], ...e } }))
                 }
                 onCoach={setCoach}
+                onGoal={setGoal}
                 onAdvance={(t) => setTab((cur) => (cur === "tip" && t === "play" ? "play" : cur))}
                 onDone={(r) => {
                   if (phase === "main") {
@@ -169,7 +182,7 @@ export function StageScreen({ stageId, cp, cps, completedCount, onComplete, onEx
               />
             </div>
           </div>
-          <TutorBubble stageId={stageId} tag={msg.tag} text={msg.text} />
+          <TutorBubble tag={msg.tag} text={msg.text} color={msg.color} mood={msg.mood} goal={goalText} />
         </div>
 
         {/* Right: tabs + evidence log */}
@@ -272,11 +285,15 @@ export function StageScreen({ stageId, cp, cps, completedCount, onComplete, onEx
         </div>
       </div>
 
+      {briefing && (
+        <BriefingScreen stageId={stageId} title={copy.title} onStart={() => setBriefing(false)} />
+      )}
+
       {/* Intro banner sweeping across the middle */}
       {banner && (
         <div
           style={{
-            position: "absolute", left: 0, right: 0, top: "50%", transform: "translateY(-50%)",
+            position: "absolute", left: 0, right: 0, top: "50%", transform: "translateY(-50%)", zIndex: 10,
             padding: "34px 9vw", pointerEvents: "none",
             background: "rgba(3,8,22,0.93)",
             borderTop: "1.5px solid rgba(56,189,248,0.8)", borderBottom: "1.5px solid rgba(56,189,248,0.8)",
