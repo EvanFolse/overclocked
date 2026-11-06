@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { GameBoard } from "@/components/GameBoard";
+import { NO_QUIZ } from "@/play/flags";
 
 export default function Home() {
   const [hasStarted, setHasStarted] = useState(false);
@@ -9,7 +10,7 @@ export default function Home() {
   return (
     <>
       <GameBoard />
-      {!hasStarted && (
+      {!NO_QUIZ && !hasStarted && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-fade-in">
           <div className="w-full max-w-3xl rounded-2xl border border-violet/30 bg-panel px-8 py-8 shadow-2xl sm:px-12 sm:py-10">
             <h2 className="font-mono text-xl font-bold tracking-[0.2em] text-foreground sm:text-2xl">
