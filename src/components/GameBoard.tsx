@@ -1,7 +1,6 @@
 "use client";
 import { IntroScreen } from "@/play/IntroScreen";
-import { getStage as getStageDef } from "@/data/stages";
-import { StageOverlay } from "@/play/StageOverlay";
+import { StageScreen } from "@/play/StageScreen";
 import { NO_QUIZ } from "@/play/flags";
 import { GoldenChip } from "@/components/GoldenChip";
 import { ReviewPages } from "@/components/learning/ReviewPages";
@@ -180,9 +179,12 @@ function GameBoardInner() {
             )}
             {NO_QUIZ && <IntroScreen />}
             {NO_QUIZ && game.playingStage != null && (
-                <StageOverlay
+                <StageScreen
+                    key={game.playingStage}
                     stageId={game.playingStage}
-                    title={getStageDef(game.playingStage)?.title ?? ""}
+                    cp={game.state.money}
+                    cps={game.incomePerSecond}
+                    completedCount={game.state.completedLearningCheckpoints.length}
                     onComplete={game.completePlay}
                     onExit={game.exitPlay}
                 />
