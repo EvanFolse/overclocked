@@ -1,3 +1,6 @@
+import { stageIncome } from "@/play/economy";
+import { NO_QUIZ } from "@/play/flags";
+import { getStage as getStageDef } from "@/data/stages";
 import { ACHIEVEMENTS } from "@/data/achievements";
 import { getCheckpoint, type CheckpointId } from "@/data/checkpoints";
 import { STAGES, getStage, getStageByCheckpoint, type StageDef } from "@/data/stages";
@@ -104,6 +107,7 @@ export function isProductionStalled(state: GameState): boolean {
 /** Idle compute — 0 while offline or during a mandatory checkpoint */
 export function getIncomePerSecond(state: GameState): number {
   if (isProductionStalled(state)) return 0;
+  if (NO_QUIZ) return stageIncome(state.completedLearningCheckpoints);
   const perf = getCpuPerformance(state);
   return BASE_COMPUTE + perf.computePerSecond;
 }
@@ -1128,4 +1132,44 @@ export function awardChipReward(state: GameState, amount: number): GameState {
   const gain = Math.max(0, Math.round(amount));
   if (gain === 0) return state;
   return { ...state, money: state.money + gain, totalEarned: state.totalEarned + gain };
+}
+
+/** No-quiz version: finish a stage. Pay price, unlock upgrades, record completion. No score, no pass line. */
+export function completeStage(
+  state: GameState,
+  stageId: number
+): { state: GameState; resolve: CheckpointResolveResult } | null {
+  const stage = getStageDef(stageId);
+  const cp = stage ? getCheckpoint(stage.checkpointId) : null;
+  if (!stage || !cp) return null;
+  if (state.completedLearningCheckpoints.includes(cp.id)) return null;
+
+  const beforeRate = stageIncome(state.completedLearningCheckpoints);
+  const beforePerf = computeCpuPerformance(state.upgradeLevels);
+
+  let next = unlockIds(state, cp.unlockUpgrades);
+  for (const id of cp.unlockUpgrades) {
+    if ((next.upgradeLevels[id] ?? 0) === 0) next = bumpLevel(next, id, 1);
+  }
+  if (cp.id === "cpu-basics") {
+    next = unlockIds(next, BOOT_UNLOCKS);
+    for (const id of BOOT_UNLOCKS) {
+      if ((next.upgradeLevels[id] ?? 0) < 1) next = bumpLevel(next, id, 1);
+    }
+  }
+
+  next = {
+    ...next,
+    completedLearningCheckpoints: [
+      ...new Set([...next.completedLearningCheckpoints, cp.id]),
+    ],
+    bottlenecksResolved: next.bottlenecksResolved + 1,
+  };
+
+  const afterPerf = computeCpuPerformance(next.upgradeLevels);
+  const afterRate = stageIncome(next.completedLearningCheckpoints);
+  const resolve = buildResolve(
+    cp.id, cp.title, beforeRate, afterRate, beforePerf, afterPerf, cp.relevantStat
+  );
+  return { state: applyAchievements(next), resolve };
 }

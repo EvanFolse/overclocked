@@ -1,4 +1,7 @@
 "use client";
+import { getStage as getStageDef } from "@/data/stages";
+import { StageOverlay } from "@/play/StageOverlay";
+import { NO_QUIZ } from "@/play/flags";
 import { GoldenChip } from "@/components/GoldenChip";
 import { ReviewPages } from "@/components/learning/ReviewPages";
 import { TutorLauncher } from "@/components/TutorLauncher";
@@ -171,10 +174,18 @@ function GameBoardInner() {
             </GameDrawer>
 
 
-            {!(game.activeCheckpoint && game.lessonOpen) && (
-                <StageList state={game.state} onStart={game.beginStage} />
+            {!(game.activeCheckpoint && game.lessonOpen) && game.playingStage == null && (
+                <StageList state={game.state} onStart={NO_QUIZ ? game.startPlay : game.beginStage} />
             )}
-            {game.activeCheckpoint && game.lessonOpen && (
+            {NO_QUIZ && game.playingStage != null && (
+                <StageOverlay
+                    stageId={game.playingStage}
+                    title={getStageDef(game.playingStage)?.title ?? ""}
+                    onComplete={game.completePlay}
+                    onExit={game.exitPlay}
+                />
+            )}
+            {!NO_QUIZ && game.activeCheckpoint && game.lessonOpen && (
                 <CheckpointOverlay
                     checkpoint={game.activeCheckpoint}
                     cp={game.state.money}

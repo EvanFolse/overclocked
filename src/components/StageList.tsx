@@ -1,8 +1,6 @@
 "use client";
 
 import { STAGES } from "@/data/stages";
-import { getStageStatus } from "@/lib/gameLogic";
-import { formatMoney } from "@/lib/format";
 import type { GameState } from "@/types/game";
 
 interface StageListProps {
@@ -11,32 +9,27 @@ interface StageListProps {
 }
 
 export function StageList({ state, onStart }: StageListProps) {
+    const isDone = (i: number) =>
+        state.completedLearningCheckpoints.includes(STAGES[i].checkpointId);
+
     return (
         <div className="fixed left-4 top-28 z-30 w-60 rounded-2xl border border-violet/40 bg-panel/95 p-3 shadow-2xl backdrop-blur-md">
             <p className="px-1 font-mono text-[10px] uppercase tracking-[0.22em] text-violet">
                 Stages
             </p>
             <ul className="mt-2 space-y-1.5">
-                {STAGES.map((stage) => {
-                    const status = getStageStatus(state, stage);
-                    const missing = Math.max(0, stage.price - state.money);
-                    const clickable = status === "available";
+                {STAGES.map((stage, i) => {
+                    const done = isDone(i);
+                    const open = i === 0 || isDone(i - 1);
+                    const clickable = open && !done;
 
-                    let label: string;
+                    let label = "Locked";
                     let labelClass = "text-muted";
-                    if (status === "done") {
-                        label = "Unlocked";
+                    if (done) {
+                        label = "Completed";
                         labelClass = "text-violet";
-                    } else if (status === "pending") {
-                        label = `Passed · need ${formatMoney(missing)} more`;
-                        labelClass = "text-warning";
-                    } else if (status === "locked") {
-                        label = "Locked";
-                    } else {
-                        label =
-                            stage.price === 0
-                                ? "Free · start quiz"
-                                : `Price ${formatMoney(stage.price)} · start quiz`;
+                    } else if (open) {
+                        label = "Play";
                     }
 
                     return (

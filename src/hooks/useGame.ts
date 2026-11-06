@@ -1,5 +1,8 @@
 "use client";
 
+import { completeStage } from "@/lib/gameLogic";
+import { getStage as getStageDef } from "@/data/stages";
+import { NO_QUIZ } from "@/play/flags";
 import type { ChipAnswer } from "@/lib/gameLogic";
 import {
   buildReviewPages,
@@ -228,9 +231,36 @@ export function useGame() {
     [state]
   );
 
+  const [playingStage, setPlayingStage] = useState<number | null>(null);
+
+  const startPlay = useCallback(
+    (stageId: number) => {
+      const stage = getStageDef(stageId);
+      if (!stage) return;
+      const prev = stageId > 1 ? getStageDef(stageId - 1) : null;
+      if (prev && !state.completedLearningCheckpoints.includes(prev.checkpointId)) return;
+      if (state.completedLearningCheckpoints.includes(stage.checkpointId)) return;
+      setPlayingStage(stageId);
+    },
+    [state]
+  );
+
+  const completePlay = useCallback(() => {
+    if (playingStage == null) return;
+    const result = completeStage(state, playingStage);
+    if (result) {
+      setState(result.state);
+      setResolveToast(result.resolve);
+    }
+    setPlayingStage(null);
+  }, [state, playingStage]);
+
+  const exitPlay = useCallback(() => setPlayingStage(null), []);
+
   const beginBoot = useCallback(() => {
-    beginStage(1);
-  }, [beginStage]);
+    if (NO_QUIZ) startPlay(1);
+    else beginStage(1);
+  }, [beginStage, startPlay]);
 
   const openLesson = useCallback(() => {
     setState((prev) => {
@@ -478,6 +508,10 @@ if (askedId && !result.feedback.correct) {
     clearResolveToast,
     beginBoot,
     beginStage,
+    playingStage,
+    startPlay,
+    completePlay,
+    exitPlay,
     nextStage: getNextStage(state),
     openLesson,
     closeLesson,
