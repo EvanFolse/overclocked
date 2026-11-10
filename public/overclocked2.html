@@ -7,8 +7,8 @@
 <style>
   :root { --ink: #1c2b3a; --muted: #6b7f92; --mint: #1f9d73; --indigo: #4a47c8; --line: rgba(60, 90, 120, 0.16); }
   * { box-sizing: border-box; }
-  body {
-    margin: 0; color: var(--ink); min-height: 100vh;
+  html, body {
+    margin: 0; height: 100%; overflow: hidden; color: var(--ink);
     font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     background: radial-gradient(1100px 700px at 50% 25%, #f7fafd 0%, #dde8f3 55%, #c8d8e9 100%);
   }
@@ -18,17 +18,38 @@
     background-size: 44px 44px; opacity: 0.35;
   }
   .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-  .label { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11px; letter-spacing: 3px; color: var(--indigo); opacity: 0.85; }
+  .label { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 10px; letter-spacing: 2.5px; color: var(--indigo); opacity: 0.85; }
   .muted { color: var(--muted); font-size: 13px; line-height: 1.45; }
   .hidden { display: none; }
 
-  #app { position: relative; display: grid; grid-template-columns: 280px 1fr 440px; min-height: 100vh; }
-  #left { padding: 24px 18px; display: flex; flex-direction: column; gap: 16px; }
-  #center { padding: 18px 10px; display: flex; flex-direction: column; align-items: center; }
-  #right { background: rgba(255, 255, 255, 0.82); backdrop-filter: blur(14px); border-left: 1px solid rgba(255,255,255,0.9); padding: 22px 20px; height: 100vh; overflow-y: auto; position: sticky; top: 0; box-shadow: -10px 0 40px rgba(50, 80, 120, 0.12); }
+  #app {
+    position: relative; display: grid; grid-template-columns: 1fr;
+    height: 100vh; height: 100dvh; max-height: 100vh; max-height: 100dvh;
+    overflow: hidden; transition: grid-template-columns 0.25s ease;
+  }
+  #app.menu-open { grid-template-columns: 1fr min(400px, 40vw); }
+  #workspace { min-width: 0; min-height: 0; display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+  #topbar { flex: 0 0 auto; display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 12px 16px 0; }
+  #menuToggle {
+    background: #fff; color: var(--ink); border: 1px solid #cdd8e3; border-radius: 999px;
+    padding: 8px 14px; font-family: ui-monospace, Menlo, monospace; font-size: 11px; font-weight: 700;
+    letter-spacing: 1.5px; cursor: pointer; box-shadow: 0 6px 18px rgba(50, 80, 120, 0.12);
+  }
+  #menuToggle:hover { border-color: var(--indigo); color: var(--indigo); }
+  #center {
+    padding: 4px 12px 12px; display: flex; flex-direction: column; align-items: center;
+    justify-content: space-between; flex: 1; min-height: 0; overflow: hidden; gap: 4px;
+  }
+  #right {
+    display: none; background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(14px);
+    border-left: 1px solid rgba(255,255,255,0.9); padding: 16px 16px;
+    height: 100%; min-height: 0; overflow-y: auto; overflow-x: hidden;
+    box-shadow: -10px 0 40px rgba(50, 80, 120, 0.12);
+  }
+  #app.menu-open #right { display: block; }
 
-  .logo { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 26px; font-weight: 800; letter-spacing: 6px; }
-  .era { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 11px; letter-spacing: 2px; color: var(--muted); margin-top: 4px; }
+  .logo { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 20px; font-weight: 800; letter-spacing: 5px; }
+  .era { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 10px; letter-spacing: 2px; color: var(--muted); margin-top: 2px; }
 
   .card { background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.9); border-radius: 14px; box-shadow: 0 8px 30px rgba(50, 80, 120, 0.12); padding: 12px; }
   .stagecard { padding: 10px 12px; border-radius: 12px; margin-top: 8px; cursor: pointer; background: rgba(255,255,255,0.75); border: 1px solid rgba(74, 71, 200, 0.15); transition: transform 0.15s, box-shadow 0.15s; }
@@ -39,30 +60,143 @@
   .stagecard .t { font-family: ui-monospace, Menlo, monospace; font-size: 13px; font-weight: 700; }
   .stagecard .s { font-family: ui-monospace, Menlo, monospace; font-size: 10px; color: var(--muted); margin-top: 3px; }
 
-  #tutorBtn { background: #efeaff; color: var(--indigo); border: 1px solid #c9bfff; font-family: ui-monospace, Menlo, monospace; font-size: 12px; font-weight: 700; padding: 10px 12px; border-radius: 10px; cursor: pointer; text-align: left; }
-  #tutorBtn:hover { background: #e4dcff; }
-  #tutor button { background: #fff; color: var(--ink); border: 1px solid #d5dde6; padding: 5px 9px; margin: 3px 3px 3px 0; border-radius: 999px; cursor: pointer; font-size: 12px; }
-  #tutor button:hover { background: #eef6ff; }
+  #tutorDock {
+    position: fixed; left: 14px; bottom: 14px; z-index: 18;
+    display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
+    width: min(320px, calc(100vw - 28px));
+  }
+  #tutorBtn {
+    position: relative; width: 68px; height: 68px; border-radius: 50%;
+    background: radial-gradient(circle at 30% 28%, #ffffff 0%, #efeaff 45%, #d9d0ff 100%);
+    color: var(--indigo); border: 3px solid #c9bfff;
+    font-size: 30px; line-height: 1; cursor: pointer;
+    box-shadow: 0 10px 22px rgba(74, 71, 200, 0.28), inset 0 1px 0 rgba(255,255,255,0.9);
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+  }
+  #tutorBtn:hover { transform: translateY(-2px) scale(1.04); box-shadow: 0 14px 28px rgba(74, 71, 200, 0.34); }
+  #tutorBtn .tutor-label {
+    position: absolute; left: 78px; bottom: 18px; white-space: nowrap;
+    font-family: ui-monospace, Menlo, monospace; font-size: 11px; font-weight: 700;
+    letter-spacing: 1px; color: var(--indigo); background: rgba(255,255,255,0.92);
+    border: 1px solid #c9bfff; border-radius: 999px; padding: 5px 9px;
+    pointer-events: none;
+  }
+  #tutor {
+    display: flex; flex-direction: column;
+    width: 100%; height: min(52vh, 420px);
+    background: #f4f7fb; border: 1px solid #c9d6e4; border-radius: 18px;
+    box-shadow: 0 18px 40px rgba(40, 60, 90, 0.22);
+    overflow: hidden; transform-origin: 24px bottom;
+    animation: chatPop 0.18s ease-out;
+  }
+  #tutor.hidden { display: none; animation: none; }
+  @keyframes chatPop {
+    from { opacity: 0; transform: translateY(12px) scale(0.94); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .chatHead {
+    flex: 0 0 auto; display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 12px; background: #fff; border-bottom: 1px solid #e1e9f1;
+  }
+  .chatHead .who { font-family: ui-monospace, Menlo, monospace; font-size: 12px; font-weight: 800; letter-spacing: 1px; color: var(--indigo); }
+  .chatHead .status { font-size: 11px; color: var(--muted); margin-left: 6px; font-weight: 400; letter-spacing: 0; }
+  #chatClose {
+    background: #fff; border: 1px solid #d5dde6; border-radius: 8px;
+    padding: 4px 8px; cursor: pointer; font-size: 12px; color: var(--muted);
+  }
+  #chatLog {
+    flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 12px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .bubble {
+    max-width: 88%; padding: 8px 11px; border-radius: 14px;
+    font-size: 13px; line-height: 1.35; word-wrap: break-word;
+  }
+  .bubble.bot {
+    align-self: flex-start; background: #fff; border: 1px solid #e1e9f1;
+    border-bottom-left-radius: 4px; color: var(--ink);
+  }
+  .bubble.you {
+    align-self: flex-end; background: #4a47c8; color: #fff;
+    border-bottom-right-radius: 4px;
+  }
+  #chatQs {
+    flex: 0 0 auto; padding: 8px 10px 10px; background: #fff;
+    border-top: 1px solid #e1e9f1; display: flex; flex-wrap: wrap; gap: 6px;
+    max-height: 34%; overflow-y: auto;
+  }
+  #chatQs button {
+    background: #eef2ff; color: #2f2c9c; border: 1px solid #c9bfff;
+    border-radius: 999px; padding: 7px 10px; font-size: 12px; cursor: pointer;
+    text-align: left; line-height: 1.25;
+  }
+  #chatQs button:hover { background: #e4dcff; }
+  #chatQs .hint { width: 100%; font-size: 11px; color: var(--muted); margin: 0 0 2px; }
 
-  #cp { font-family: ui-monospace, Menlo, monospace; font-size: 54px; font-weight: 800; color: var(--mint); text-shadow: 0 4px 18px rgba(31, 157, 115, 0.28); margin-top: 6px; }
-  #cps { font-family: ui-monospace, Menlo, monospace; color: #3b82a0; font-size: 14px; }
-  #chipWrap { position: relative; width: 100%; max-width: 740px; margin-top: 4px; }
-  #chipBob { animation: bob 7s ease-in-out infinite; }
-  @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
-  #chip { width: 100%; height: auto; display: block; overflow: visible; }
-  .float { position: absolute; pointer-events: none; font-family: ui-monospace, Menlo, monospace; font-weight: 800; font-size: 20px; color: var(--mint); animation: floatUp 0.95s ease-out forwards; text-shadow: 0 2px 8px #fff; }
-  @keyframes floatUp { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-70px); } }
+  #hudTop { flex: 0 0 auto; text-align: center; }
+  #cp { font-family: ui-monospace, Menlo, monospace; font-size: clamp(28px, 5vh, 44px); font-weight: 800; color: var(--mint); text-shadow: 0 4px 18px rgba(31, 157, 115, 0.28); margin-top: 2px; line-height: 1; }
+  #cps { font-family: ui-monospace, Menlo, monospace; color: #3b82a0; font-size: 12px; margin-top: 2px; }
+  #chipWrap {
+    position: relative; width: 100%; max-width: min(640px, 92%);
+    flex: 1 1 auto; min-height: 120px; display: flex; align-items: center; justify-content: center;
+  }
+  #chipBob {
+    width: 100%; height: 100%; max-height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    animation: bob 7s ease-in-out infinite;
+  }
+  @keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+  #chip {
+    display: block; overflow: visible;
+    width: auto; height: auto;
+    max-width: 100%; max-height: min(42vh, 100%);
+  }
+  .float { position: absolute; pointer-events: none; font-family: ui-monospace, Menlo, monospace; font-weight: 800; font-size: 18px; color: var(--mint); animation: floatUp 0.95s ease-out forwards; text-shadow: 0 2px 8px #fff; }
+  @keyframes floatUp { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-50px); } }
 
-  #runBtn { margin-top: 6px; background: linear-gradient(135deg, #22b585, #1a8f6a); color: #fff; border: 0; border-radius: 999px; padding: 12px 26px; font-size: 15px; font-weight: 700; cursor: pointer; box-shadow: 0 8px 22px rgba(31, 157, 115, 0.35); transition: transform 0.08s; }
+  #timingWrap { width: 100%; max-width: 380px; flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+  #timingHint { font-family: ui-monospace, Menlo, monospace; font-size: 10px; letter-spacing: 1px; color: var(--muted); text-align: center; }
+  #timingBar {
+    position: relative; width: 100%; height: 28px; border-radius: 8px; overflow: hidden;
+    border: 2px solid #c5d2df; cursor: pointer; box-shadow: inset 0 1px 0 rgba(255,255,255,0.7), 0 6px 16px rgba(50, 80, 120, 0.12);
+    background: #d24b4b;
+  }
+  #timingBar.locked { cursor: default; filter: brightness(0.92); }
+  #timingYellowL, #timingYellowR {
+    position: absolute; top: 0; height: 100%; background: #e0a020;
+  }
+  #timingGreen {
+    position: absolute; top: 0; height: 100%; width: 7%;
+    left: 46.5%; background: #14c484; z-index: 1;
+    box-shadow: 0 0 0 2px rgba(255,255,255,0.55) inset, 0 0 12px rgba(20, 196, 132, 0.55);
+  }
+  #timingNeedle {
+    position: absolute; top: -2px; bottom: -2px; width: 4px; margin-left: -2px;
+    background: #1c2b3a; border-radius: 3px; box-shadow: 0 0 0 2px #fff, 0 0 10px rgba(28, 43, 58, 0.35);
+    left: 0%; z-index: 2;
+  }
+  #timingLegend {
+    display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;
+    font-family: ui-monospace, Menlo, monospace; font-size: 10px; color: var(--muted);
+  }
+  #timingLegend span b { font-weight: 800; }
+  #timingLegend .g { color: #137a57; }
+  #timingLegend .y { color: #a56a00; }
+  #runBtn { background: linear-gradient(135deg, #22b585, #1a8f6a); color: #fff; border: 0; border-radius: 999px; padding: 8px 20px; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: 0 6px 16px rgba(31, 157, 115, 0.35); transition: transform 0.08s; }
   #runBtn:active { transform: scale(0.96); }
-  #stats { display: grid; grid-template-columns: repeat(5, minmax(90px, 1fr)); gap: 10px; width: 100%; max-width: 740px; margin-top: 16px; }
-  .stat { background: rgba(255,255,255,0.75); border: 1px solid #fff; border-radius: 12px; padding: 9px 11px; box-shadow: 0 6px 18px rgba(50, 80, 120, 0.1); }
-  .stat .k { font-family: ui-monospace, Menlo, monospace; font-size: 9px; letter-spacing: 2px; color: var(--muted); }
-  .stat .v { font-family: ui-monospace, Menlo, monospace; font-size: 17px; font-weight: 700; margin-top: 3px; }
+  #runBtn:disabled { opacity: 0.65; cursor: default; transform: none; }
+  #build { flex: 0 0 auto; margin: 0; }
+  #stats { display: grid; grid-template-columns: repeat(5, minmax(70px, 1fr)); gap: 6px; width: 100%; max-width: 640px; flex: 0 0 auto; margin: 0; }
+  .stat { background: rgba(255,255,255,0.75); border: 1px solid #fff; border-radius: 10px; padding: 6px 8px; box-shadow: 0 4px 12px rgba(50, 80, 120, 0.08); }
+  .stat .k { font-family: ui-monospace, Menlo, monospace; font-size: 8px; letter-spacing: 1.5px; color: var(--muted); }
+  .stat .v { font-family: ui-monospace, Menlo, monospace; font-size: 14px; font-weight: 700; margin-top: 2px; }
 
-  #tabs { display: flex; gap: 14px; margin: 10px 0 18px; border-bottom: 1px solid #dbe4ec; }
-  #tabs button { background: none; border: 0; border-bottom: 2px solid transparent; padding: 6px 0; font-family: ui-monospace, Menlo, monospace; font-size: 11px; letter-spacing: 1.5px; color: var(--muted); cursor: pointer; }
+  #tabs { display: flex; flex-wrap: wrap; gap: 10px 12px; margin: 10px 0 18px; border-bottom: 1px solid #dbe4ec; }
+  #tabs button { background: none; border: 0; border-bottom: 2px solid transparent; padding: 6px 0; font-family: ui-monospace, Menlo, monospace; font-size: 11px; letter-spacing: 1.2px; color: var(--muted); cursor: pointer; }
   #tabs button.on { color: var(--indigo); border-bottom-color: var(--indigo); font-weight: 700; }
+  #menuHead { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  #menuClose { background: #fff; border: 1px solid #cdd8e3; border-radius: 8px; padding: 5px 10px; cursor: pointer; font-size: 12px; }
   h2.h { font-family: ui-monospace, Menlo, monospace; letter-spacing: 3px; font-size: 18px; margin: 6px 0; color: #24506b; }
 
   .part { background: #fff; border: 1px solid #dde6ee; border-radius: 12px; padding: 11px 13px; margin: 9px 0; box-shadow: 0 3px 12px rgba(50, 80, 120, 0.06); }
@@ -72,6 +206,29 @@
   .part .nx { font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: #2a86a8; margin-top: 4px; }
   .part.sel { border-color: var(--indigo); box-shadow: 0 0 0 2px rgba(74, 71, 200, 0.15); }
   .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 7px; }
+
+  .upg-card {
+    display: grid; grid-template-columns: 64px 1fr auto; gap: 14px; align-items: center;
+    background: #fff; border: 1px solid #dde6ee; border-radius: 14px;
+    padding: 14px; margin: 14px 0; box-shadow: 0 3px 12px rgba(50, 80, 120, 0.06);
+  }
+  .upg-card.sel { border-color: var(--indigo); box-shadow: 0 0 0 2px rgba(74, 71, 200, 0.15); }
+  .upg-thumb {
+    width: 64px; height: 64px; border-radius: 14px;
+    background: linear-gradient(160deg, #f7fafd, #e8eef5);
+    border: 1px solid #e1e9f1; display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+  }
+  .upg-thumb svg { width: 52px; height: 52px; display: block; }
+  .upg-info { min-width: 0; }
+  .upg-info .nm { display: block; font-weight: 700; font-size: 14px; line-height: 1.25; }
+  .upg-info .lv { font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: var(--muted); }
+  .upg-info .desc { color: var(--muted); font-size: 12px; line-height: 1.35; margin-top: 6px; }
+  .upg-info .nx { font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: #2a86a8; margin-top: 6px; }
+  .upg-buy { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; min-width: 78px; }
+  .upg-buy .maxmark { font-family: ui-monospace, Menlo, monospace; font-size: 12px; font-weight: 800; color: var(--mint); }
+  .upg-rate { font-family: ui-monospace, Menlo, monospace; font-size: 11px; color: #1f9d73; font-weight: 700; white-space: nowrap; }
+  .upg-stage { margin-top: 18px; margin-bottom: 2px; }
 
   button.btn { background: linear-gradient(135deg, #5b57e0, #4a47c8); color: #fff; border: 0; border-radius: 9px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; margin: 3px 3px 3px 0; }
   button.btn:hover { filter: brightness(1.1); }
@@ -267,9 +424,20 @@
   .reduce *, .reduce { animation: none !important; }
 
   @media (max-width: 1150px) {
-    #app { grid-template-columns: 1fr; }
-    #right { height: auto; position: static; }
-    #stats { grid-template-columns: repeat(2, 1fr); }
+    #app.menu-open { grid-template-columns: 1fr; }
+    #app.menu-open #right {
+      position: fixed; top: 0; right: 0; width: min(400px, 100vw); height: 100dvh; z-index: 20;
+      display: block;
+    }
+    #stats { grid-template-columns: repeat(5, minmax(56px, 1fr)); }
+    #tutorBtn .tutor-label { display: none; }
+  }
+
+  @media (max-height: 760px) {
+    #timingLegend { display: none; }
+    #cps { font-size: 11px; }
+    #runBtn { padding: 7px 16px; font-size: 12px; }
+    #tutorBtn { width: 56px; height: 56px; font-size: 24px; }
   }
 </style>
 </head>
@@ -277,35 +445,51 @@
 
 <div id="app">
 
-  <aside id="left">
-    <div>
-      <div class="logo">OVERCLOCKED</div>
-      <div class="era" id="era">BARE SILICON</div>
-    </div>
-    <div class="card">
-      <div class="label">STAGES</div>
-      <div id="stageList"></div>
-    </div>
-    <button id="tutorBtn" onclick="toggleTutor()">💬 TUTOR · ask about a part</button>
-    <div id="tutor" class="card hidden"></div>
-  </aside>
+  <div id="workspace">
+    <header id="topbar">
+      <div>
+        <div class="logo">OVERCLOCKED</div>
+        <div class="era" id="era">BARE SILICON</div>
+      </div>
+      <button id="menuToggle" onclick="toggleMenu()">MENU</button>
+    </header>
 
-  <main id="center">
-    <div class="label">COMPUTE POINTS</div>
-    <div id="cp">0 CP</div>
-    <div id="cps">+0.0 CP/sec</div>
-    <div id="chipWrap">
-      <div id="chipBob"><svg id="chip" viewBox="0 30 720 460"></svg></div>
-      <div id="floats"></div>
-    </div>
-    <div class="label" id="build">BUILD LEVEL 0</div>
-    <button id="runBtn" onclick="runInstruction()">⚡ Execute instruction <span id="clickVal">+1</span></button>
-    <div id="stats"></div>
-  </main>
+    <main id="center">
+      <div id="hudTop">
+        <div class="label">INSTRUCTIONS</div>
+        <div id="cp">0</div>
+        <div id="cps">+0.0 /sec</div>
+      </div>
+      <div id="chipWrap">
+        <div id="chipBob"><svg id="chip" viewBox="0 30 720 460"></svg></div>
+        <div id="floats"></div>
+      </div>
+      <div class="label" id="build">BUILD LEVEL 0</div>
+      <div id="timingWrap">
+        <div id="timingHint">TIME IT · base <span id="clickVal">+1</span> · click bar or EXECUTE</div>
+        <div id="timingBar" onclick="hitTiming()" title="Click when the needle is in green">
+          <div id="timingYellowL"></div>
+          <div id="timingYellowR"></div>
+          <div id="timingGreen"></div>
+          <div id="timingNeedle"></div>
+        </div>
+        <div id="timingLegend">
+          <span class="g"><b>GREEN</b> 1.25×</span>
+          <span class="y"><b>YELLOW / RED</b> 0.75×</span>
+        </div>
+        <button id="runBtn" onclick="hitTiming()">⚡ EXECUTE</button>
+      </div>
+      <div id="stats"></div>
+    </main>
+  </div>
 
   <section id="right">
-    <div class="label">MENU</div>
+    <div id="menuHead">
+      <div class="label">MENU</div>
+      <button id="menuClose" onclick="toggleMenu()">Close</button>
+    </div>
     <div id="tabs">
+      <button id="tab_stages" onclick="setTab('stages')">STAGES</button>
       <button id="tab_upgrades" onclick="setTab('upgrades')">UPGRADES</button>
       <button id="tab_learning" onclick="setTab('learning')">LEARNING</button>
       <button id="tab_progress" onclick="setTab('progress')">PROGRESS</button>
@@ -314,6 +498,14 @@
     <div id="rbody"></div>
   </section>
 
+</div>
+
+<div id="tutorDock">
+  <div id="tutor" class="hidden"></div>
+  <button id="tutorBtn" onclick="toggleTutor()" title="Tutor" aria-label="Open tutor">
+    💭
+    <span class="tutor-label">TUTOR</span>
+  </button>
 </div>
 <div id="toast"></div>
 
@@ -397,7 +589,7 @@ var STAGES = [
 // GAME STATE
 // =====================================================
 var game = newGame();
-var tab = "upgrades";
+var tab = "stages";
 var learnOpen = "";
 var selected = "";
 var hot = "";
@@ -444,6 +636,14 @@ function totalLevels() {
 function clickPower() { return 1 + totalLevels(); }
 function gainCp(n) { game.cp += n; game.earned += n; }
 
+function partsOn() {
+  var n = 0;
+  for (var i = 0; i < PARTS.length; i++) {
+    if (game.parts[PARTS[i].key].on) { n++; }
+  }
+  return n;
+}
+
 // stats shown under the chip
 function bitsNow() { return lvl("alu") > 0 ? [4, 8, 16, 32, 64][lvl("alu") - 1] : 0; }
 function clockMHz() { return lvl("clock") > 0 ? [5, 33, 200, 1500, 4500][lvl("clock") - 1] : 0; }
@@ -453,6 +653,109 @@ function instrNow() {
   var n = lvl("alu") > 0 ? [4, 16, 48, 120, 300][lvl("alu") - 1] : 0;
   if (lvl("decoder") > 0) { n += [10, 30, 80, 160, 300][lvl("decoder") - 1]; }
   return n;
+}
+
+// Chip eras: part levels stay the same, overall build unlocks real-world CPU classes
+var CHIP_ERAS = [
+  {
+    id: "bare",
+    name: "BARE SILICON",
+    short: "Empty board",
+    blurb: "No processor yet. Build parts to make a chip.",
+    nextHint: "Install your first part from Stage 1.",
+    ready: function () { return true; }
+  },
+  {
+    id: "4004",
+    name: "INTEL 4004 CLASS",
+    short: "1971 · first microprocessor",
+    blurb: "A tiny early CPU. First commercial processor on one chip.",
+    nextHint: "Upgrade ALU to 8-bit and build Registers.",
+    ready: function () { return partsOn() >= 1; }
+  },
+  {
+    id: "6502",
+    name: "MOS 6502 CLASS",
+    short: "1975 · 8-bit home computers",
+    blurb: "8-bit chips that powered early home computers and consoles.",
+    nextHint: "Upgrade ALU to 16-bit and build the Clock.",
+    ready: function () { return lvl("alu") >= 2 && lvl("regs") >= 1; }
+  },
+  {
+    id: "8086",
+    name: "INTEL 8086 CLASS",
+    short: "1978 · 16-bit PC era",
+    blurb: "16-bit math with a real system clock. This is early PC territory.",
+    nextHint: "Upgrade ALU to 32-bit and build the Decoder.",
+    ready: function () { return lvl("alu") >= 3 && lvl("clock") >= 1; }
+  },
+  {
+    id: "386",
+    name: "INTEL 386 CLASS",
+    short: "1985 · 32-bit protected mode",
+    blurb: "32-bit processing plus a smarter instruction decoder.",
+    nextHint: "Upgrade Pipeline and push Clock to 200 MHz class.",
+    ready: function () { return lvl("alu") >= 4 && lvl("decoder") >= 1; }
+  },
+  {
+    id: "pentium",
+    name: "PENTIUM CLASS",
+    short: "1990s · pipelines go fast",
+    blurb: "Faster clocks and a deeper pipeline keep more work moving at once.",
+    nextHint: "Max the ALU to 64-bit and build L1 Cache.",
+    ready: function () { return lvl("pipe") >= 2 && lvl("clock") >= 3; }
+  },
+  {
+    id: "athlon64",
+    name: "ATHLON 64 CLASS",
+    short: "2003 · mainstream 64-bit",
+    blurb: "64-bit ALU with fast L1 cache right beside the core.",
+    nextHint: "Build FPU, L2 Cache, and upgrade Multi-core to Dual.",
+    ready: function () { return lvl("alu") >= 5 && lvl("l1") >= 1; }
+  },
+  {
+    id: "modern",
+    name: "MODERN MULTI-CORE",
+    short: "Today · many cores, deep cache",
+    blurb: "Multiple cores, L2 cache, and a floating-point unit working together.",
+    nextHint: "You reached the top chip class. Keep upgrading for more power.",
+    ready: function () { return lvl("cores") >= 2 && lvl("l2") >= 1 && lvl("fpu") >= 1; }
+  }
+];
+
+var lastEraId = "bare";
+var eraReady = false;
+
+function currentEra() {
+  var best = CHIP_ERAS[0];
+  for (var i = 0; i < CHIP_ERAS.length; i++) {
+    if (CHIP_ERAS[i].ready()) { best = CHIP_ERAS[i]; }
+  }
+  return best;
+}
+
+function nextEra() {
+  var cur = currentEra();
+  for (var i = 0; i < CHIP_ERAS.length; i++) {
+    if (CHIP_ERAS[i].id == cur.id && i + 1 < CHIP_ERAS.length) {
+      return CHIP_ERAS[i + 1];
+    }
+  }
+  return null;
+}
+
+function checkEra(announce) {
+  var e = currentEra();
+  if (eraReady && announce && e.id != lastEraId && e.id != "bare") {
+    toast("New chip era: " + e.name);
+    if (!el("tutor").classList.contains("hidden")) {
+      chatLog.push({ who: "bot", text: "Your chip just reached " + e.name + ". " + e.blurb });
+      paintChat();
+    }
+    refreshChatQs();
+  }
+  lastEraId = e.id;
+  return e;
 }
 
 // =====================================================
@@ -684,60 +987,169 @@ function installPart(key) {
   renderLeft();
   renderStats();
   renderHud();
+  refreshChatQs();
 }
 
 // =====================================================
-// LEFT SIDE: stages and tutor
+// MENU + STAGES + TUTOR CHAT
 // =====================================================
-function renderLeft() {
-  var h = "";
+var menuOpen = false;
+var chatLog = [];
+var chatBusy = false;
+
+var CHAT_QA = [
+  { id: "what", q: "What is this?", a: "You build a tiny computer chip. Earn instructions, unlock parts, and learn how a CPU works." },
+  { id: "instr", q: "What are instructions?", a: "Instructions are your points. Spend them on upgrades. Better timing and upgrades earn more." },
+  { id: "bar", q: "How does the bar work?", a: "A needle slides across. Hit green for 1.25x. Miss and you get 0.75x. Green is the tiny sweet spot." },
+  { id: "menu", q: "What is the menu?", a: "Open MENU for Stages, Upgrades, Learning, Progress, and Settings. Stages is where you play the games." },
+  { id: "stages", q: "How do stages work?", a: "Each stage has mini games. Beat them to build parts on your chip. Finish a stage to unlock the next one." },
+  { id: "upgrades", q: "What do upgrades do?", a: "Upgrades make parts stronger and earn more instructions over time. They also slowly speed up the timing bar." },
+  { id: "eras", q: "What are chip eras?", a: "As you build and upgrade parts, your chip grows into real CPU classes like the 4004, 6502, 386, then modern multi-core." },
+  { id: "era4004", era: "4004", q: "What is the 4004?", a: "The Intel 4004 was the first commercial microprocessor in 1971. Tiny, 4-bit, and the start of CPUs on one chip." },
+  { id: "era6502", era: "6502", q: "What is the 6502?", a: "The MOS 6502 was a popular 8-bit chip in the 1970s. It showed up in early home computers and game consoles." },
+  { id: "era8086", era: "8086", q: "What is the 8086?", a: "The Intel 8086 helped start the 16-bit PC era. Bigger numbers and a steady clock made more serious software possible." },
+  { id: "era386", era: "386", q: "What is the 386?", a: "The Intel 386 brought mainstream 32-bit computing. More memory reach and smarter instruction handling." },
+  { id: "eraPentium", era: "pentium", q: "What is Pentium class?", a: "Pentium-era chips pushed faster clocks and better pipelines so more work could overlap at once." },
+  { id: "era64", era: "athlon64", q: "What is Athlon 64 class?", a: "This is mainstream 64-bit. Wider math plus fast cache close to the core." },
+  { id: "eraModern", era: "modern", q: "What is modern multi-core?", a: "Today's chips use several cores, deep cache, and strong floating-point units to do lots of work in parallel." },
+  { id: "cu", part: "cu", q: "What is the CU?", a: "The Control Unit is the boss. It reads each job and tells the other parts what to do." },
+  { id: "alu", part: "alu", q: "What is the ALU?", a: "The ALU does the math. Add, subtract, compare. Think of it like a calculator inside the chip." },
+  { id: "regs", part: "regs", q: "What are registers?", a: "Registers are tiny super fast sticky notes. They hold the numbers the chip is using right now." },
+  { id: "clock", part: "clock", q: "What is the clock?", a: "The clock sets the beat. Every tick, the chip takes one step. Faster clock means more steps." },
+  { id: "pipe", part: "pipe", q: "What is a pipeline?", a: "A pipeline overlaps work so parts stay busy. Like an assembly line for instructions." },
+  { id: "decoder", part: "decoder", q: "What is the decoder?", a: "The decoder turns bit patterns into real actions. It helps the chip understand each instruction." },
+  { id: "l1", part: "l1", q: "What is L1 cache?", a: "L1 is the smallest fastest memory next to the core. It keeps recent data close so the chip waits less." },
+  { id: "l2", part: "l2", q: "What is L2 cache?", a: "L2 is a bigger backup cache. If L1 misses, L2 often still has the data before you go all the way to RAM." },
+  { id: "fpu", part: "fpu", q: "What is the FPU?", a: "The FPU handles numbers with decimals. Regular math parts are slower at that." },
+  { id: "cores", part: "cores", q: "What are cores?", a: "Cores are like mini CPUs on one chip. More cores can run more work at the same time." }
+];
+
+function toggleMenu() {
+  menuOpen = !menuOpen;
+  document.getElementById("app").classList.toggle("menu-open", menuOpen);
+  el("menuToggle").innerHTML = menuOpen ? "MENU ✓" : "MENU";
+  if (menuOpen) { renderRight(); }
+}
+
+function renderStages() {
+  var h = "<h2 class='h'>STAGES</h2><p class='muted'>Play minigames to build parts onto your chip. Finish a stage to unlock the next.</p>";
   for (var i = 0; i < STAGES.length; i++) {
     var st = game.stages[i];
     var sub = "Locked";
     if (st == "open") { sub = (i == 0 && !game.parts.cu.on) ? "Open · play to build!" : "Open · play minigames"; }
-    if (st == "passed") { sub = "Complete ✓ · replay for CP"; }
+    if (st == "passed") { sub = "Complete ✓ · replay for instructions"; }
     h += "<div class='stagecard " + st + "' onclick='openHub(" + i + ")'>";
     h += "<div class='t'>" + (i + 1) + " · " + STAGES[i].name + "</div><div class='s'>" + sub + "</div></div>";
   }
-  el("stageList").innerHTML = h;
+  el("rbody").innerHTML = h;
+}
+
+function renderLeft() {
+  if (!G && !view && tab == "stages") { renderStages(); }
+}
+
+function chatUnlocked(item) {
+  if (item.part) {
+    return !!(game.parts[item.part] && game.parts[item.part].on);
+  }
+  if (item.era) {
+    var cur = currentEra();
+    var ok = false;
+    for (var i = 0; i < CHIP_ERAS.length; i++) {
+      if (CHIP_ERAS[i].id == item.era) { ok = true; }
+      if (CHIP_ERAS[i].id == cur.id) { break; }
+    }
+    return ok && item.era != "bare";
+  }
+  return true;
+}
+
+function openChat() {
+  var box = el("tutor");
+  box.innerHTML =
+    "<div class='chatHead'><div><span class='who'>TUTOR</span><span class='status'>online</span></div>" +
+    "<button id='chatClose' onclick='toggleTutor()'>Close</button></div>" +
+    "<div id='chatLog'></div>" +
+    "<div id='chatQs'></div>";
+  box.classList.remove("hidden");
+  if (chatLog.length == 0) {
+    chatLog.push({ who: "bot", text: "Hey! Tap a question below and I will explain it in plain words." });
+  }
+  paintChat();
+}
+
+function paintChat() {
+  var log = el("chatLog");
+  if (!log) { return; }
+  var h = "";
+  for (var i = 0; i < chatLog.length; i++) {
+    h += "<div class='bubble " + chatLog[i].who + "'>" + chatLog[i].text + "</div>";
+  }
+  log.innerHTML = h;
+  log.scrollTop = log.scrollHeight;
+  refreshChatQs();
+}
+
+function refreshChatQs() {
+  var qs = el("chatQs");
+  if (!qs) { return; }
+  var h = "<div class='hint'>Ask something:</div>";
+  var locked = 0;
+  for (var i = 0; i < CHAT_QA.length; i++) {
+    var item = CHAT_QA[i];
+    if (!chatUnlocked(item)) { locked++; continue; }
+    h += "<button onclick=\"askChat('" + item.id + "')\">" + item.q + "</button>";
+  }
+  if (locked > 0) {
+    h += "<div class='hint'>Build more parts to unlock new questions.</div>";
+  }
+  qs.innerHTML = h;
+}
+
+function askChat(id) {
+  if (chatBusy) { return; }
+  var item = null;
+  for (var i = 0; i < CHAT_QA.length; i++) {
+    if (CHAT_QA[i].id == id) { item = CHAT_QA[i]; break; }
+  }
+  if (!item || !chatUnlocked(item)) { return; }
+  chatBusy = true;
+  chatLog.push({ who: "you", text: item.q });
+  paintChat();
+  setTimeout(function () {
+    chatLog.push({ who: "bot", text: item.a });
+    if (item.part) {
+      selected = item.part;
+      drawChip();
+    }
+    chatBusy = false;
+    paintChat();
+  }, 280);
 }
 
 function toggleTutor() {
   var box = el("tutor");
-  if (!box.classList.contains("hidden")) { box.classList.add("hidden"); return; }
-  var h = "<div class='label'>TUTOR</div><p class='muted'>Pick a part and I will explain it in plain language.</p>";
-  var any = false;
-  for (var i = 0; i < PARTS.length; i++) {
-    if (game.parts[PARTS[i].key].on) {
-      any = true;
-      h += "<button onclick=\"tutorSay('" + PARTS[i].key + "')\">" + PARTS[i].short + "</button>";
-    }
+  if (!box.classList.contains("hidden")) {
+    box.classList.add("hidden");
+    return;
   }
-  if (!any) { h += "<p class='muted'>No parts yet. Pass Stage 1 to install your first parts!</p>"; }
-  h += "<div id='tutorAns'></div>";
-  box.innerHTML = h;
-  box.classList.remove("hidden");
+  openChat();
 }
 
 function tutorSay(key) {
-  var p = PART[key];
-  var h = "<p><b>" + p.name + "</b></p><p class='muted'>" + p.what + "</p><p class='muted'><b>Think of it like this:</b> " + p.analogy + "</p>";
-  el("tutorAns").innerHTML = h;
-  selected = key;
-  drawChip();
+  openChat();
+  if (key) { askChat(key); }
 }
 
 // =====================================================
 // CENTER: counters and stats
 // =====================================================
 function renderHud() {
-  el("cps").innerHTML = "+" + totalCps().toFixed(1) + " CP/sec";
-  el("build").innerHTML = "BUILD LEVEL " + totalLevels();
+  var era = checkEra(true);
+  el("cps").innerHTML = "+" + totalCps().toFixed(1) + " instructions/sec";
+  el("build").innerHTML = era.short + " · BUILD " + totalLevels();
   el("clickVal").innerHTML = "+" + clickPower();
-  var b = bitsNow();
-  var era = "BARE SILICON";
-  if (b > 0) { era = b + "-BIT PROCESSOR CLASS"; }
-  el("era").innerHTML = era;
+  el("era").innerHTML = era.name;
 }
 
 function renderStats() {
@@ -757,17 +1169,79 @@ function renderStats() {
   el("stats").innerHTML = h;
 }
 
-function runInstruction() {
-  var v = clickPower();
+// timing bar: needle sweeps; green = 1.25x, yellow/red = 0.75x
+var timing = { pos: 0, dir: 1, locked: false, greenCenter: 0.5, greenHalf: 0.035 };
+var TIMING_BASE_SPEED = 0.0075;
+var TIMING_MAX_MULT = 1.5;
+var GREEN_HALF = 0.035; // tiny green window (~7% of bar)
+
+// +1/100 of base speed per upgrade level, capped at 1.5x starting speed
+function timingSpeed() {
+  var mult = 1 + totalLevels() / 100;
+  if (mult > TIMING_MAX_MULT) { mult = TIMING_MAX_MULT; }
+  return TIMING_BASE_SPEED * mult;
+}
+
+function placeGreenSpot() {
+  // keep the sweet spot away from the very edges
+  var yellowPad = 0.12;
+  timing.greenCenter = 0.18 + Math.random() * 0.64;
+  timing.greenHalf = GREEN_HALF;
+  var g = el("timingGreen");
+  var yl = el("timingYellowL");
+  var yr = el("timingYellowR");
+  if (!g) { return; }
+  var gLeft = timing.greenCenter - timing.greenHalf;
+  var gWidth = timing.greenHalf * 2;
+  g.style.left = (gLeft * 100) + "%";
+  g.style.width = (gWidth * 100) + "%";
+  if (yl) {
+    yl.style.left = (Math.max(0, gLeft - yellowPad) * 100) + "%";
+    yl.style.width = (Math.min(yellowPad, gLeft) * 100) + "%";
+  }
+  if (yr) {
+    yr.style.left = ((gLeft + gWidth) * 100) + "%";
+    yr.style.width = (Math.min(yellowPad, 1 - (gLeft + gWidth)) * 100) + "%";
+  }
+}
+
+function timingZone(pos) {
+  var d = Math.abs(pos - timing.greenCenter);
+  if (d <= timing.greenHalf) { return "green"; }
+  if (d <= timing.greenHalf + 0.12) { return "yellow"; }
+  return "red";
+}
+
+function hitTiming() {
+  if (timing.locked || G || view) { return; }
+  timing.locked = true;
+  var bar = el("timingBar");
+  var btn = el("runBtn");
+  if (bar) { bar.classList.add("locked"); }
+  if (btn) { btn.disabled = true; }
+
+  var zone = timingZone(timing.pos);
+  var mult = zone === "green" ? 1.25 : 0.75;
+  var base = clickPower();
+  var v = Math.round(base * mult * 100) / 100;
   gainCp(v);
+
   var wrap = el("chipWrap");
   var f = document.createElement("div");
   f.className = "float";
-  f.innerHTML = "+" + v;
+  f.style.color = zone === "green" ? "#137a57" : (zone === "yellow" ? "#a56a00" : "#b04545");
+  f.innerHTML = "+" + v + " <small style='font-size:12px'>" + mult + "×</small>";
   f.style.left = (38 + Math.random() * 24) + "%";
   f.style.top = (30 + Math.random() * 20) + "%";
   wrap.appendChild(f);
   setTimeout(function () { if (f.parentNode) { f.parentNode.removeChild(f); } }, 950);
+
+  setTimeout(function () {
+    placeGreenSpot();
+    timing.locked = false;
+    if (bar) { bar.classList.remove("locked"); }
+    if (btn) { btn.disabled = false; }
+  }, zone === "green" ? 220 : 160);
 }
 
 function toast(msg) {
@@ -799,25 +1273,43 @@ function setTab(t) {
   tab = t;
   if (G) { stopGameTimers(G); G = null; }
   view = null;
-  renderRight();
+  if (!menuOpen) { toggleMenu(); }
+  else { renderRight(); }
 }
 
 function renderRight() {
-  var tabs = ["upgrades", "learning", "progress", "settings"];
+  var tabs = ["stages", "upgrades", "learning", "progress", "settings"];
   for (var i = 0; i < tabs.length; i++) {
     el("tab_" + tabs[i]).className = (tabs[i] == tab && !G && !view) ? "on" : "";
   }
   el("tabs").style.display = (G || view) ? "none" : "flex";
   if (G) { return; }   // never redraw while a minigame is running
   if (view) { renderHub(); return; }
+  if (tab == "stages") { renderStages(); }
   if (tab == "upgrades") { renderUpgrades(); }
   if (tab == "learning") { renderLearning(); }
   if (tab == "progress") { renderProgress(); }
   if (tab == "settings") { renderSettings(); }
 }
 
+function partThumb(P) {
+  var c = P.color;
+  var mid = shade(c, 0.35);
+  var dark = shade(c, -0.28);
+  var lit = shade(c, 0.55);
+  var mark = P.short.length > 4 ? P.short.slice(0, 3) : P.short;
+  // tiny isometric block so each upgrade shows what the part looks like
+  return "<svg viewBox='0 0 64 64' aria-hidden='true'>" +
+    "<polygon points='32,10 52,20 32,30 12,20' fill='" + lit + "'/>" +
+    "<polygon points='12,20 32,30 32,50 12,40' fill='" + mid + "'/>" +
+    "<polygon points='32,30 52,20 52,40 32,50' fill='" + dark + "'/>" +
+    "<rect x='22' y='24' width='20' height='12' rx='3' fill='rgba(255,255,255,0.22)'/>" +
+    "<text x='32' y='33' text-anchor='middle' font-size='7' font-family='ui-monospace,Menlo,monospace' font-weight='800' fill='#fff'>" + mark + "</text>" +
+    "</svg>";
+}
+
 function renderUpgrades() {
-  var h = "<h2 class='h'>UPGRADES</h2><p class='muted'>Spend CP to upgrade unlocked parts. Locked parts unlock by passing a stage round.</p>";
+  var h = "<h2 class='h'>UPGRADES</h2><p class='muted'>Spend instructions to upgrade unlocked parts. Play games from Stages.</p>";
   var count = 0;
   for (var g = 1; g <= 5; g++) {
     var part = "";
@@ -826,22 +1318,28 @@ function renderUpgrades() {
       if (P.stage != g || !game.parts[P.key].on) { continue; }
       count++;
       var p = game.parts[P.key];
-      var next = (p.level < 5) ? "→ " + P.levels[p.level] : "Fully upgraded: " + P.levels[4];
-      part += "<div class='part" + (selected == P.key ? " sel" : "") + "'><div class='top'><div><span class='swatch' style='background:" + P.color + "'></span><span class='nm'>" + P.name + "</span><span class='lv'>Lv " + p.level + "</span></div>";
+      var next = (p.level < 5) ? "Next: " + P.levels[p.level] : "Maxed: " + P.levels[4];
+      var rate = "+" + (P.cps * p.level) + "/sec";
+      part += "<div class='upg-card" + (selected == P.key ? " sel" : "") + "'>";
+      part += "<div class='upg-thumb'>" + partThumb(P) + "</div>";
+      part += "<div class='upg-info'><span class='nm'>" + P.name + "</span>";
+      part += "<span class='lv'>Lv " + p.level + " / 5</span>";
+      part += "<div class='desc'>" + P.desc + "</div>";
+      part += "<div class='nx'>" + next + "</div></div>";
+      part += "<div class='upg-buy'>";
       if (p.level < 5) {
         var cost = upCost(P.key);
         var can = game.cp >= cost ? " can" : "";
-        part += "<button class='upg" + can + "' onclick=\"buyUpgrade('" + P.key + "')\">" + fmt(cost) + " CP</button>";
+        part += "<button class='upg" + can + "' onclick=\"buyUpgrade('" + P.key + "')\">" + fmt(cost) + "</button>";
       } else {
-        part += "<b class='mono' style='font-size:12px'>MAX</b>";
+        part += "<span class='maxmark'>MAX</span>";
       }
-      part += "</div><div class='muted'>" + P.desc + " +" + (P.cps * p.level) + " CP/sec</div><div class='nx'>" + next + "</div>";
-      part += "<button class='btn' onclick=\"openGame('" + P.key + "','upgrades')\">▶ Play " + GAMES[P.key].title + " " + starsText(P.key) + "</button></div>";
+      part += "<div class='upg-rate'>" + rate + "</div></div></div>";
     }
-    if (part != "") { h += "<div class='label' style='margin-top:16px'>" + TAGS[g - 1] + "</div>" + part; }
+    if (part != "") { h += "<div class='label upg-stage'>" + TAGS[g - 1] + "</div>" + part; }
   }
   if (count == 0) {
-    h += "<div class='part'><b>No parts installed yet.</b><div class='muted'>Open Stage 1 on the left and play its minigames. Earn a star to build each part on your chip.</div></div>";
+    h += "<div class='part'><b>No parts installed yet.</b><div class='muted'>Open the Stages tab and play Stage 1 minigames. Earn a star to build each part on your chip.</div></div>";
   }
   el("rbody").innerHTML = h;
 }
@@ -849,7 +1347,7 @@ function renderUpgrades() {
 function buyUpgrade(key) {
   var p = game.parts[key];
   var cost = upCost(key);
-  if (game.cp < cost) { toast("Not enough CP yet. Click Execute or play a minigame!"); return; }
+  if (game.cp < cost) { toast("Not enough instructions yet. Time the bar or play a minigame!"); return; }
   game.cp -= cost;
   p.level++;
   kickAnim();
@@ -897,11 +1395,21 @@ function renderProgress() {
   for (var k = 0; k < 5; k++) {
     if (game.stages[k] == "open") { next = "Play Stage " + (k + 1) + ": " + STAGES[k].name; break; }
   }
+  var era = currentEra();
+  var nxt = nextEra();
+  var eraIdx = 0;
+  for (var ei = 0; ei < CHIP_ERAS.length; ei++) {
+    if (CHIP_ERAS[ei].id == era.id) { eraIdx = ei; break; }
+  }
   var h = "<h2 class='h'>PROGRESS</h2>";
+  h += "<div class='part'><b>Chip era</b><div class='mono' style='font-size:16px;color:#4a47c8;margin-top:4px'>" + era.name + "</div>";
+  h += "<div class='muted' style='margin-top:6px'>" + era.blurb + "</div>";
+  h += "<div class='bar' style='margin-top:8px'><div style='width:" + (eraIdx * 100 / (CHIP_ERAS.length - 1)) + "%'></div></div>";
+  h += "<div class='muted'>" + (nxt ? ("Next: " + nxt.name + ". " + era.nextHint) : era.nextHint) + "</div></div>";
   h += "<div class='part'><b>Stages passed</b> " + passed + " / 5<div class='bar'><div style='width:" + (passed * 20) + "%'></div></div>";
   h += "<b>Parts installed</b> " + installed + " / " + PARTS.length + "<div class='bar'><div style='width:" + (installed * 100 / PARTS.length) + "%'></div></div>";
   h += "<b>Minigame stars</b> " + starTotal + " / " + (PARTS.length * 3) + "<div class='bar'><div style='width:" + (starTotal * 100 / (PARTS.length * 3)) + "%'></div></div></div>";
-  h += "<div class='part'><b>Total CP earned</b><div class='mono' style='font-size:20px;color:#1f9d73'>" + fmt(game.earned) + "</div></div>";
+  h += "<div class='part'><b>Total instructions earned</b><div class='mono' style='font-size:20px;color:#1f9d73'>" + fmt(game.earned) + "</div></div>";
   h += "<div class='part'><b>Next goal</b><div class='muted'>" + next + "</div></div>";
   el("rbody").innerHTML = h;
 }
@@ -913,7 +1421,7 @@ function renderSettings() {
   h += "<div class='part'><b>Sound effects</b><div class='muted'>Beeps for hits and misses in the minigames.</div>";
   h += "<button class='btn' onclick='toggleSound()'>" + (game.sound ? "Sound is ON (click to turn off)" : "Sound is OFF (click to turn on)") + "</button></div>";
   h += "<div class='part'><b>Save</b><div class='muted'>Your progress saves automatically in this browser.</div></div>";
-  h += "<div class='part'><b>Reset everything</b><div class='muted'>Deletes your chip, CP and stage progress.</div><button class='btn' style='background:#c94a4a' onclick='resetGame()'>" + (resetArmed ? "Click again to DELETE everything" : "Reset game") + "</button></div>";
+  h += "<div class='part'><b>Reset everything</b><div class='muted'>Deletes your chip, instructions and stage progress.</div><button class='btn' style='background:#c94a4a' onclick='resetGame()'>" + (resetArmed ? "Click again to DELETE everything" : "Reset game") + "</button></div>";
   el("rbody").innerHTML = h;
 }
 
@@ -943,9 +1451,13 @@ function resetGame() {
   game = newGame();
   selected = "";
   hot = "";
-  tab = "upgrades";
+  tab = "stages";
   learnOpen = "";
   shownCp = 0;
+  menuOpen = false;
+  document.getElementById("app").classList.remove("menu-open");
+  el("menuToggle").innerHTML = "MENU";
+  lastEraId = "bare";
   applyMotion();
   renderAll();
 }
@@ -1011,6 +1523,11 @@ function openHub(i) {
   if (game.stages[i] == "locked") { toast("Build every part in the previous stage to unlock this one."); return; }
   if (G) { stopGameTimers(G); G = null; }
   view = { type: "hub", stage: i };
+  if (!menuOpen) {
+    menuOpen = true;
+    document.getElementById("app").classList.add("menu-open");
+    el("menuToggle").innerHTML = "MENU ✓";
+  }
   renderRight();
 }
 
@@ -1029,8 +1546,8 @@ function renderHub() {
     var P = PART[key];
     var on = game.parts[key].on;
     h += "<div class='part'><div class='top'><div><span class='swatch' style='background:" + P.color + "'></span><span class='nm'>" + GAMES[key].icon + " " + GAMES[key].title + "</span></div><span class='mono'>" + starsText(key) + "</span></div>";
-    h += "<div class='muted'>" + (on ? P.name + " is built. Play to earn CP!" : "Earn ★ to build the " + P.name + ".") + "</div>";
-    h += "<button class='btn' onclick=\"openGame('" + key + "','hub')\">▶ " + (on ? "Play" : "Play to build") + "</button></div>";
+    h += "<div class='muted'>" + (on ? P.name + " is built. Play to earn instructions!" : "Earn ★ to build the " + P.name + ".") + "</div>";
+    h += "<button class='btn' onclick=\"openGame('" + key + "','hub')\">▶ " + (on ? "Play again" : "Play to build") + " " + starsText(key) + "</button></div>";
   }
   el("rbody").innerHTML = h;
 }
@@ -1065,7 +1582,7 @@ function showIntro() {
   var def = g.def;
   var P = PART[g.key];
   var ov = mk(g.arena, "div", "overlay", "");
-  var line = game.parts[g.key].on ? "Earn CP and stars!" : "Earn ★ to build the <b>" + P.name + "</b>!";
+  var line = game.parts[g.key].on ? "Earn instructions and stars!" : "Earn ★ to build the <b>" + P.name + "</b>!";
   ov.innerHTML = "<div class='bigicon'>" + def.icon + "</div><div class='otitle'>" + def.title + "</div><div class='orule'>" + def.rule + "</div>" +
     "<div class='ostars'>★ " + def.stars[0] + " &nbsp; ★★ " + def.stars[1] + " &nbsp; ★★★ " + def.stars[2] + "</div><div>" + line + "</div>";
   var pb = mk(ov, "button", "bigbtn", "▶ PLAY");
@@ -1202,7 +1719,7 @@ function endGame() {
   for (var s = 0; s < 3; s++) { starTxt += (s < stars) ? "⭐" : "☆"; }
   var ov = mk(g.arena, "div", "overlay", "");
   var html = "<div class='stars'>" + starTxt + "</div><div class='otitle'>" + (stars > 0 ? "NICE!" : "TRY AGAIN") + "</div>";
-  html += "<div>Score <b>" + g.score + "</b> · best combo <b>" + g.best + "</b></div><div class='gain'>+" + fmt(pay) + " CP</div>";
+  html += "<div>Score <b>" + g.score + "</b> · best combo <b>" + g.best + "</b></div><div class='gain'>+" + fmt(pay) + " instructions</div>";
   if (installed) { html += "<div class='inst'>🎉 " + P.name + " built! Watch it rise on the chip.</div>"; }
   if (stageMsg != "") { html += "<div class='inst'>🏁 " + stageMsg + "</div>"; }
   if (stars == 0 && !wasOn) { html += "<div class='muted'>Reach ★ " + g.def.stars[0] + " to build this part.</div>"; }
@@ -1228,10 +1745,11 @@ function checkStages() {
       if (i + 1 < STAGES.length && game.stages[i + 1] == "locked") { game.stages[i + 1] = "open"; }
       var bonus = (i + 1) * 150;
       gainCp(bonus);
-      msg += "Stage " + (i + 1) + " complete! +" + bonus + " CP. ";
+      msg += "Stage " + (i + 1) + " complete! +" + bonus + " instructions. ";
     }
   }
   renderLeft();
+  refreshChatQs();
   return msg;
 }
 
@@ -2079,11 +2597,11 @@ setInterval(function () {
   gainCp(totalCps() / 10);
 }, 100);
 
-// the big CP number glides toward the real value
+// the big instructions number glides toward the real value
 setInterval(function () {
   var diff = game.cp - shownCp;
   if (Math.abs(diff) < 1) { shownCp = game.cp; } else { shownCp += diff * 0.25; }
-  el("cp").innerHTML = fmt(shownCp) + " CP";
+  el("cp").innerHTML = fmt(shownCp);
   // refresh the upgrade list only when a button becomes affordable (or not)
   if (!G && !view && tab == "upgrades") {
     var key = "";
@@ -2103,7 +2621,35 @@ setInterval(save, 5000);
 load();
 shownCp = game.cp;
 applyMotion();
+placeGreenSpot();
+lastEraId = currentEra().id;
+eraReady = true;
 renderAll();
+
+(function timingLoop(last) {
+  function frame(now) {
+    var dt = last ? Math.min(0.05, (now - last) / 1000) : 0.016;
+    last = now;
+    if (!timing.locked) {
+      timing.pos += timingSpeed() * timing.dir * (dt / 0.016);
+      if (timing.pos >= 1) { timing.pos = 1; timing.dir = -1; }
+      if (timing.pos <= 0) { timing.pos = 0; timing.dir = 1; }
+      var n = el("timingNeedle");
+      if (n) { n.style.left = (timing.pos * 100) + "%"; }
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})(0);
+
+document.addEventListener("keydown", function (e) {
+  if (e.code !== "Space" && e.key !== " ") { return; }
+  if (G || view) { return; }
+  var tag = (e.target && e.target.tagName) || "";
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "BUTTON") { return; }
+  e.preventDefault();
+  hitTiming();
+});
 </script>
 
 </body>
