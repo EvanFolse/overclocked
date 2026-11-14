@@ -1,7 +1,7 @@
 // games/decoder.js: one minigame = GAMES.decoder
 // ---------------------------------------------------------
 GAMES.decoder = {
-    icon: "🔐", title: "CRACK THE OPCODE", time: 45, stars: [60, 140, 220], badPenalty: 6, rule: "DECODE: turn bits into an instruction. ENCODE: flip bits to build the instruction. The key is on screen!", takeaway: "An instruction is just bits: a few pick the operation and a few pick each register. The decoder reads them.",
+    icon: "🔐", title: "CRACK THE OPCODE", time: 45, stars: [60, 140, 220], badPenalty: 6, rule: "DECODE: turn bits into an instruction. ENCODE: flip bits to match the key!",
     start: function (g, arena) {
         var ops = ["ADD", "SUB", "AND", "OR"], regsN = ["R0", "R1", "R2", "R3"]; mk(arena, "div", "legend", "<b>OP</b> 00 ADD · 01 SUB · 10 AND · 11 OR<br><b>REG</b> 00 R0 · 01 R1 · 10 R2 · 11 R3");
         var body = mk(arena, "div", "dbody", ""), round = 0, mode = "decode", op = 0, a = 0, b = 0, bits = [], sel = [0, 0, 0];
@@ -13,7 +13,7 @@ GAMES.decoder = {
             if (mode == "decode") { var cyc = mk(body, "div", "cyc", "");[[0, ops], [1, regsN], [2, regsN]].forEach(function (p) { var bt = mk(cyc, "button", "cycbtn", p[1][sel[p[0]]]); bt.onclick = function () { sel[p[0]] = (sel[p[0]] + 1) % 4; bt.innerHTML = p[1][sel[p[0]]]; beep(400, 40); }; }); }
             mk(body, "button", "bigbtn", mode == "decode" ? "DECODE ✔" : "ENCODE ✔").onclick = check;
         }
-        function check() { var ok = mode == "decode" ? (sel[0] == op && sel[1] == a && sel[2] == b) : (bitsFrom().join("") == bits.join("")); if (ok) { g.good(mode == "decode" ? 12 : 15, "Cracked!", "decoder_bits"); newRound(); } else g.bad("Not quite. Check the key!", "decoder_bits"); }
+        function check() { var ok = mode == "decode" ? (sel[0] == op && sel[1] == a && sel[2] == b) : (bitsFrom().join("") == bits.join("")); if (ok) { g.good(mode == "decode" ? 12 : 15, "Cracked!", "decoder_bits"); newRound(); } else g.bad("Check the key!", "decoder_bits"); }
         newRound();
     }
 };

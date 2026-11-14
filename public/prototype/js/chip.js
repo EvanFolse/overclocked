@@ -47,18 +47,27 @@ function buildChipSvg(opts) {
 function drawChip() { var m = {}; for (var i = 0; i < PARTS.length; i++)m[PARTS[i].key] = game.parts[PARTS[i].key].on; el("chip").innerHTML = buildChipSvg({ interactive: true, onMap: m }); }
 function kickAnim() { if (!animOn) { animOn = true; requestAnimationFrame(animStep); } }
 function animStep() { var mv = false; for (var i = 0; i < PARTS.length; i++) { var p = game.parts[PARTS[i].key]; if (!p.on) continue; var t = heightOf(p.level), d = t - p.h; if (game.reduce || Math.abs(d) <= 0.4) p.h = t; else { p.h += d * 0.14; mv = true; } } drawChip(); if (mv) requestAnimationFrame(animStep); else animOn = false; }
-function setHot(k) { hot = k; drawChip(); setTimeout(function () { if (hot == k) { hot = ""; drawChip(); } }, 2600); }
-function installPart(k) { var p = game.parts[k]; if (p.on) return; p.on = true; p.level = 1; p.h = 0; kickAnim(); renderLeft(); renderStats(); renderHud(); refreshDiagUi(); if (installedCount() === 2) setTimeout(spawnGoldenChip, 8000); }
+function setHot(k) { hot = k; drawChip(); setTimeout(function () { if (hot == k) { hot = ""; drawChip(); } }, 2400); }
+function installPart(k) { var p = game.parts[k]; if (p.on) return; p.on = true; p.level = 1; p.h = 0; kickAnim(); renderLeft(); renderStats(); renderHud(); refreshDiagUi(); if (installedCount() === 2) setTimeout(spawnGoldenChip, 7000); }
+
 function refreshDiagUi() {
     var ready = FAULTS.filter(function (f) { return game.parts[f.need] && game.parts[f.need].on; });
-    el("diagBtn").classList.toggle("hidden", !(ready.length >= 2 && !activeFault));
+    el("diagBtn").classList.toggle("hidden", !(ready.length >= 2 && !activeFault && !activeGoldenRescue));
     el("finaleBtn").classList.toggle("hidden", !allStagesPassed());
-    var box = el("faultBanner");
-    if (activeFault) { box.classList.remove("hidden"); box.innerHTML = "<span><b style='color:#b45309'>🚨 WHAT'S BROKEN?</b> " + activeFault.symptom + "</span><span class='mono' style='color:#4a47c8;font-size:11px;font-weight:700;white-space:nowrap'>CLICK 3D PART</span>"; }
-    else box.classList.add("hidden");
+    var gb = el("goldenBanner");
+    if (activeGoldenRescue) {
+        gb.classList.remove("hidden");
+        gb.innerHTML = "<span><b style='color:#b45309;font-size:14px'>🪙 " + activeGoldenRescue.badge + "</b> <span class='mono' style='font-size:12px;color:#78350f'>" + activeGoldenRescue.clue + "</span></span><span style='display:flex;gap:8px;align-items:center'><b id='rescueCd' class='mono' style='color:#d97706'>" + activeGoldenRescue.left + "s</b><button class='ghost' onclick='cancelGoldenRescue(false)'>✕</button></span>";
+    } else gb.classList.add("hidden");
+    var fb = el("faultBanner");
+    if (activeFault) {
+        fb.classList.remove("hidden");
+        fb.innerHTML = "<span><b style='color:#b45309'>🚨 FAULT:</b> " + activeFault.symptom + "</span><span class='mono' style='color:#4a47c8;font-size:11px;font-weight:700;white-space:nowrap'>CLICK 3D PART</span>";
+    } else fb.classList.add("hidden");
 }
 function triggerFault() {
-    var pool = FAULTS.filter(function (f) { return game.parts[f.need] && game.parts[f.need].on; }); if (pool.length < 2) { toast("Build at least 2 parts first!"); return; }
+    if (activeGoldenRescue) return;
+    var pool = FAULTS.filter(function (f) { return game.parts[f.need] && game.parts[f.need].on; }); if (pool.length < 2) { toast("Build 2 parts first!"); return; }
     activeFault = pool[rand(0, pool.length - 1)]; activeFault.firstTry = true; refreshDiagUi();
-    BOT.say("🚨 Fault alert! Read the symptom above the chip and click the failing 3D component.", "alert", "warn"); beep(300, 120);
+    BOT.say("🚨 Click the failing 3D block on the chip!", "alert", "warn"); beep(300, 120);
 }

@@ -1,8 +1,5 @@
 // theater.js: Humanoid ChipBot walk-in theater, donut chart, stage brief and debrief
 // ---------------------------------------------------------
-// =========================================================================
-// HUMANOID CHIPBOT + CENTER-SCREEN WALK-IN THEATER + DONUT CHART
-// =========================================================================
 function humanoidBotSvg(mood, w, h) {
     var ant = mood === "alert" ? "#ef4444" : (mood === "party" ? "#f59e0b" : (mood === "happy" ? "#10b981" : "#38bdf8"));
     var core = mood === "alert" ? "#f87171" : (mood === "party" ? "#fbbf24" : "#34d399");
@@ -34,11 +31,11 @@ function buildDonutSvg(slices, centerBig, centerSub) {
 }
 function briefInnerHtml(i, isFirst) {
     var st = STAGES[i], extra = "";
-    if (i === 2) extra = "<div class='brief-item'><b>SILICON DESIGN CHOICE (RISC vs CISC)</b><div class='arch-grid' style='margin-top:4px;'><button class='arch-opt" + (game.archChoices.isa === "risc" ? " on" : "") + "' onclick=\"setArchChoice('isa','risc');el('theaterBanner').innerHTML=briefInnerHtml(2," + (!!isFirst) + ")\"><b>RISC (Fixed 32b)</b><small>Simple fast decode (+15% Pipe/Dec CP/s)</small></button><button class='arch-opt" + (game.archChoices.isa === "cisc" ? " on" : "") + "' onclick=\"setArchChoice('isa','cisc');el('theaterBanner').innerHTML=briefInnerHtml(2," + (!!isFirst) + ")\"><b>CISC (Variable)</b><small>Compact code (0.85× IC, +25% Dec CP/s)</small></button></div></div>";
-    else if (i === 4) extra = "<div class='brief-item'><b>SILICON DIE ALLOCATION (CPU vs GPU/NPU)</b><div class='arch-grid' style='margin-top:4px;'><button class='arch-opt" + (game.archChoices.accel === "cpu" ? " on" : "") + "' onclick=\"setArchChoice('accel','cpu');el('theaterBanner').innerHTML=briefInnerHtml(4," + (!!isFirst) + ")\"><b>CPU Latency Focus</b><small>Best for branchy OS &amp; serial code</small></button><button class='arch-opt" + (game.archChoices.accel === "gpu" ? " on" : "") + "' onclick=\"setArchChoice('accel','gpu');el('theaterBanner').innerHTML=briefInnerHtml(4," + (!!isFirst) + ")\"><b>GPU / NPU Vector Lanes</b><small>3.2× parallel compute throughput</small></button></div></div>";
-    return "<div class='banner-head'><div><div class='tag'>" + (isFirst ? "NEW STAGE UNLOCKED · " : "") + "STAGE " + (i + 1) + " BRIEFING</div><h2>STAGE " + (i + 1) + ": " + st.name.toUpperCase() + "</h2></div><button class='ghost' style='background:#1e293b;color:#cbd5e1;border-color:#475569;' onclick='closeTheater()'>✕</button></div><div class='banner-body'><div class='stage-speech'>🤖 <b>ChipBot:</b> \"Welcome to <b>Stage " + (i + 1) + ": " + st.name + "</b>! Let's inspect what you'll mount onto silicon.\"</div><div class='brief-grid'><div class='brief-item'><b>WHAT THIS STAGE IS</b>" + st.what + "</div><div class='brief-item'><b>YOUR MISSION GOAL</b>" + st.goal + "</div><div class='brief-item'><b>LEARNING OUTCOME</b>" + st.outcome + "</div>" + extra + "</div><button class='bigbtn' style='width:100%' onclick='closeTheater()'>Let's Build! ▶</button></div>";
+    if (i === 2) extra = "<div style='margin-bottom:12px;'><div class='label' style='margin-bottom:4px;'>PICK YOUR ISA STYLE</div><div class='arch-grid'><button class='arch-opt" + (game.archChoices.isa === "risc" ? " on" : "") + "' onclick=\"setArchChoice('isa','risc');el('theaterBanner').innerHTML=briefInnerHtml(2," + (!!isFirst) + ")\"><b>RISC (Fixed 32b)</b><small>Simple fast decode (+15% Pipe/Dec CP/s)</small></button><button class='arch-opt" + (game.archChoices.isa === "cisc" ? " on" : "") + "' onclick=\"setArchChoice('isa','cisc');el('theaterBanner').innerHTML=briefInnerHtml(2," + (!!isFirst) + ")\"><b>CISC (Variable)</b><small>Fewer instructions (0.85× IC, +25% Dec)</small></button></div></div>";
+    else if (i === 4) extra = "<div style='margin-bottom:12px;'><div class='label' style='margin-bottom:4px;'>PICK YOUR DIE FOCUS</div><div class='arch-grid'><button class='arch-opt" + (game.archChoices.accel === "cpu" ? " on" : "") + "' onclick=\"setArchChoice('accel','cpu');el('theaterBanner').innerHTML=briefInnerHtml(4," + (!!isFirst) + ")\"><b>CPU Latency</b><small>Fastest on branchy OS code</small></button><button class='arch-opt" + (game.archChoices.accel === "gpu" ? " on" : "") + "' onclick=\"setArchChoice('accel','gpu');el('theaterBanner').innerHTML=briefInnerHtml(4," + (!!isFirst) + ")\"><b>GPU / NPU Vector</b><small>3.2× parallel pixel &amp; AI speed</small></button></div></div>";
+    return "<div class='banner-head'><div><div class='tag'>" + (isFirst ? "STAGE UNLOCKED · " : "") + "STAGE " + (i + 1) + "</div><h2>" + st.name.toUpperCase() + "</h2></div><button class='ghost' style='background:#1e293b;color:#cbd5e1;border-color:#475569;' onclick='closeTheater()'>✕</button></div><div class='banner-body'><div class='stage-speech'>🤖 \"" + st.speech + "\"</div><div class='visual-ba'><div class='ba-card'><div class='ba-title'>BEFORE</div>" + st.beforeVis + "</div><div class='mono' style='font-size:22px;font-weight:900;color:var(--indigo);text-align:center'>➔</div><div class='ba-card after'><div class='ba-title'>AFTER STAGE " + (i + 1) + "</div>" + st.afterVis + "</div></div>" + extra + "<button class='bigbtn' style='width:100%' onclick='closeTheater()'>▶ LET'S BUILD!</button></div>";
 }
-function openBrief(i, isFirst) { playTheaterWalk("happy", briefInnerHtml(i, isFirst)); BOT.say("Briefing Stage " + (i + 1) + ": " + STAGES[i].goal, "happy", ""); }
+function openBrief(i, isFirst) { playTheaterWalk("happy", briefInnerHtml(i, isFirst)); BOT.say("Stage " + (i + 1) + ": " + STAGES[i].speech, "happy", ""); }
 
 function openStageDebrief(stageIdx) {
     var st = STAGES[stageIdx], obj = game.objStats[stageIdx] || { hits: 0, misses: 0 }, stConfs = (game.stageConfusions && game.stageConfusions[stageIdx]) || {}, confEntries = [];
@@ -46,24 +43,24 @@ function openStageDebrief(stageIdx) {
     confEntries.sort(function (a, b) { return b.count - a.count; });
     var totalConfHits = 0; for (var c = 0; c < confEntries.length; c++)totalConfHits += confEntries[c].count;
     var cleanHits = Math.max(1, obj.hits), missRem = Math.max(0, obj.misses - totalConfHits), totalEv = obj.hits + obj.misses, masteryPct = totalEv > 0 ? Math.round((obj.hits / totalEv) * 100) : 100;
-    var sliceCols = ["#ef4444", "#f59e0b", "#f97316", "#ec4899"], slices = [{ label: "Mastered Hits", value: cleanHits, color: "#10b981" }];
+    var sliceCols = ["#ef4444", "#f59e0b", "#f97316", "#ec4899"], slices = [{ label: "Mastered", value: cleanHits, color: "#10b981" }];
     for (var k = 0; k < Math.min(3, confEntries.length); k++)slices.push({ label: confEntries[k].info.title, value: confEntries[k].count, color: sliceCols[k] });
-    if (missRem > 0) slices.push({ label: "Timing / Other Slips", value: missRem, color: "#94a3b8" });
+    if (missRem > 0) slices.push({ label: "Timing slips", value: missRem, color: "#94a3b8" });
     var legendHtml = slices.map(function (sl) { return "<div class='donut-leg-row'><span><span class='donut-dot' style='background:" + sl.color + "'></span>" + sl.label + "</span><b class='mono'>" + sl.value + "</b></div>"; }).join("");
     var rightHtml = "";
     if (confEntries.length > 0) {
         rightHtml = "<div class='conf-stack'>";
         for (var m = 0; m < Math.min(3, confEntries.length); m++) {
             var ce = confEntries[m];
-            rightHtml += "<div class='conf-banner-card'><h4>⚠️ Weak Spot #" + (m + 1) + ": " + ce.info.title + " <span class='mono' style='font-size:11px'>(" + ce.count + "×)</span></h4><div class='cmp-grid' style='margin-top:4px;margin-bottom:6px;'><div class='cmp-box'><b>" + ce.info.a[0] + "</b>" + ce.info.a[1] + "</div><div class='cmp-box'><b>" + ce.info.b[0] + "</b>" + ce.info.b[1] + "</div></div><div style='font-size:12px;color:#78350f;'>💡 <b>Rule of thumb:</b> " + ce.info.hint2 + "</div></div>";
+            rightHtml += "<div class='conf-banner-card'><h4>⚠️ " + ce.info.title + " <span class='mono' style='font-size:11px'>(" + ce.count + "×)</span></h4><div class='cmp-grid' style='margin-top:4px;'><div class='cmp-box'><b>" + ce.info.a[0] + "</b>" + ce.info.a[1] + "</div><div class='cmp-box'><b>" + ce.info.b[0] + "</b>" + ce.info.b[1] + "</div></div></div>";
         }
         rightHtml += "</div>";
     } else {
-        rightHtml = "<div class='part' style='background:#ecfdf5;border-color:#6ee7b7;'><h4 style='margin:0 0 6px;color:#065f46;'>✨ Zero Confusions Recorded!</h4><div style='font-size:13px;color:#065f46;line-height:1.45;'>Clean silicon execution across <b>" + st.name + "</b>! You demonstrated: " + st.outcome + "</div></div>";
+        rightHtml = "<div class='part' style='background:#ecfdf5;border-color:#6ee7b7;text-align:center;padding:24px;'><div style='font-size:36px;'>✨</div><h4 style='margin:6px 0;color:#065f46;'>100% Clean Silicon!</h4><div class='mono' style='font-size:12px;color:#065f46;'>" + st.spec + "</div></div>";
     }
     var isLast = (stageIdx === 4 && allStagesPassed());
-    var ctaHtml = isLast ? "<button class='bigbtn' style='width:100%;margin-top:14px;' onclick='closeDebriefBanner(true)'>🏆 View 5-Stage CPU Evolution &amp; Feedback →</button>" : "<button class='bigbtn' style='width:100%;margin-top:14px;' onclick='closeDebriefBanner(false," + (stageIdx + 1) + ")'>Continue to Stage " + (stageIdx + 2) + " ▶</button>";
-    var bannerHtml = "<div class='banner-head'><div><div class='tag'>STAGE " + (stageIdx + 1) + " COMPLETE · DIAGNOSTIC BANNER</div><h2>" + st.model.toUpperCase() + " UNLOCKED</h2></div><button class='ghost' style='background:#1e293b;color:#cbd5e1;border-color:#475569;' onclick='closeTheater()'>✕</button></div><div class='banner-body'><div class='stage-speech'>🤖 <b>ChipBot:</b> \"<b>" + st.model + "</b> is online! " + (confEntries.length > 0 ? "Before you move on, check the red/amber slices where your silicon stalled:" : "Flawless accuracy! Your processor is ready for the next architectural leap.") + "\"</div><div class='debrief-cols'><div class='donut-card'><div class='label' style='margin-bottom:6px;'>STAGE " + (stageIdx + 1) + " MASTERY</div>" + buildDonutSvg(slices, masteryPct + "%", "ACCURACY") + "<div class='donut-legend'>" + legendHtml + "</div></div>" + rightHtml + "</div>" + ctaHtml + "</div>";
+    var ctaHtml = isLast ? "<button class='bigbtn' style='width:100%;margin-top:14px;' onclick='closeDebriefBanner(true)'>🏆 View 5-Stage CPU Evolution →</button>" : "<button class='bigbtn' style='width:100%;margin-top:14px;' onclick='closeDebriefBanner(false," + (stageIdx + 1) + ")'>Continue to Stage " + (stageIdx + 2) + " ▶</button>";
+    var bannerHtml = "<div class='banner-head'><div><div class='tag'>STAGE " + (stageIdx + 1) + " COMPLETE</div><h2>" + st.model.toUpperCase() + "</h2></div><button class='ghost' style='background:#1e293b;color:#cbd5e1;border-color:#475569;' onclick='closeTheater()'>✕</button></div><div class='banner-body'><div class='debrief-cols'><div class='donut-card'><div class='label' style='margin-bottom:6px;'>MASTERY CHART</div>" + buildDonutSvg(slices, masteryPct + "%", "ACCURACY") + "<div class='donut-legend'>" + legendHtml + "</div></div>" + rightHtml + "</div>" + ctaHtml + "</div>";
     playTheaterWalk(confEntries.length > 0 ? "happy" : "party", bannerHtml);
 }
 function closeDebriefBanner(goFinale, nextIdx) {
@@ -71,3 +68,7 @@ function closeDebriefBanner(goFinale, nextIdx) {
     if (goFinale) { openEvolution(false); return; }
     if (nextIdx !== undefined && game.stages[nextIdx] === "open" && !game.seenStages[nextIdx]) openHub(nextIdx);
 }
+
+// =========================================================================
+// GOLDEN CHIP: 3D CHIP RESCUE (NO QUIZ POPUP! CLICK DIRECTLY ON 3D CHIP!)
+// =========================================================================
