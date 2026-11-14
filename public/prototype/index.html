@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Overclocked - CPU Builder</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div id="app">
+        <aside id="left">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
+                <div>
+                    <div class="logo">OVERCLOCKED</div>
+                    <div class="era" id="era">MODEL 0 · BARE SILICON</div>
+                </div>
+                <button class="ghost" onclick="openWelcome()">? Intro</button>
+            </div>
+            <div id="botCard" class="card">
+                <div class="bot-head">
+                    <div id="botFace" class="bot-avatar"></div>
+                    <div>
+                        <div class="bot-name">CHIPBOT · AI TUTOR</div>
+                        <div class="bot-mood" id="botMoodLabel">Ready to build!</div>
+                    </div>
+                </div>
+                <div id="botBubble" class="bot-bubble">Click <b>1 · KNOW CPU</b> below to start building your 3D
+                    processor!</div>
+                <div id="botDareBox" class="dare-bar"></div>
+                <div class="bot-btns">
+                    <button id="btnConfusion" class="hidden" onclick="toggleDrawer('confusion')">⚖️ Fix
+                        Confusion</button>
+                    <button onclick="toggleDrawer('ask')">💬 Ask Bot</button>
+                    <button onclick="botTip()">💡 Quick Hint</button>
+                </div>
+                <div id="botDrawer" class="bot-drawer hidden"></div>
+            </div>
+            <div class="card">
+                <div class="label">STAGES</div>
+                <div id="stageList"></div>
+            </div>
+        </aside>
+        <main id="center">
+            <div class="label">COMPUTE POINTS</div>
+            <div id="cp">0 CP</div>
+            <div id="cps">+0.0 CP/sec</div>
+            <div id="frenzyBanner" class="hidden"></div>
+            <div id="faultBanner" class="hidden"></div>
+            <div id="chipWrap">
+                <div id="chipBob"><svg id="chip" viewBox="0 30 720 460"></svg></div>
+                <div id="goldenLayer"></div>
+                <div id="floats"></div>
+            </div>
+            <div class="label" id="build">BUILD LEVEL 0</div>
+            <div class="inst-pills">
+                <span class="mono" style="font-size:10px;color:var(--muted);">TRACE INSTRUCTION:</span>
+                <button id="inst_ADD" class="inst-pill on" onclick="setExecInst('ADD')">ADD R1,R2,R3</button>
+                <button id="inst_LW" class="inst-pill" onclick="setExecInst('LW')">LW R1,[0x40]</button>
+                <button id="inst_BEQ" class="inst-pill" onclick="setExecInst('BEQ')">BEQ R1,R2,L1</button>
+            </div>
+            <div id="traceReadout">Datapath ready: select ADD / LW / BEQ and click Execute to light up the 3D path!
+            </div>
+            <div class="actionRow">
+                <button id="runBtn" onclick="runInstruction()">⚡ Execute <span id="execName">ADD</span> <span
+                        id="clickVal">+1</span></button>
+                <button id="benchBtn" onclick="openBenchmark()">📊 Run Benchmark</button>
+                <button id="diagBtn" class="hidden" onclick="triggerFault()">🔧 Diagnose Fault</button>
+                <button id="finaleBtn" class="hidden" onclick="openEvolution(false)">🏆 CPU Evolution &amp;
+                    Feedback</button>
+            </div>
+            <div id="stats"></div>
+        </main>
+        <section id="right">
+            <div class="label">MENU</div>
+            <div id="tabs">
+                <button id="tab_upgrades" onclick="setTab('upgrades')">UPGRADES</button>
+                <button id="tab_learning" onclick="setTab('learning')">LEARNING</button>
+                <button id="tab_progress" onclick="setTab('progress')">PROGRESS</button>
+                <button id="tab_settings" onclick="setTab('settings')">SETTINGS</button>
+            </div>
+            <div id="rbody"></div>
+        </section>
+    </div>
+
+    <div id="welcomeScreen" class="space-screen hidden">
+        <div id="welcomeStars" class="starfield"></div>
+        <div id="welcomeContent" class="w-wrap"></div>
+    </div>
+    <div id="evolutionScreen" class="space-screen hidden">
+        <div id="evoStars" class="starfield"></div>
+        <div id="evoContent" class="w-wrap" style="max-width:1060px;"></div>
+    </div>
+
+    <div id="stageTheater" class="stage-theater hidden">
+        <div class="theater-runway">
+            <div class="theater-floor"></div>
+            <div id="theaterWalker" class="humanoid-walker"></div>
+        </div>
+        <div id="theaterBanner" class="banner-panel"></div>
+    </div>
+
+    <div id="goldenModal" class="modal-bg hidden">
+        <div class="modal-card golden-card" id="goldenCard"></div>
+    </div>
+    <div id="benchModal" class="modal-bg hidden">
+        <div class="modal-card" id="benchCard"></div>
+    </div>
+    <div id="feedbackModal" class="modal-bg hidden">
+        <div class="modal-card fb-dark">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                <div>
+                    <h2 style="margin:0;">Help us make Overclocked better</h2>
+                    <div class="muted" style="color:#94a3b8;font-size:12px;margin-top:3px;">You completed all 5 CPU
+                        stages · anonymous · saved locally</div>
+                </div>
+                <button class="ghost" style="background:#1e293b;color:#cbd5e1;border-color:#334155;"
+                    onclick="closeFeedback()">✕</button>
+            </div>
+            <div class="fb-label">HOW FUN WAS IT?</div>
+            <div class="fb-stars" id="fbStars"></div>
+            <div class="fb-label">WHICH STAGE DID YOU ENJOY MOST?</div>
+            <div class="fb-chips" id="fbStages"></div>
+            <div class="fb-label">ANYTHING GET IN THE WAY?</div>
+            <div class="fb-chips" id="fbIssues"></div>
+            <div class="fb-label">ONE IDEA TO MAKE IT BETTER</div>
+            <textarea id="fbNote" class="fb-area" placeholder="Optional note for the team..."></textarea>
+            <div style="display:flex;gap:8px;margin-top:14px;align-items:center;flex-wrap:wrap;">
+                <button class="btn" style="background:#06b6d4;color:#0f172a;font-weight:800;padding:10px 20px;"
+                    onclick="submitFeedback()">SUBMIT</button>
+                <button class="ghost" style="background:#1e293b;color:#cbd5e1;border-color:#334155;"
+                    onclick="copyFeedbackLog()">📋 Copy Saved Feedback (<span id="fbCount">0</span>)</button>
+            </div>
+        </div>
+    </div>
+    <div id="toast"></div>
+
+    <script src="js/content.js"></script>
+    <script src="js/core.js"></script>
+    <script src="js/theater.js"></script>
+    <script src="js/golden.js"></script>
+    <script src="js/benchmark.js"></script>
+    <script src="js/welcome.js"></script>
+    <script src="js/feedback.js"></script>
+    <script src="js/bot.js"></script>
+    <script src="js/chip.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/engine.js"></script>
+    <script src="js/games/cu.js"></script>
+    <script src="js/games/alu.js"></script>
+    <script src="js/games/regs.js"></script>
+    <script src="js/games/clock.js"></script>
+    <script src="js/games/pipe.js"></script>
+    <script src="js/games/decoder.js"></script>
+    <script src="js/games/l1.js"></script>
+    <script src="js/games/l2.js"></script>
+    <script src="js/games/fpu.js"></script>
+    <script src="js/games/cores.js"></script>
+    <script src="js/main.js"></script>
+</body>
+
+</html>
