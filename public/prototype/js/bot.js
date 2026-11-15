@@ -36,16 +36,27 @@ function renderBotDrawer() {
         var ck = (BOT.lastCKey && game.confusions[BOT.lastCKey] > 0 && CONFUSIONS[BOT.lastCKey]) ? BOT.lastCKey : topConfusionKey();
         if (!ck) { d.innerHTML = "No active confusion spots! You're reasoning cleanly."; return; }
         var info = CONFUSIONS[ck]; d.innerHTML = "<b>⚖️ " + info.title + "</b><div class='cmp-grid'><div class='cmp-box'><b>" + info.a[0] + "</b>" + info.a[1] + "</div><div class='cmp-box'><b>" + info.b[0] + "</b>" + info.b[1] + "</div></div><button class='ghost' style='margin-top:6px;width:100%' onclick=\"clearConfusion('" + ck + "')\">Got it! Clear flag ✓</button>";
+    } else if (BOT.drawer === "demo") {
+        var hd = "<b>Tap a part to animate it on the 3D chip:</b><div class='bot-btns'>", anyd = false;
+        for (var di = 0; di < PARTS.length; di++)if (game.parts[PARTS[di].key].on) { anyd = true; hd += "<button onclick=\"playPartDemo('" + PARTS[di].key + "')\">🎬 " + PARTS[di].short + "</button>"; }
+        if (!anyd) hd += "<span class='muted'>Build a part in Stage 1 first!</span>";
+        d.innerHTML = hd + "</div>";
+    } else if (BOT.drawer === "demo") {
+        var hd = "<b>Tap a part to animate it on the 3D chip:</b><div class='bot-btns'>", anyd = false;
+        for (var di = 0; di < PARTS.length; di++)if (game.parts[PARTS[di].key].on) { anyd = true; hd += "<button onclick=\"playPartDemo('" + PARTS[di].key + "')\">🎬 " + PARTS[di].short + "</button>"; }
+        if (!anyd) hd += "<span class='muted'>Build a part in Stage 1 first!</span>";
+        d.innerHTML = hd + "</div>";
     } else if (BOT.drawer === "ask") {
-        var h = "<b>Ask about an unlocked part:</b><div class='bot-btns'>", any = false;
+        var h = "<b>Ask about an unlocked part (read it + watch it on the 3D chip):</b><div class='bot-btns'>", any = false;
         for (var i = 0; i < PARTS.length; i++)if (game.parts[PARTS[i].key].on) { any = true; h += "<button onclick=\"tutorSay('" + PARTS[i].key + "')\">" + PARTS[i].short + "</button>"; }
         if (!any) h += "<span class='muted'>Unlock a part in Stage 1 first!</span>";
         d.innerHTML = h + "</div><div id='tutorAns' style='margin-top:6px'></div>";
     }
 }
 function clearConfusion(ck) { game.confusions[ck] = 0; BOT.drawer = ""; BOT.say("Confusion cleared! Ready for the next round.", "happy", "good"); save(); }
-function tutorSay(key) { var p = PART[key], ans = el("tutorAns"); if (ans) ans.innerHTML = "<b>" + p.name + ":</b> " + p.what + "<br><i>Analogy: " + p.analogy + "</i>"; selected = key; drawChip(); }
+function tutorSay(key) { var p = PART[key]; selected = key; drawChip(); playPartDemo(key); var ans = el("tutorAns"); if (ans) ans.innerHTML = "<b>" + p.name + ":</b> " + p.what + "<br><i>Analogy: " + p.analogy + "</i>"; }  /* text + 3D demo (demo first: it re-renders the bot) */
 function botTip() {
+    if (activeGoldenRescue) { BOT.say("🪙 Golden Rescue: " + activeGoldenRescue.clue + " Click the matching part on the 3D chip!", "party", "good"); return; }
     if (activeFault) { BOT.say("Read the fault symptom: math (ALU), opcode (DEC), order (CU), timing (CLK), variables (REG), or RAM speed (L1)?", "think", "warn"); return; }
     if (G && CONFUSIONS[BOT.lastCKey]) { BOT.say(CONFUSIONS[BOT.lastCKey].hint1, "think", ""); return; }
     for (var i = 0; i < 5; i++)if (game.stages[i] === "open") { BOT.say("Tip: Open <b>Stage " + (i + 1) + " · " + STAGES[i].name + "</b> and watch for Golden Chips to trigger 3× Overclock Frenzy!", "idle", ""); return; }

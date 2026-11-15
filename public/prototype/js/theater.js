@@ -1,8 +1,5 @@
 // theater.js: Humanoid ChipBot walk-in theater, donut chart, stage brief and debrief
 // ---------------------------------------------------------
-// =========================================================================
-// HUMANOID CHIPBOT + CENTER-SCREEN WALK-IN THEATER + DONUT CHART
-// =========================================================================
 function humanoidBotSvg(mood, w, h) {
     var ant = mood === "alert" ? "#ef4444" : (mood === "party" ? "#f59e0b" : (mood === "happy" ? "#10b981" : "#38bdf8"));
     var core = mood === "alert" ? "#f87171" : (mood === "party" ? "#fbbf24" : "#34d399");
@@ -34,9 +31,9 @@ function buildDonutSvg(slices, centerBig, centerSub) {
 }
 function briefInnerHtml(i, isFirst) {
     var st = STAGES[i], extra = "";
-    if (i === 2) extra = "<div class='brief-item'><b>SILICON DESIGN CHOICE (RISC vs CISC)</b><div class='arch-grid' style='margin-top:4px;'><button class='arch-opt" + (game.archChoices.isa === "risc" ? " on" : "") + "' onclick=\"setArchChoice('isa','risc');el('theaterBanner').innerHTML=briefInnerHtml(2," + (!!isFirst) + ")\"><b>RISC (Fixed 32b)</b><small>Simple fast decode (+15% Pipe/Dec CP/s)</small></button><button class='arch-opt" + (game.archChoices.isa === "cisc" ? " on" : "") + "' onclick=\"setArchChoice('isa','cisc');el('theaterBanner').innerHTML=briefInnerHtml(2," + (!!isFirst) + ")\"><b>CISC (Variable)</b><small>Compact code (0.85× IC, +25% Dec CP/s)</small></button></div></div>";
-    else if (i === 4) extra = "<div class='brief-item'><b>SILICON DIE ALLOCATION (CPU vs GPU/NPU)</b><div class='arch-grid' style='margin-top:4px;'><button class='arch-opt" + (game.archChoices.accel === "cpu" ? " on" : "") + "' onclick=\"setArchChoice('accel','cpu');el('theaterBanner').innerHTML=briefInnerHtml(4," + (!!isFirst) + ")\"><b>CPU Latency Focus</b><small>Best for branchy OS &amp; serial code</small></button><button class='arch-opt" + (game.archChoices.accel === "gpu" ? " on" : "") + "' onclick=\"setArchChoice('accel','gpu');el('theaterBanner').innerHTML=briefInnerHtml(4," + (!!isFirst) + ")\"><b>GPU / NPU Vector Lanes</b><small>3.2× parallel compute throughput</small></button></div></div>";
-    return "<div class='banner-head'><div><div class='tag'>" + (isFirst ? "NEW STAGE UNLOCKED · " : "") + "STAGE " + (i + 1) + " BRIEFING</div><h2>STAGE " + (i + 1) + ": " + st.name.toUpperCase() + "</h2></div><button class='ghost' style='background:#1e293b;color:#cbd5e1;border-color:#475569;' onclick='closeTheater()'>✕</button></div><div class='banner-body'><div class='stage-speech'>🤖 <b>ChipBot:</b> \"Welcome to <b>Stage " + (i + 1) + ": " + st.name + "</b>! Let's inspect what you'll mount onto silicon.\"</div><div class='brief-grid'><div class='brief-item'><b>WHAT THIS STAGE IS</b>" + st.what + "</div><div class='brief-item'><b>YOUR MISSION GOAL</b>" + st.goal + "</div><div class='brief-item'><b>LEARNING OUTCOME</b>" + st.outcome + "</div>" + extra + "</div><button class='bigbtn' style='width:100%' onclick='closeTheater()'>Let's Build! ▶</button></div>";
+    if (i === 2) extra = "<div class='brief-item stacked'><b>SILICON DESIGN CHOICE (RISC vs CISC)</b><div class='arch-grid' style='margin-top:4px;'><button class='arch-opt" + (game.archChoices.isa === "risc" ? " on" : "") + "' onclick=\"setArchChoice('isa','risc');el('theaterBanner').innerHTML=briefInnerHtml(2," + (!!isFirst) + ")\"><b>RISC (Fixed 32b)</b><small>Simple fast decode (+15% Pipe/Dec CP/s)</small></button><button class='arch-opt" + (game.archChoices.isa === "cisc" ? " on" : "") + "' onclick=\"setArchChoice('isa','cisc');el('theaterBanner').innerHTML=briefInnerHtml(2," + (!!isFirst) + ")\"><b>CISC (Variable)</b><small>Compact code (0.85× IC, +25% Dec CP/s)</small></button></div></div>";
+    else if (i === 4) extra = "<div class='brief-item stacked'><b>SILICON DIE ALLOCATION (CPU vs GPU/NPU)</b><div class='arch-grid' style='margin-top:4px;'><button class='arch-opt" + (game.archChoices.accel === "cpu" ? " on" : "") + "' onclick=\"setArchChoice('accel','cpu');el('theaterBanner').innerHTML=briefInnerHtml(4," + (!!isFirst) + ")\"><b>CPU Latency Focus</b><small>Best for branchy OS &amp; serial code</small></button><button class='arch-opt" + (game.archChoices.accel === "gpu" ? " on" : "") + "' onclick=\"setArchChoice('accel','gpu');el('theaterBanner').innerHTML=briefInnerHtml(4," + (!!isFirst) + ")\"><b>GPU / NPU Vector Lanes</b><small>3.2× parallel compute throughput</small></button></div></div>";
+    return "<div class='banner-head'><div><div class='tag'>" + (isFirst ? "NEW STAGE UNLOCKED · " : "") + "STAGE " + (i + 1) + " BRIEFING</div><h2>STAGE " + (i + 1) + ": " + st.name.toUpperCase() + "</h2></div><button class='ghost' style='background:#1e293b;color:#cbd5e1;border-color:#475569;' onclick='closeTheater()'>✕</button></div><div class='banner-body'><div class='stage-speech'>🤖 <b>ChipBot:</b> \"Welcome to <b>Stage " + (i + 1) + ": " + st.name + "</b>! Let's inspect what you'll mount onto silicon.\"</div><div class='visual-ba'><div class='ba-card'><div class='ba-title'>BEFORE</div>" + st.beforeVis + "</div><div class='mono' style='font-size:22px;font-weight:900;color:var(--indigo);text-align:center'>➔</div><div class='ba-card after'><div class='ba-title'>AFTER STAGE " + (i + 1) + "</div>" + st.afterVis + "</div></div><div class='brief-grid'><div class='brief-item'><span class='brief-label'>WHAT THIS STAGE IS</span><div class='brief-val'>" + st.what + "</div></div><div class='brief-item'><span class='brief-label'>YOUR MISSION GOAL</span><div class='brief-val'>" + st.goal + "</div></div><div class='brief-item'><span class='brief-label'>LEARNING OUTCOME</span><div class='brief-val'>" + st.outcome + "</div></div>" + extra + "</div><button class='bigbtn brief-cta' style='width:100%' onclick='closeTheater()'>Let's Build! ▶</button></div>";
 }
 function openBrief(i, isFirst) { playTheaterWalk("happy", briefInnerHtml(i, isFirst)); BOT.say("Briefing Stage " + (i + 1) + ": " + STAGES[i].goal, "happy", ""); }
 
@@ -63,7 +60,8 @@ function openStageDebrief(stageIdx) {
     }
     var isLast = (stageIdx === 4 && allStagesPassed());
     var ctaHtml = isLast ? "<button class='bigbtn' style='width:100%;margin-top:14px;' onclick='closeDebriefBanner(true)'>🏆 View 5-Stage CPU Evolution &amp; Feedback →</button>" : "<button class='bigbtn' style='width:100%;margin-top:14px;' onclick='closeDebriefBanner(false," + (stageIdx + 1) + ")'>Continue to Stage " + (stageIdx + 2) + " ▶</button>";
-    var bannerHtml = "<div class='banner-head'><div><div class='tag'>STAGE " + (stageIdx + 1) + " COMPLETE · DIAGNOSTIC BANNER</div><h2>" + st.model.toUpperCase() + " UNLOCKED</h2></div><button class='ghost' style='background:#1e293b;color:#cbd5e1;border-color:#475569;' onclick='closeTheater()'>✕</button></div><div class='banner-body'><div class='stage-speech'>🤖 <b>ChipBot:</b> \"<b>" + st.model + "</b> is online! " + (confEntries.length > 0 ? "Before you move on, check the red/amber slices where your silicon stalled:" : "Flawless accuracy! Your processor is ready for the next architectural leap.") + "\"</div><div class='debrief-cols'><div class='donut-card'><div class='label' style='margin-bottom:6px;'>STAGE " + (stageIdx + 1) + " MASTERY</div>" + buildDonutSvg(slices, masteryPct + "%", "ACCURACY") + "<div class='donut-legend'>" + legendHtml + "</div></div>" + rightHtml + "</div>" + ctaHtml + "</div>";
+    var closeAction = isLast ? "closeTheater()" : "closeDebriefBanner(false," + (stageIdx + 1) + ")";
+    var bannerHtml = "<div class='banner-head'><div><div class='tag'>STAGE " + (stageIdx + 1) + " COMPLETE · DIAGNOSTIC BANNER</div><h2>" + st.model.toUpperCase() + " UNLOCKED</h2></div><button class='ghost' style='background:#1e293b;color:#cbd5e1;border-color:#475569;' onclick='" + closeAction + "'>✕</button></div><div class='banner-body'><div class='stage-speech'>🤖 <b>ChipBot:</b> \"<b>" + st.model + "</b> is online! " + (confEntries.length > 0 ? "Before you move on, check the red/amber slices where your silicon stalled:" : "Flawless accuracy! Your processor is ready for the next architectural leap.") + "\"</div><div class='debrief-cols'><div class='donut-card'><div class='label' style='margin-bottom:6px;'>STAGE " + (stageIdx + 1) + " MASTERY</div>" + buildDonutSvg(slices, masteryPct + "%", "ACCURACY") + "<div class='donut-legend'>" + legendHtml + "</div></div>" + rightHtml + "</div>" + ctaHtml + "</div>";
     playTheaterWalk(confEntries.length > 0 ? "happy" : "party", bannerHtml);
 }
 function closeDebriefBanner(goFinale, nextIdx) {
@@ -71,3 +69,21 @@ function closeDebriefBanner(goFinale, nextIdx) {
     if (goFinale) { openEvolution(false); return; }
     if (nextIdx !== undefined && game.stages[nextIdx] === "open" && !game.seenStages[nextIdx]) openHub(nextIdx);
 }
+
+// =========================================================================
+// GOLDEN CHIP: 3D CHIP RESCUE (NO QUIZ POPUP! CLICK DIRECTLY ON 3D CHIP!)
+// =========================================================================
+
+
+window.addEventListener("load", function () {
+    setTimeout(function () {
+        if (typeof game === "undefined" || !game.seenWelcome) return;
+        if (el("stageTheater") && !el("stageTheater").classList.contains("hidden")) return;
+        for (var idx = 0; idx < STAGES.length; idx++) {
+            if (game.stages[idx] === "open" && !game.seenStages[idx]) {
+                openHub(idx);
+                break;
+            }
+        }
+    }, 300);
+});

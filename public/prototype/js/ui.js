@@ -19,6 +19,7 @@ function renderStats() {
 }
 function toast(msg) { var t = el("toast"); t.innerHTML = msg; t.classList.add("show"); clearTimeout(toast._tid); toast._tid = setTimeout(function () { t.classList.remove("show"); }, 2600); }
 function clickPart(key) {
+    if (activeGoldenRescue && !G) { handleGoldenPartClick(key); return; }
     if (activeFault && !G) {
         var stIdx = PART[activeFault.ans].stage - 1; game.answers++;
         if (key === activeFault.ans) {
@@ -33,7 +34,7 @@ function clickPart(key) {
         }
         return;
     }
-    selected = key; if (!G && !view) { tab = "learning"; learnOpen = key; } drawChip(); renderRight(); BOT.say("Inspecting <b>" + PART[key].name + "</b>: " + PART[key].what, "idle", "");
+    selected = key; if (!G && !view) { tab = "learning"; learnOpen = key; } drawChip(); renderRight(); playPartDemo(key); BOT.say("Inspecting <b>" + PART[key].name + "</b>: " + PART[key].what, "idle", "");
 }
 function clickSlot(key) { toast("Locked: play Stage " + PART[key].stage + " on the left to install " + PART[key].short); }
 function setTab(t) { tab = t; if (G) { stopGameTimers(G); G = null; } view = null; renderRight(); }
@@ -55,7 +56,7 @@ function renderUpgrades() {
             if (p.level >= 5) part += "<b class='mono' style='font-size:12px'>MAX</b>";
             else if (p.level >= cap) part += "<button class='upg cap' onclick=\"openGame('" + P.key + "','upgrades')\">Need " + needStarFor(p.level + 1) + "</button>";
             else { var cost = upCost(P.key); part += "<button class='upg" + (game.cp >= cost ? " can" : "") + "' onclick=\"buyUpgrade('" + P.key + "')\">" + fmt(cost) + " CP</button>"; }
-            part += "</div><div class='muted'>" + P.desc + " +" + (P.cps * p.level) + " CP/sec</div><div class='nx'>" + next + "</div><button class='btn' onclick=\"openGame('" + P.key + "','upgrades')\">▶ Play " + GAMES[P.key].title + " " + starsText(P.key) + "</button></div>";
+            part += "</div><div class='muted'>" + P.desc + " +" + partCps(P.key).toFixed(1) + " CP/sec</div><div class='nx'>" + next + "</div><button class='btn' onclick=\"openGame('" + P.key + "','upgrades')\">▶ Play " + GAMES[P.key].title + " " + starsText(P.key) + "</button></div>";
         }
         if (part != "") h += "<div class='label' style='margin-top:16px'>" + TAGS[g - 1] + "</div>" + part;
     }
@@ -73,7 +74,7 @@ function renderLearning() {
         var P = PARTS[i], p = game.parts[P.key];
         h += "<div class='part" + (learnOpen == P.key ? " sel" : "") + "' style='cursor:pointer' onclick=\"openLearn('" + P.key + "')\">";
         if (!p.on) { h += "<span class='swatch' style='background:#c5ced8'></span><span class='nm' style='color:#8a99a8'>🔒 " + P.name + "</span><div class='muted'>Pass Stage " + P.stage + " to unlock.</div></div>"; continue; }
-        h += "<span class='swatch' style='background:" + P.color + "'></span><span class='nm'>" + P.name + "</span><span class='lv'>Lv " + p.level + "</span>";
+        h += "<span class='swatch' style='background:" + P.color + "'></span><span class='nm'>" + P.name + "</span><span class='lv'>Lv " + p.level + "</span><button class='ghost' style='float:right;padding:3px 8px' onclick=\"event.stopPropagation();playPartDemo('" + P.key + "')\">🎬 Demo</button>";
         if (learnOpen == P.key) {
             h += "<p class='muted'>" + P.what + "</p><p class='muted'><b>Analogy:</b> " + P.analogy + "</p><div class='nx'>Current (Lv " + p.level + "): " + P.levels[p.level - 1] + " — " + P.levelNotes[p.level - 1] + "</div>";
             if (p.level < 5) h += "<div class='nx'>Next (Lv " + (p.level + 1) + "): " + P.levels[p.level] + " — " + P.levelNotes[p.level] + "</div>";
@@ -82,7 +83,7 @@ function renderLearning() {
     }
     el("rbody").innerHTML = h;
 }
-function openLearn(key) { learnOpen = (learnOpen == key) ? "" : key; if (game.parts[key].on) { selected = key; drawChip(); } renderRight(); }
+function openLearn(key) { learnOpen = (learnOpen == key) ? "" : key; if (game.parts[key].on) { selected = key; drawChip(); playPartDemo(key); } renderRight(); }
 function renderProgress() {
     var passed = 0, installed = 0, starTotal = 0, next = "All 5 models built! View CPU Evolution or test Benchmarks.";
     for (var i = 0; i < 5; i++)if (game.stages[i] == "passed") passed++; for (var j = 0; j < PARTS.length; j++)if (game.parts[PARTS[j].key].on) installed++;
