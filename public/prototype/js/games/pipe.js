@@ -1,86 +1,28 @@
-// =====================================================
-// 5. PIPELINE: ASSEMBLY LINE
-// =====================================================
+// games/pipe.js: one minigame = GAMES.pipe
+// ---------------------------------------------------------
 GAMES.pipe = {
-  icon: "🏭", title: "ASSEMBLY LINE", time: 40, stars: [100, 230, 380],
-  rule: "Instructions flow through 5 stages. When a hazard freezes the line, tap the matching fix FAST!<br>Keys: 1 · 2",
-  takeaway: "A pipeline finishes one instruction every tick, but hazards stall it unless the CPU forwards data or predicts branches.",
-  start: function (g, arena) {
-    var names = ["Fetch", "Decode", "Execute", "Memory", "Write"];
-    var colors = ["#ff6b6b", "#3aa0ff", "#22c55e", "#f5b301", "#a855f7", "#14b8a6", "#ec4899", "#ff8a3d"];
-    var pipe = [0, 0, 0, 0, 0];
-    var nextId = 1, hazard = "", hazardAt = 0, stalls = 0, finished = 0, tickMs = 850;
-
-    var line = mk(arena, "div", "pipe", "");
-    var cells = [];
-    for (var i = 0; i < 5; i++) {
-      var c = mk(line, "div", "pcell", "<small>" + names[i] + "</small>");
-      cells.push(mk(c, "div", "pslot", ""));
+    icon: "🏭", title: "HAZARD LAB", time: 65, stars: [60, 140, 220], badPenalty: 12, rule: "Look at the red conflict &amp; Gantt chart! Pick <b>Run Normal</b>, <b>Forward</b>, <b>Stall 1</b>, or <b>Flush</b> (Keys 1–4).",
+    start: function (g, arena) {
+        var baseCases = [
+            { a: "ADD R1, R2, R3", b: "SUB R4, R5, R6", tag: "Clean (0 Stalls)", best: 0, confKey: "pipe_none", rows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "EX", "MEM", "WB", "", ""]], solvedRows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "EX", "MEM", "WB", "", ""]], cpi: "1.00", whyBad: ["", "Independent regs → 0 stalls!", "No conflict → no stall!", "No branch here!"] },
+            { a: "ADD <b style='color:#dc2626'>R1</b>, R2, R3", b: "SUB R4, <b style='color:#dc2626'>R1</b>, R5", tag: "EX→EX Forward", best: 1, confKey: "pipe_fwd", rows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "HAZ!", "EX?", "MEM", "", ""]], solvedRows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "EX⚡", "MEM", "WB", "", ""]], cpi: "1.00", whyBad: ["R1 conflict!", "", "ALU finishes R1 in EX → Forward (0 stalls)!", "Not a branch!"] },
+            { a: "LW  <b style='color:#dc2626'>R1</b>, 0(R2)", b: "ADD R3, <b style='color:#dc2626'>R1</b>, R4", tag: "Load-Use: 1 Stall", best: 2, confKey: "pipe_loaduse", rows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "HAZ!", "EX?", "MEM", "", ""]], solvedRows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "🫧", "EX⚡", "MEM", "WB", ""]], cpi: "1.50", whyBad: ["R1 isn't loaded yet!", "LW finishes MEM at C4 → 1 cycle too late!", "", "Don't flush valid ADD!"] },
+            { a: "LW  R5, 0(R1) [MEM]", b: "IFETCH Inst [1 Port]", tag: "Structural: 1 Stall", best: 2, confKey: "pipe_struct", rows: [["IF", "ID", "EX", "MEM!", "WB", "", "", ""], ["", "", "", "IF!", "ID", "EX", "MEM", "WB"]], solvedRows: [["IF", "ID", "EX", "MEM!", "WB", "", "", ""], ["", "", "", "🫧", "IF", "ID", "EX", "MEM"]], cpi: "1.50", whyBad: ["Both collide on 1 memory port at C4!", "Forward fixes regs, not 1 memory bus!", "", "Just stall IF 1 cycle!"] },
+            { a: "BEQ R1, R2, L1 (TAKEN)", b: "ADD R3, R4, R5 (PC+4)", tag: "Branch Flush", best: 3, confKey: "pipe_branch", rows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "EX?", "MEM", "WB", "", ""]], solvedRows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "FLUSH", "—", "—", "", ""]], cpi: "1.50", whyBad: ["Wrong-path ADD corrupts R3!", "Forward can't undo wrong fetch!", "Stall keeps wrong instruction!", ""] }
+        ];
+        var transferCases = [
+            { a: "LW  <b style='color:#dc2626'>R1</b>, 0(R2)", b: "ADD R7, R8, R9 <span style='color:#059669'>[unrelated]</span>", c: "SUB R4, <b style='color:#dc2626'>R1</b>, R5", tag: "Scheduled! MEM→EX Fwd", best: 1, confKey: "pipe_sched", rows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "EX", "MEM", "WB", "", ""], ["", "", "IF", "ID", "EX?", "MEM", "WB", ""]], solvedRows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "EX", "MEM", "WB", "", ""], ["", "", "IF", "ID", "EX⚡", "MEM", "WB", ""]], cpi: "1.00", whyBad: ["SUB reads R1 → needs MEM→EX Fwd!", "", "B already filled the 1-cycle wait → 0 extra stalls!", "No branch!"] },
+            { a: "LW  <b style='color:#dc2626'>R1</b>, 0(R2)", b: "ADD R3, <b style='color:#dc2626'>R1</b>, R4 <span style='color:#dc2626'>[adjacent]</span>", c: "SUB R5, R6, R7", tag: "Adjacent Load-Use: 1 Stall", best: 2, confKey: "pipe_loaduse", rows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "HAZ!", "EX?", "MEM", "", ""], ["", "", "IF", "ID", "EX", "MEM", "WB", ""]], solvedRows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "🫧", "EX⚡", "MEM", "WB", ""], ["", "", "IF", "ID", "🫧", "EX", "MEM", "WB"]], cpi: "1.33", whyBad: ["ADD immediately follows LW!", "ADD didn't wait for LW's MEM stage!", "", "Don't flush valid work!"] },
+            { a: "ADD R1, R2, R3", b: "SUB R4, R5, R6", c: "MUL R7, R8, R9", tag: "3-Inst Clean Pipe", best: 0, confKey: "pipe_none", rows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "EX", "MEM", "WB", "", ""], ["", "", "IF", "ID", "EX", "MEM", "WB", ""]], solvedRows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "EX", "MEM", "WB", "", ""], ["", "", "IF", "ID", "EX", "MEM", "WB", ""]], cpi: "1.00", whyBad: ["", "All 3 instructions are independent!", "0 stalls needed!", "No branch!"] }
+        ];
+        var labels = [["✅ RUN NORMALLY", "1 · No hazard (0 stalls)"], ["🔁 FORWARD DATA", "2 · EX/MEM→EX (0 stalls)"], ["⏸️ STALL 1 CYCLE", "3 · Load-Use / 1-Port Mem"], ["🧹 FLUSH PATH", "4 · Taken branch"]];
+        var cur = null, solved = 0, locking = false, ganttWrap = mk(arena, "div", "", ""); ganttWrap.style.width = "100%";
+        var card = mk(arena, "div", "pinfo", ""), row = mk(arena, "div", "fixrow", "");
+        for (var i = 0; i < 4; i++)(function (idx) { mk(row, "button", "fixbtn", labels[idx][0] + "<small>" + labels[idx][1] + "</small>").onclick = function () { pick(idx); }; })(i);
+        function clsOf(v) { return (v === "HAZ!" || v === "MEM!" || v === "IF!" || v === "EX?") ? "haz" : (v === "🫧" || v === "FLUSH") ? "bub" : v.indexOf("⚡") !== -1 ? "fwd" : v && v !== "—" ? "stg" : ""; }
+        function drawGantt(rows, st) { var names = ["A", "B", "C"], body = rows.map(function (r, idx) { return "<tr><td><b>" + names[idx] + "</b></td>" + r.map(function (v) { return "<td class='" + clsOf(v) + "'>" + v + "</td>"; }).join("") + "</tr>"; }).join(""); ganttWrap.innerHTML = "<table class='gantt'><tr><th>Inst</th><th>C1</th><th>C2</th><th>C3</th><th>C4</th><th>C5</th><th>C6</th><th>C7</th><th>C8</th></tr>" + body + "</table><div class='mono' style='font-size:11px;color:#4a47c8;margin-top:4px;text-align:right;'>" + st + "</div>"; }
+        function next() { locking = false; var u3 = (solved >= 3 && Math.random() < 0.55); cur = u3 ? transferCases[rand(0, transferCases.length - 1)] : baseCases[rand(0, baseCases.length - 1)]; drawGantt(cur.rows, u3 ? "⭐ 3-Inst Scheduling Mode" : "Check timeline &amp; registers"); card.innerHTML = "<div><b>A:</b> " + cur.a + "</div><div style='margin-top:2px'><b>B:</b> " + cur.b + "</div>" + (cur.c ? "<div style='margin-top:2px'><b>C:</b> " + cur.c + "</div>" : ""); g.info("solved " + solved); }
+        function pick(idx) { if (!cur || locking) return; if (idx === cur.best) { solved++; locking = true; drawGantt(cur.solvedRows, "✅ " + cur.tag + " · CPI " + cur.cpi); g.good(cur.c ? 25 : 20, "✔ " + cur.tag + " (CPI " + cur.cpi + ")", cur.confKey); g.after(1000, next); } else g.bad(cur.whyBad[idx], cur.confKey); }
+        g.onKey = function (k) { if (k >= "1" && k <= "4") { pick(Number(k) - 1); return true; } return false; }; next();
     }
-    var info = mk(arena, "div", "pinfo", "");
-    var fixRow = mk(arena, "div", "fixrow", "");
-    var b1 = mk(fixRow, "button", "fixbtn", "🔁 FORWARD DATA<small>1</small>");
-    var b2 = mk(fixRow, "button", "fixbtn", "🔮 PREDICT BRANCH<small>2</small>");
-    b1.onclick = function () { fix("data"); };
-    b2.onclick = function () { fix("branch"); };
-
-    function draw() {
-      for (var k = 0; k < 5; k++) {
-        if (pipe[k] != 0) {
-          cells[k].innerHTML = "<span class='blk" + ((hazard != "" && k == 1) ? " haz" : "") + "' style='background:" + colors[pipe[k] % 8] + "'>I" + pipe[k] + "</span>";
-        } else {
-          cells[k].innerHTML = "";
-        }
-      }
-      if (hazard == "data") {
-        info.innerHTML = "<b style='color:#d24b4b'>⚠ DATA HAZARD</b><br>An instruction is waiting for a result!";
-      } else if (hazard == "branch") {
-        info.innerHTML = "<b style='color:#d24b4b'>⚠ BRANCH HAZARD</b><br>Which way will the program go?";
-      } else {
-        info.innerHTML = "Flowing smoothly...";
-      }
-      g.info("done " + finished + " · stalls " + stalls);
-    }
-    function fix(type) {
-      if (hazard == "") { g.bad("No hazard right now!"); return; }
-      if (type == hazard) {
-        var fast = (Date.now() - hazardAt) < 1500;
-        g.good(fast ? 10 : 5, fast ? "Fixed fast!" : "Fixed");
-        hazard = "";
-        draw();
-      } else {
-        g.bad("Wrong fix for this hazard!");
-      }
-    }
-    function tick() {
-      if (hazard != "") {
-        stalls++;
-        draw();
-        g.after(tickMs, tick);
-        return;
-      }
-      if (pipe[4] != 0) {
-        finished++;
-        g.good(10);
-      }
-      pipe.pop();
-      pipe.unshift(nextId);
-      nextId++;
-      if (nextId > 5 && pipe[1] != 0 && Math.random() < 0.25) {
-        hazard = (Math.random() < 0.5) ? "data" : "branch";
-        hazardAt = Date.now();
-      }
-      tickMs = Math.max(480, tickMs - 6);
-      draw();
-      g.after(tickMs, tick);
-    }
-    g.onKey = function (k) {
-      if (k == "1") { fix("data"); return true; }
-      if (k == "2") { fix("branch"); return true; }
-      return false;
-    };
-    draw();
-    g.after(tickMs, tick);
-  }
 };
-

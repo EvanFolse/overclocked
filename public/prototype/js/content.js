@@ -1,75 +1,122 @@
-// =====================================================
-// DATA: the parts of the CPU
-// slot = [column, row, width, depth] on an 8 x 8 grid
-// =====================================================
+// content.js: DATA: PARTS, STAGES, FAULTS, CONFUSIONS, BOT_DARES
+// ---------------------------------------------------------
 var PARTS = [
-  { key: "cu", name: "Control Unit (CU)", short: "CU", color: "#7c5cff", stage: 1, cost: 120, cps: 2, slot: [2, 0, 3, 1],
-    desc: "The director of the processor.",
-    levels: ["Hardwired control", "Microcoded control", "Pipelined control paths", "Out-of-order control", "Speculative control"],
-    what: "Reads each instruction and sends signals telling the other parts what to do and when.",
-    analogy: "Like a conductor in an orchestra. It plays no instrument, but nothing happens in the right order without it." },
-  { key: "alu", name: "Arithmetic Logic Unit (ALU)", short: "ALU", color: "#ff6b6b", stage: 1, cost: 180, cps: 3, slot: [2, 1, 3, 2],
-    desc: "Performs arithmetic and logical operations.",
-    levels: ["4-bit ALU", "8-bit ALU", "16-bit ALU + flags", "32-bit ALU", "64-bit ALU + SIMD"],
-    what: "Does the math (add, subtract) and the logic (AND, OR, compare) on binary numbers.",
-    analogy: "Like the calculator on your desk. You give it two numbers and an operation, and it hands back the answer." },
-  { key: "regs", name: "Registers", short: "REG", color: "#3aa0ff", stage: 1, cost: 260, cps: 4, slot: [0, 1, 2, 2],
-    desc: "Tiny, ultra-fast storage inside the CPU.",
-    levels: ["4 registers", "8 registers", "Small general-purpose register file", "x86-like register file", "Register renaming"],
-    what: "A handful of named storage slots that hold the numbers the CPU is using right now.",
-    analogy: "Like sticky notes on your monitor. There are only a few, but they are instantly in view, unlike the filing cabinet (RAM) across the room." },
-  { key: "clock", name: "Clock", short: "CLK", color: "#ffb020", stage: 2, cost: 150, cps: 3, slot: [0, 0, 2, 1],
-    desc: "Sets the beat that keeps every part in step.",
-    levels: ["5 MHz clock", "33 MHz clock", "200 MHz clock", "1.5 GHz clock", "4.5 GHz boost clock"],
-    what: "Sends a steady pulse. On each tick every part of the CPU takes one step, so a faster clock means more steps per second.",
-    analogy: "Like the drummer in a rowing boat. Everyone pulls their oar on the beat." },
-  { key: "pipe", name: "Pipeline", short: "PIPE", color: "#ff8a3d", stage: 2, cost: 600, cps: 8, slot: [0, 3, 8, 1],
-    desc: "Overlaps instructions so no part sits idle.",
-    levels: ["2-stage pipeline", "5-stage pipeline", "Superscalar (2 per tick)", "Deep pipeline (14 stages)", "Wide superscalar (4+ per tick)"],
-    what: "Splits each instruction into stages so several instructions are in progress at the same time.",
-    analogy: "Like doing laundry. While load 1 is in the dryer, load 2 is already in the washer." },
-  { key: "decoder", name: "Instruction Decoder", short: "DEC", color: "#14b8a6", stage: 3, cost: 900, cps: 10, slot: [5, 0, 3, 1],
-    desc: "Turns instruction bits into control signals.",
-    levels: ["Fixed instruction set", "Richer instruction set", "Variable-length decode", "Micro-op translation", "Wide decode (4+ per tick)"],
-    what: "Takes the binary instruction and works out which operation and which registers it means.",
-    analogy: "Like a translator who turns a sentence in machine language into steps the other parts can follow." },
-  { key: "l1", name: "L1 Cache", short: "L1", color: "#22c55e", stage: 4, cost: 1500, cps: 16, slot: [0, 4, 4, 2],
-    desc: "Smallest, fastest memory next to the core.",
-    levels: ["1 KB cache", "4 KB cache", "16 KB split cache", "32 KB, 8-way cache", "64 KB, low-latency cache"],
-    what: "Keeps recently used data right beside the CPU so it does not wait for slow RAM.",
-    analogy: "Like keeping your textbook open on your desk instead of walking to the library every time." },
-  { key: "l2", name: "L2 Cache", short: "L2", color: "#84cc16", stage: 4, cost: 2800, cps: 26, slot: [0, 6, 8, 2],
-    desc: "Bigger, slightly slower backup cache.",
-    levels: ["16 KB L2", "64 KB L2", "256 KB L2", "1 MB L2", "4 MB L2"],
-    what: "A larger cache that catches what L1 misses, so there are fewer trips all the way to RAM.",
-    analogy: "Like the bookshelf in your room. Bigger than your desk, but still much closer than the library." },
-  { key: "fpu", name: "Floating-Point Unit (FPU)", short: "FPU", color: "#ec4899", stage: 5, cost: 5000, cps: 40, slot: [5, 1, 3, 2],
-    desc: "Fast math on decimal numbers.",
-    levels: ["Software floating point", "Basic FPU", "Pipelined FPU", "SIMD vector FPU", "Wide vector FPU"],
-    what: "Handles numbers with decimal points (like 3.14159) that whole-number hardware is slow at. FLOPS counts how many of these a CPU does per second.",
-    analogy: "Like a calculator that has a decimal key. The plain ALU is the one that only knows whole numbers." },
-  { key: "cores", name: "Multi-core", short: "CORES", color: "#06b6d4", stage: 5, cost: 9000, cps: 70, slot: [4, 4, 4, 2],
-    desc: "More cores means more work at once.",
-    levels: ["Single core", "Dual core", "Quad core", "8 cores", "16 cores"],
-    what: "Several complete CPU cores on one chip, each running its own instructions at the same time.",
-    analogy: "Like opening more checkout lanes at a store. More customers get served at once, as long as there are enough customers." }
+    { key: "cu", name: "Control Unit (CU)", short: "CU", color: "#7c5cff", stage: 1, cost: 120, cps: 2, slot: [2, 0, 3, 1], desc: "The director of the processor.", levels: ["Hardwired control", "Microcoded control", "Pipelined control paths", "Out-of-order control", "Speculative control"], levelNotes: ["Fixed combinational logic sequences one instruction at a time.", "ROM micro-instructions support richer multi-step instructions.", "Propagates control signals stage-by-stage alongside the pipeline.", "Schedules ready instructions dynamically to reduce stalls.", "Predicts branch paths early and commits results in order."], demoText: "📡 CU fires signals to DEC → REG → ALU!", demoSteps: ["cu", "decoder", "regs", "alu"], what: "Reads each instruction and sends signals telling the other parts what to do and when.", analogy: "Like a conductor in an orchestra. It plays no instrument, but nothing happens in the right order without it." },
+    { key: "alu", name: "Arithmetic Logic Unit (ALU)", short: "ALU", color: "#ff6b6b", stage: 1, cost: 180, cps: 3, slot: [2, 1, 3, 2], desc: "Performs arithmetic and logical operations.", levels: ["4-bit ALU", "8-bit ALU", "16-bit ALU + flags", "32-bit ALU (RV32I)", "64-bit ALU (RV64I)"], levelNotes: ["4-bit ripple-carry datapath (early Intel 4004 class).", "8-bit integer width with basic carry/zero flags.", "16-bit datapath with full status flags (N, Z, C, V).", "32-bit standard RISC-V / MIPS integer word width.", "64-bit integer datapath for large memory addressing."], demoText: "🧮 ALU computes: 0101 + 0011 = 1000 (8)", demoSteps: ["regs", "alu", "regs"], what: "Does the math (add, subtract) and the logic (AND, OR, compare) on binary numbers.", analogy: "Like the calculator on your desk. You give it two numbers and an operation, and it hands back the answer." },
+    { key: "regs", name: "Registers", short: "REG", color: "#3aa0ff", stage: 1, cost: 260, cps: 4, slot: [0, 1, 2, 2], desc: "Tiny, ultra-fast storage inside the CPU.", levels: ["4 registers", "8 registers", "16 general registers", "32 RISC registers", "Register renaming"], levelNotes: ["Minimal accumulator + scratch registers inside the core.", "8 named working registers reduce frequent RAM spills.", "16 architectural registers hold loop counters and pointers.", "32-register file (classic MIPS/RISC-V size) cuts memory traffic.", "Maps architectural names to extra physical slots to remove WAR/WAW hazards."], demoText: "🗂️ REG holds active a, b, c right next to ALU!", demoSteps: ["regs", "alu"], what: "A handful of named storage slots that hold the numbers the CPU is using right now.", analogy: "Like sticky notes on your monitor. Instantly in view, unlike the filing cabinet (RAM) across the room." },
+    { key: "clock", name: "Clock", short: "CLK", color: "#ffb020", stage: 2, cost: 150, cps: 3, slot: [0, 0, 2, 1], desc: "Sets the beat that keeps every part in step.", levels: ["5 MHz clock", "33 MHz clock", "200 MHz clock", "1.5 GHz clock", "4.5 GHz boost clock"], levelNotes: ["Early microprocessor era (~200 ns cycle period).", "32-bit workstation era (30 ns period).", "Pipelined shorter stages allow 5 ns clock period.", "Gigahertz deep-pipeline silicon (0.67 ns period).", "High-frequency boost within thermal & critical-path limits."], demoText: "⏱️ CLK ticks: all units step in sync!", demoSteps: ["clock", "cu", "alu", "regs"], what: "Sends a steady pulse. On each tick every part takes one step, bounded by the critical path.", analogy: "Like the drummer in a rowing boat. Everyone pulls their oar on the beat." },
+    { key: "pipe", name: "Pipeline", short: "PIPE", color: "#ff8a3d", stage: 2, cost: 600, cps: 8, slot: [0, 3, 8, 1], desc: "Overlaps instructions so no part sits idle.", levels: ["2-stage (Fetch/Exec)", "5-stage (IF-ID-EX-MEM-WB)", "2-way Superscalar", "3-way Superscalar", "4-way Wide Issue"], levelNotes: ["Overlaps fetch and execute for ~0.50 ideal IPC.", "Classic textbook 5-stage RISC pipeline: 1.00 ideal IPC.", "Dual execution pipes issue up to 2 instructions/cycle (2.00 IPC).", "Three parallel issue lanes push ideal IPC to 3.00.", "Wide superscalar backend targets up to 4.00 ideal IPC."], demoText: "🏭 PIPE overlaps 5 instructions at once!", demoSteps: ["cu", "regs", "alu", "pipe"], what: "Splits each instruction into stages so several instructions are in progress at the same time.", analogy: "Like doing laundry. While load 1 is in the dryer, load 2 is already in the washer." },
+    { key: "decoder", name: "Instruction Decoder", short: "DEC", color: "#14b8a6", stage: 3, cost: 900, cps: 10, slot: [5, 0, 3, 1], desc: "Turns instruction bits into control signals.", levels: ["Fixed 6-bit decode", "Richer opcode decode", "32-bit fixed ISA", "Micro-op translator", "4-wide decode"], levelNotes: ["Parses simple 2-bit opcode and 2-bit register fields.", "Handles immediate constants and branch offsets.", "Fixed-length 32-bit RISC decoding in a single cycle.", "Breaks complex instructions into simple internal micro-ops.", "Decodes up to 4 instructions simultaneously each cycle."], demoText: "🔐 DEC translates: [01 10 01] → SUB R2, R1!", demoSteps: ["decoder", "cu"], what: "Takes the binary instruction and works out which operation and which registers it means.", analogy: "Like a translator who turns a sentence in machine language into steps the other parts can follow." },
+    { key: "l1", name: "L1 Cache", short: "L1", color: "#22c55e", stage: 4, cost: 1500, cps: 16, slot: [0, 4, 4, 2], desc: "Smallest, fastest memory next to the core.", levels: ["1 KB L1", "4 KB L1", "16 KB Split I/D", "32 KB 8-way L1", "64 KB Low-latency"], levelNotes: ["Tiny 1 KB SRAM buffer catches tight inner loops.", "4 KB SRAM cuts DRAM trips significantly.", "Splits Instruction & Data caches (Harvard style) to avoid structural hazards!", "8-way set associative 32 KB reduces conflict misses.", "64 KB high-speed L1 keeps hot working sets ~1 ns away."], demoText: "⚡ L1 HIT = 1ns! (vs 🐢 RAM = 60ns)", demoSteps: ["l1", "regs"], what: "Keeps recently used data right beside the CPU so it does not wait for slow RAM.", analogy: "Like keeping your textbook open on your desk instead of walking to the library every time." },
+    { key: "l2", name: "L2 Cache", short: "L2", color: "#84cc16", stage: 4, cost: 2800, cps: 26, slot: [0, 6, 8, 2], desc: "Bigger, slightly slower backup cache.", levels: ["16 KB L2", "64 KB L2", "256 KB L2", "1 MB L2", "4 MB L2"], levelNotes: ["Catches L1 capacity misses before reaching main DRAM.", "64 KB unified L2 holds both instructions and data.", "256 KB per-core L2 cuts average memory access time (AMAT).", "1 MB L2 holds large textures and working arrays on-die.", "4 MB shared L2 keeps multi-core data close."], demoText: "🗄️ L2 catches L1 misses in ~4ns!", demoSteps: ["l2", "l1", "regs"], what: "A larger cache that catches what L1 misses, reducing trips all the way to RAM.", analogy: "Like the bookshelf in your room. Bigger than your desk, still much closer than the library." },
+    { key: "fpu", name: "Floating-Point Unit (FPU)", short: "FPU", color: "#ec4899", stage: 5, cost: 5000, cps: 40, slot: [5, 1, 3, 2], desc: "Fast math on decimal numbers.", levels: ["IEEE-754 Single (32b)", "IEEE-754 Double (64b)", "Pipelined FPU", "FMA (Fused Mul-Add)", "SIMD Vector FPU"], levelNotes: ["Hardware sign/exponent/mantissa logic for 32-bit floats.", "64-bit double precision reduces scientific rounding error.", "Pipelined FP add/mul stages sustain 1 op per cycle.", "Fused Multiply-Add performs a×b+c in one rounding step.", "Vector lanes process multiple floats in parallel per instruction."], demoText: "🎯 FPU crunches: 3.14159 × 10²!", demoSteps: ["regs", "fpu", "regs"], what: "Handles numbers with decimal points (like 3.14159) in IEEE-754 sign + exponent + mantissa format.", analogy: "Like a scientific calculator with a decimal key, versus one that only handles integers." },
+    { key: "cores", name: "Multi-core", short: "CORES", color: "#06b6d4", stage: 5, cost: 9000, cps: 70, slot: [4, 4, 4, 2], desc: "More cores means more parallel work.", levels: ["1 Core (Single)", "2 Cores (Dual)", "4 Cores (Quad)", "8 Cores (Octa)", "16 Cores (SoC)"], levelNotes: ["Single hardware thread executes one stream at a time.", "Dual cores double throughput on independent tasks.", "Quad cores balance parallel work against Amdahl's serial fraction.", "8 cores accelerate parallel rendering & batch jobs.", "16-core SoC scales massively parallel workloads."], demoText: "🧩 CORES run 4 independent tasks simultaneously!", demoSteps: ["pipe", "cores", "l2"], what: "Several complete CPU cores on one chip running independent instructions at the same time.", analogy: "Like opening more checkout lanes at a store. Serial tasks still wait in one line." }
 ];
-
-var PART = {};
-for (var pi = 0; pi < PARTS.length; pi++) {
-  PART[PARTS[pi].key] = PARTS[pi];
-}
-
+var PART = {}; for (var pi = 0; pi < PARTS.length; pi++) PART[PARTS[pi].key] = PARTS[pi];
 var TAGS = ["STAGE 1 · BASIC CPU", "STAGE 2 · THE CPU IN MOTION", "STAGE 3 · SPEAKING CPU", "STAGE 4 · MEMORY HIERARCHY", "STAGE 5 · BEYOND THE CPU"];
 
-// =====================================================
-// DATA: the 5 stages (each stage = parts you build by beating minigames)
-// =====================================================
 var STAGES = [
-  { name: "KNOW CPU", blurb: "Meet the three core parts. Beat each minigame to build them.", parts: ["cu", "alu", "regs"] },
-  { name: "The CPU in Motion", blurb: "Make the chip tick and keep instructions flowing.", parts: ["clock", "pipe"] },
-  { name: "Speaking CPU", blurb: "Instructions are just bits. Learn to read and write them.", parts: ["decoder"] },
-  { name: "The Memory Hierarchy", blurb: "Keep the right data in the right place.", parts: ["l1", "l2"] },
-  { name: "Beyond the CPU", blurb: "Decimals and teamwork: FPUs and multiple cores.", parts: ["fpu", "cores"] }
+    {
+        name: "KNOW CPU", what: "Assemble the core brain of the processor: Control Unit (CU), ALU, and Registers.", goal: "Earn ★ in all 3 challenges to mount the first 3D components onto silicon.", outcome: "Distinguish control signaling, binary arithmetic/logic (including 4-bit overflow), and register storage.", objTitle: "Obj 1 · Core Parts & Binary", model: "Model 1 · Core Tri-Unit", spec: "CU + ALU + REG", blurb: "Build the 3 core units: Control Unit, ALU & Registers.", parts: ["cu", "alu", "regs"],
+        speech: "Let's snap the 3 core brain parts onto bare silicon!",
+        beforeVis: "<div class='mono' style='font-size:18px'>🟫 Bare Die</div><small class='muted'>No math, no memory</small>",
+        afterVis: "<div class='mono' style='font-size:15px'>🎛️CU + 🧮ALU + 🗂️REG</div><small style='color:#065f46'>Computes &amp; routes binary!</small>"
+    },
+    {
+        name: "The CPU in Motion", what: "Bring the CPU to life with a Clock pulse and a 5-stage instruction Pipeline.", goal: "Sync the clock setup window and solve 2- & 3-instruction hazards in Hazard Lab.", outcome: "Trace IF-ID-EX-MEM-WB cycles and decide between Normal Run, Forwarding, 1-Cycle Stall, and Branch Flush.", objTitle: "Obj 2 · Clock & Pipeline", model: "Model 2 · Pipelined Core", spec: "+ Clock + 5-Stage Pipe", blurb: "Sync the clock beat and resolve real pipeline hazards.", parts: ["clock", "pipe"],
+        speech: "Add a Clock & Pipeline so instructions overlap!",
+        beforeVis: "<div class='mono' style='font-size:13px'>[Inst 1] ──▶ [Inst 2] 🐢</div><small class='muted'>1 instruction at a time</small>",
+        afterVis: "<div class='mono' style='font-size:13px;color:#065f46'>IF|ID|EX|MEM|WB 🚀</div><small style='color:#065f46'>Up to 5 overlapped!</small>"
+    },
+    {
+        name: "Speaking CPU", what: "Add the Instruction Decoder and choose RISC vs CISC silicon design trade-offs.", goal: "Decode 6-bit opcodes/operands and encode assembly instructions back into binary.", outcome: "Read binary instruction fields and explain RISC vs CISC complexity trade-offs.", objTitle: "Obj 3 · Binary ISA & RISC/CISC", model: "Model 3 · Decoded ISA", spec: "+ Binary Decoder", blurb: "Decode instruction bits & pick RISC vs CISC silicon.", parts: ["decoder"],
+        speech: "Turn raw 0s & 1s into CPU actions—and choose your ISA!",
+        beforeVis: "<div class='mono' style='font-size:16px'>01 10 01 ❓</div><small class='muted'>Raw unreadable bits</small>",
+        afterVis: "<div class='mono' style='font-size:15px;color:#065f46'>🔐 SUB R2, R1</div><small style='color:#065f46'>Decoded in 1 cycle!</small>"
+    },
+    {
+        name: "The Memory Hierarchy", what: "Bridge the speed gap between fast cores and slow RAM using L1 & L2 Caches.", goal: "Evict Least-Recently-Used (LRU) blocks on misses and match workloads to memory tiers.", outcome: "Apply temporal locality, LRU replacement, and capacity-speed trade-offs across REG/L1/L2/RAM/SSD.", objTitle: "Obj 4 · Cache LRU & Tiers", model: "Model 4 · Cached Core", spec: "+ L1 & L2 SRAM", blurb: "Keep hot data 1ns away and beat the Memory Wall.", parts: ["l1", "l2"],
+        speech: "RAM is 60× slower than the CPU—let's build L1 & L2 Caches!",
+        beforeVis: "<div class='mono' style='font-size:13px'>CPU ── 60ns ──▶ RAM 🐢</div><small class='muted'>Stalls waiting on RAM</small>",
+        afterVis: "<div class='mono' style='font-size:13px;color:#065f46'>CPU ─ 1ns ─▶ ⚡L1 ─▶ L2</div><small style='color:#065f46'>Hot data right beside core!</small>"
+    },
+    {
+        name: "Beyond the CPU", what: "Scale compute with FPU, Multi-core parallelism, and CPU vs GPU/NPU silicon trade-offs.", goal: "Master floating-point scaling and schedule parallel vs serial tasks across 4 cores.", outcome: "Understand floating-point scaling, Amdahl's Law, and CPU vs GPU/NPU workload suitability.", objTitle: "Obj 5 · FPU, Cores & GPU/NPU", model: "Model 5 · Full Multi-Core SoC", spec: "+ FPU + Multi-Core", blurb: "Unlock decimals, parallel cores, and vector lanes.", parts: ["fpu", "cores"],
+        speech: "Scale up with Floating-Point math & Multi-Core parallelism!",
+        beforeVis: "<div class='mono' style='font-size:14px'>1 Core · Int only 🧱</div><small class='muted'>Draws 1 row at a time</small>",
+        afterVis: "<div class='mono' style='font-size:14px;color:#065f46'>4 Cores + 🎯 FPU 🧩</div><small style='color:#065f46'>Draws 4 rows at once!</small>"
+    }
 ];
 
+var FAULTS = [
+    { ans: "alu", need: "alu", cKey: "cu_vs_alu", symptom: "ADD R1, R2 runs, but no sum is produced!", why: "ALU performs math (+, -) and logic.", wrong: { cu: "CU only sends signals; it doesn't do math.", regs: "REG stores values; it can't add." } },
+    { ans: "cu", need: "cu", cKey: "cu_vs_alu", symptom: "Parts have power, but nothing runs in sequence!", why: "CU directs control signals & order.", wrong: { alu: "ALU computes math, not order.", clock: "Clock sets the beat; CU sets the plan." } },
+    { ans: "regs", need: "regs", cKey: "regs_vs_l1", symptom: "Operands vanish between steps without slow RAM!", why: "Registers hold active operands inside the core.", wrong: { l1: "L1 caches RAM blocks; active operands sit in REG.", alu: "ALU computes; it doesn't store operands." } },
+    { ans: "clock", need: "clock", cKey: "cu_vs_clk", symptom: "Units fire out of step with each other!", why: "Clock provides the shared timing pulse.", wrong: { cu: "CU picks ops; Clock provides the beat." } },
+    { ans: "decoder", need: "decoder", cKey: "dec_vs_cu", symptom: "Bits arrive, but CPU can't tell ADD from LOAD!", why: "Decoder translates opcode bits.", wrong: { cu: "Decoder parses opcode bits first." } },
+    { ans: "l1", need: "l1", cKey: "regs_vs_l1", symptom: "Loop data keeps crawling slowly to RAM!", why: "L1 Cache keeps recent memory blocks beside the core.", wrong: { regs: "REG holds single operands; memory blocks live in L1." } }
+];
+
+var GOLDEN_RESCUES = [
+    { key: "cu", badge: "🚦 UNITS OUT OF ORDER!", clue: "Click the TRAFFIC DIRECTOR", cKey: "cu_vs_alu" },
+    { key: "alu", badge: "🧮 12 + 7 = ??? (OVERFLOW!)", clue: "Click the MATH & LOGIC UNIT", cKey: "alu_overflow" },
+    { key: "regs", badge: "📝 OPERANDS LOST IN RAM!", clue: "Click the FAST SCRATCHPAD SLOTS", cKey: "regs_stall" },
+    { key: "clock", badge: "⏱️ SIGNALS DRIFTING OUT OF SYNC!", clue: "Click the HEARTBEAT / CLOCK", cKey: "cu_vs_clk" },
+    { key: "pipe", badge: "🏭 ONLY 1 INST AT A TIME!", clue: "Click the ASSEMBLY LINE", cKey: "pipe_fwd" },
+    { key: "decoder", badge: "🔐 01 10 01 = ???", clue: "Click the BIT TRANSLATOR", cKey: "decoder_bits" },
+    { key: "l1", badge: "🐢 RAM TOO SLOW (60ns)!", clue: "Click the 1ns FASTEST CACHE", cKey: "l1_lru" },
+    { key: "l2", badge: "🗄️ L1 MISSED! NEED BACKUP!", clue: "Click the L2 BACKUP CACHE", cKey: "l2_tier" },
+    { key: "fpu", badge: "🎯 3.14159 × 10² = ???", clue: "Click the DECIMAL MATH UNIT", cKey: "fpu_float" },
+    { key: "cores", badge: "🧩 4 PARALLEL TASKS WAITING!", clue: "Click the MULTI-LANE ENGINE", cKey: "cores_serial" }
+];
+
+var CONFUSIONS = {
+    cu_dispatch: { stage: 0, title: "ALU vs Registers vs Memory", a: ["ALU", "Computes math & logic (ADD, SUB, AND, CMP)."], b: ["Registers / Memory", "MOV copies between Registers; LOAD/STORE moves to/from RAM."], hint1: "Look at the verb: math -> ALU, MOV/SWAP -> Registers, LOAD/STORE -> Memory.", hint2: "Only LOAD/STORE touch Memory; MOV stays inside Registers!" },
+    alu_logic: { stage: 0, title: "Bitwise AND / OR / XOR / ADD", a: ["AND / OR / XOR", "Compare bit-by-bit (no carries between columns!)."], b: ["Binary ADD", "8-4-2-1 columns sum up; 1+1 = 0 carry 1 to the left!"], hint1: "Check each column (8, 4, 2, 1) against the rule under the badge.", hint2: "Convert A and B to decimal for ADD, or go column-by-column for AND/OR/XOR!" },
+    alu_overflow: { stage: 0, title: "4-Bit Overflow (OVF / Carry=16)", a: ["Fits in 4 bits (0..15)", "OVF stays 0; normal 8-4-2-1 sum."], b: ["Sum >= 16", "4 bits overflow! Flip OVF (16) ON + remainder in 8-4-2-1."], hint1: "4 bits max out at 15! Check if A + B >= 16—if so, turn ON the red OVF (16) lamp!", hint2: "Overflow! Turn ON OVF (worth 16) plus the remaining bits (e.g. 19 = 16 + 2 + 1)." },
+    regs_stall: { stage: 0, title: "Register Pre-loading vs RAM", a: ["Registers (R1-R4)", "Only 4 slots, 1-tick speed. Both operands MUST be here!"], b: ["RAM (a-g)", "Holds all variables, too slow for direct ALU execution."], hint1: "Check the NOW card—make sure BOTH variables sit in R1-R4 before the bar empties!", hint2: "Watch the upcoming cards and pre-load the variable missing from R1-R4." },
+    clock_edge: { stage: 1, title: "Setup Window vs Clock Edge", a: ["Too Early", "Critical path signals haven't stabilized yet!"], b: ["Green Ring", "All units (CU, ALU, REG, MEM) settled and latch cleanly."], hint1: "Wait until the yellow pulse enters the green circle before hitting TICK.", hint2: "Press SPACE right as the pulse overlaps the green ring—not before!" },
+    pipe_none: { stage: 1, title: "No Hazard vs Data Hazard", a: ["Independent Regs", "Inst B doesn't read Inst A's destination -> Run Normally (0 stalls)!"], b: ["RAW Dependency", "Inst B reads the exact register that Inst A is writing."], hint1: "Check the register names! Does the next instruction actually read the previous output register?", hint2: "False alarm: the written register is NOT read by the following instructions—no fix needed!" },
+    pipe_fwd: { stage: 1, title: "EX->EX Forward vs Stall", a: ["EX->EX (ADD -> SUB)", "ALU finishes result at EX -> Forward with 0 stalls!"], b: ["Load-Use (LW -> ADD)", "LW reads RAM in MEM, 1 cycle later -> needs 1 Stall."], hint1: "Inst A computes in ALU (ADD/SUB)! Forwarding routes it right into B's EX stage.", hint2: "Never waste a stall cycle when EX->EX Forwarding solves it in 0 stalls!" },
+    pipe_loaduse: { stage: 1, title: "Load-Use (LW) vs Normal Forward", a: ["LW (Memory Read)", "Data isn't ready until END of MEM stage."], b: ["Why 1 Stall?", "Hardware can't forward backward in time—stall 1 cycle, then MEM->EX forward."], hint1: "Inst A is LW (Load Word)! When does LW actually get data from memory?", hint2: "Repeated Load-Use slip: LW finishes at MEM (cycle 4), so the dependent instruction MUST stall 1 cycle!" },
+    pipe_sched: { stage: 1, title: "Compiler Scheduling (3-Inst Transfer)", a: ["Adjacent LW -> SUB", "Must stall 1 cycle because MEM finishes too late."], b: ["Independent I2 in Between", "I2 fills the 1-cycle load slot naturally -> MEM->EX Forward with 0 extra stalls!"], hint1: "Look at I2 between LW and SUB! Did that unrelated instruction already fill the 1-cycle wait?", hint2: "Compiler trick: I2 ran while LW was in MEM, so I3 gets R1 via Forwarding with 0 extra stalls!" },
+    pipe_struct: { stage: 1, title: "Structural Hazard (Shared Hardware)", a: ["Single Memory Port", "MEM (LW) and IF (Fetch) collide on the same memory bus!"], b: ["Fix", "Stall IF 1 cycle (or split I-Cache & D-Cache like Harvard)."], hint1: "Both instructions need the single memory port in the same cycle!", hint2: "Structural conflict: two stages want the same physical bus -> Stall 1 cycle!" },
+    pipe_branch: { stage: 1, title: "Control Hazard (Branch/Jump)", a: ["Data Hazard", "Forward/Stall fixes a register value or bus conflict."], b: ["Taken Branch/Jump", "Wrong instruction fetched at PC+4 -> must FLUSH it!"], hint1: "Inst A is a TAKEN branch/jump! Should PC+4 even finish?", hint2: "Forwarding/Stalling can't fix a wrong-path fetch—you must FLUSH the wrong path!" },
+    decoder_bits: { stage: 2, title: "Opcode vs Register Bitfields", a: ["First 2 bits (Purple)", "Pick the operation (00 ADD, 01 SUB, 10 AND, 11 OR)."], b: ["Last 4 bits (Blue/Green)", "2 bits for Reg 1, 2 bits for Reg 2 (00=R0..11=R3)."], hint1: "Read the 6 bits in three 2-bit pairs: [OP] [Reg A] [Reg B].", hint2: "Check the top legend: purple=OP, blue=1st reg, green=2nd reg!" },
+    l1_lru: { stage: 3, title: "LRU Eviction Policy", a: ["Age = 0 (Green)", "Just used! Very likely to be needed again soon."], b: ["Highest Age (Red)", "Least Recently Used (LRU)—kick this slot out on a MISS!"], hint1: "Look for the REDDEST bar (highest age number), not the letter!", hint2: "LRU means Least Recently Used: always evict the slot with the LARGEST age." },
+    l2_tier: { stage: 3, title: "Memory Hierarchy Trade-offs", a: ["Hot & Tiny (REG / L1)", "Bytes to KB, <1 ns, accessed every cycle or inner loop."], b: ["Cold & Huge (RAM / SSD)", "Gigabytes to Terabytes, much slower, holds whole apps/archives."], hint1: "Ask: How BIG is the data, and HOW OFTEN is it read?", hint2: "<10KB hot loop -> REG/L1; GB apps -> RAM; archival files -> SSD." },
+    fpu_float: { stage: 4, title: "Floating-Point Exponent Shift", a: ["Positive Exponent (+e)", "Number gets BIGGER -> float decimal point RIGHT."], b: ["Negative Exponent (-e)", "Number gets SMALLER (0.0xx) -> float decimal point LEFT."], hint1: "Count places from the original decimal point: + moves right, - moves left.", hint2: "Negative exponent means < 1 (decimal sits near the left zeros)!" },
+    cores_serial: { stage: 4, title: "Amdahl's Law (Serial Lock)", a: ["Parallel (IMG/MAT)", "Run simultaneously on any idle cores."], b: ["SERIAL Task", "Needs ALL 4 cores idle before starting, and blocks everyone until done."], hint1: "Wait for all 4 cores to finish before dispatching a SERIAL task!", hint2: "Amdahl's Law: serial sections cannot overlap with parallel work." },
+    cu_vs_alu: { stage: 0, title: "Control Unit vs ALU", a: ["Control Unit (CU)", "Orchestrates sequence & signals—does NO math."], b: ["ALU", "Executes arithmetic (+, -) and logic (AND, OR)."], hint1: "Is the symptom about math results (ALU) or sequencing/coordination (CU)?", hint2: "CU = conductor (order), ALU = calculator (math)!" },
+    regs_vs_l1: { stage: 3, title: "Registers vs L1 Cache", a: ["Registers", "Holds active instruction operands inside the core."], b: ["L1 Cache", "Keeps copies of recently fetched RAM blocks to cut latency."], hint1: "Are operands failing between steps (REG), or is RAM access slow (L1)?", hint2: "Registers = active operands; L1 Cache = nearby copy of RAM blocks!" },
+    cu_vs_clk: { stage: 1, title: "Control Unit vs Clock", a: ["Control Unit", "Decides WHAT signals fire."], b: ["Clock", "Sends the timing PULSE so everything steps together."], hint1: "Timing/rhythm out of sync points to the Clock!", hint2: "CU controls what happens; Clock controls when (the beat)." },
+    dec_vs_cu: { stage: 2, title: "Decoder vs Control Unit", a: ["Instruction Decoder", "Parses opcode bits (ADD vs LOAD)."], b: ["Control Unit", "Drives control wires after the opcode is decoded."], hint1: "Can't tell ADD from LOAD? That's binary opcode parsing (Decoder)!", hint2: "Decoder translates the instruction bits; CU executes the resulting control plan." }
+};
+var BOT_DARES = [
+    { id: "combo5", text: "Hit a 5-Combo in any game", reward: 160, check: function (c) { return c.combo >= 5; } },
+    { id: "fault1", text: "Fix a 3D Fault on 1st click", reward: 200, check: function (c) { return c.faultFirstTry; } },
+    { id: "pipe3", text: "Score 80+ in Hazard Lab", reward: 260, check: function (c) { return c.game === "pipe" && c.score >= 80; } },
+    { id: "l1_75", text: "Finish Cache Keeper ≥ 75% hits", reward: 300, check: function (c) { return c.game === "l1" && c.hitRate >= 75; } },
+    { id: "stars3", text: "Earn 3 Stars on any part", reward: 350, check: function (c) { return c.stars === 3; } }
+];
+
+// 16x16 Pixel Art Rocket/Chip pattern for the Live Visual Render Test!
+var PIXEL_ART = [
+    ".......YY.......",
+    "......YYYY......",
+    ".....YYWWYY.....",
+    ".....YWWWWY.....",
+    "....BBWWWWBB....",
+    "....BBCCCCBB....",
+    "...BBBCCCCBBB...",
+    "...BBBBBBBBBB...",
+    "..RBBBBBBBBBBQ..",
+    "..RBBGGGGGGBBQ..",
+    ".RRBBGGGGGGGBBQ.",
+    ".RRBBBBBBBBBBQQ.",
+    "....BB.BB.BB....",
+    "....YY....YY....",
+    "...YYR....RYY...",
+    "...R........R..."
+];
+var PX_COLORS = { ".": "#0f172a", "B": "#38bdf8", "C": "#7dd3fc", "W": "#f8fafc", "Y": "#fbbf24", "G": "#10b981", "R": "#f87171", "Q": "#fb7185" };
