@@ -1,4 +1,4 @@
-// content.js: DATA: PARTS, STAGES, FAULTS, CONFUSIONS, BOT_DARES
+// content.js: DATA: PARTS, STAGES, TAGS, FAULTS, CONFUSIONS, CHIP_ERAS, CHAT_QA
 // ---------------------------------------------------------
 var PARTS = [
     { key: "cu", name: "Control Unit (CU)", short: "CU", color: "#7c5cff", stage: 1, cost: 120, cps: 2, slot: [2, 0, 3, 1], desc: "The director of the processor.", levels: ["Hardwired control", "Microcoded control", "Pipelined control paths", "Out-of-order control", "Speculative control"], levelNotes: ["Fixed combinational logic sequences one instruction at a time.", "ROM micro-instructions support richer multi-step instructions.", "Propagates control signals stage-by-stage alongside the pipeline.", "Schedules ready instructions dynamically to reduce stalls.", "Predicts branch paths early and commits results in order."], demoText: "📡 CU fires signals to DEC → REG → ALU!", demoSteps: ["cu", "decoder", "regs", "alu"], what: "Reads each instruction and sends signals telling the other parts what to do and when.", analogy: "Like a conductor in an orchestra. It plays no instrument, but nothing happens in the right order without it." },
@@ -29,7 +29,7 @@ var STAGES = [
         afterVis: "<div class='mono' style='font-size:13px;color:#065f46'>IF|ID|EX|MEM|WB 🚀</div><small style='color:#065f46'>Up to 5 overlapped!</small>"
     },
     {
-        name: "Speaking CPU", what: "Add the Instruction Decoder and choose RISC vs CISC silicon design trade-offs.", goal: "Decode 6-bit opcodes/operands and encode assembly instructions back into binary.", outcome: "Read binary instruction fields and explain RISC vs CISC complexity trade-offs.", objTitle: "Obj 3 · Binary ISA & RISC/CISC", model: "Model 3 · Decoded ISA", spec: "+ Binary Decoder", blurb: "Decode instruction bits & pick RISC vs CISC silicon.", parts: ["decoder"],
+        name: "Speaking CPU", what: "Add the Instruction Decoder and compare RISC vs CISC silicon design trade-offs.", goal: "Decode 6-bit opcodes/operands and encode assembly instructions back into binary.", outcome: "Read binary instruction fields and explain RISC vs CISC complexity trade-offs.", objTitle: "Obj 3 · Binary ISA & RISC/CISC", model: "Model 3 · Decoded ISA", spec: "+ Binary Decoder", blurb: "Decode instruction bits & pick RISC vs CISC silicon.", parts: ["decoder"],
         speech: "Turn raw 0s & 1s into CPU actions—and choose your ISA!",
         beforeVis: "<div class='mono' style='font-size:16px'>01 10 01 ❓</div><small class='muted'>Raw unreadable bits</small>",
         afterVis: "<div class='mono' style='font-size:15px;color:#065f46'>🔐 SUB R2, R1</div><small style='color:#065f46'>Decoded in 1 cycle!</small>"
@@ -41,33 +41,24 @@ var STAGES = [
         afterVis: "<div class='mono' style='font-size:13px;color:#065f46'>CPU ─ 1ns ─▶ ⚡L1 ─▶ L2</div><small style='color:#065f46'>Hot data right beside core!</small>"
     },
     {
-        name: "Beyond the CPU", what: "Scale compute with FPU, Multi-core parallelism, and CPU vs GPU/NPU silicon trade-offs.", goal: "Master floating-point scaling and schedule parallel vs serial tasks across 4 cores.", outcome: "Understand floating-point scaling, Amdahl's Law, and CPU vs GPU/NPU workload suitability.", objTitle: "Obj 5 · FPU, Cores & GPU/NPU", model: "Model 5 · Full Multi-Core SoC", spec: "+ FPU + Multi-Core", blurb: "Unlock decimals, parallel cores, and vector lanes.", parts: ["fpu", "cores"],
+        name: "Beyond the CPU", what: "Scale compute with Hardware Floating-Point Math (FPU) and Multi-core parallelism.", goal: "Master floating-point scaling and schedule parallel vs serial tasks across 4 cores.", outcome: "Understand floating-point exponent scaling and Amdahl's Law serial bottlenecks.", objTitle: "Obj 5 · FPU & Multi-core", model: "Model 5 · Full Multi-Core SoC", spec: "+ FPU + Multi-Core", blurb: "Unlock decimals and parallel multi-core scheduling.", parts: ["fpu", "cores"],
         speech: "Scale up with Floating-Point math & Multi-Core parallelism!",
-        beforeVis: "<div class='mono' style='font-size:14px'>1 Core · Int only 🧱</div><small class='muted'>Draws 1 row at a time</small>",
-        afterVis: "<div class='mono' style='font-size:14px;color:#065f46'>4 Cores + 🎯 FPU 🧩</div><small style='color:#065f46'>Draws 4 rows at once!</small>"
+        beforeVis: "<div class='mono' style='font-size:14px'>1 Core · Int only 🧱</div><small class='muted'>Runs 1 stream at a time</small>",
+        afterVis: "<div class='mono' style='font-size:14px;color:#065f46'>4 Cores + 🎯 FPU 🧩</div><small style='color:#065f46'>Parallel tasks + decimals!</small>"
     }
 ];
 
 var FAULTS = [
-    { ans: "alu", need: "alu", cKey: "cu_vs_alu", symptom: "ADD R1, R2 runs, but no sum is produced!", why: "ALU performs math (+, -) and logic.", wrong: { cu: "CU only sends signals; it doesn't do math.", regs: "REG stores values; it can't add." } },
-    { ans: "cu", need: "cu", cKey: "cu_vs_alu", symptom: "Parts have power, but nothing runs in sequence!", why: "CU directs control signals & order.", wrong: { alu: "ALU computes math, not order.", clock: "Clock sets the beat; CU sets the plan." } },
-    { ans: "regs", need: "regs", cKey: "regs_vs_l1", symptom: "Operands vanish between steps without slow RAM!", why: "Registers hold active operands inside the core.", wrong: { l1: "L1 caches RAM blocks; active operands sit in REG.", alu: "ALU computes; it doesn't store operands." } },
-    { ans: "clock", need: "clock", cKey: "cu_vs_clk", symptom: "Units fire out of step with each other!", why: "Clock provides the shared timing pulse.", wrong: { cu: "CU picks ops; Clock provides the beat." } },
-    { ans: "decoder", need: "decoder", cKey: "dec_vs_cu", symptom: "Bits arrive, but CPU can't tell ADD from LOAD!", why: "Decoder translates opcode bits.", wrong: { cu: "Decoder parses opcode bits first." } },
-    { ans: "l1", need: "l1", cKey: "regs_vs_l1", symptom: "Loop data keeps crawling slowly to RAM!", why: "L1 Cache keeps recent memory blocks beside the core.", wrong: { regs: "REG holds single operands; memory blocks live in L1." } }
-];
-
-var GOLDEN_RESCUES = [
-    { key: "cu", badge: "🚦 UNITS OUT OF ORDER!", clue: "Click the TRAFFIC DIRECTOR", cKey: "cu_vs_alu" },
-    { key: "alu", badge: "🧮 12 + 7 = ??? (OVERFLOW!)", clue: "Click the MATH & LOGIC UNIT", cKey: "alu_overflow" },
-    { key: "regs", badge: "📝 OPERANDS LOST IN RAM!", clue: "Click the FAST SCRATCHPAD SLOTS", cKey: "regs_stall" },
-    { key: "clock", badge: "⏱️ SIGNALS DRIFTING OUT OF SYNC!", clue: "Click the HEARTBEAT / CLOCK", cKey: "cu_vs_clk" },
-    { key: "pipe", badge: "🏭 ONLY 1 INST AT A TIME!", clue: "Click the ASSEMBLY LINE", cKey: "pipe_fwd" },
-    { key: "decoder", badge: "🔐 01 10 01 = ???", clue: "Click the BIT TRANSLATOR", cKey: "decoder_bits" },
-    { key: "l1", badge: "🐢 RAM TOO SLOW (60ns)!", clue: "Click the 1ns FASTEST CACHE", cKey: "l1_lru" },
-    { key: "l2", badge: "🗄️ L1 MISSED! NEED BACKUP!", clue: "Click the L2 BACKUP CACHE", cKey: "l2_tier" },
-    { key: "fpu", badge: "🎯 3.14159 × 10² = ???", clue: "Click the DECIMAL MATH UNIT", cKey: "fpu_float" },
-    { key: "cores", badge: "🧩 4 PARALLEL TASKS WAITING!", clue: "Click the MULTI-LANE ENGINE", cKey: "cores_serial" }
+    { ans: "alu", need: "alu", cKey: "cu_vs_alu", symptom: "12 + 7 = ??? (Overflow! No sum produced!)", why: "ALU performs math (+, -) and logic.", wrong: { cu: "CU only sends signals; it doesn't do math.", regs: "REG stores values; it can't add." } },
+    { ans: "cu", need: "cu", cKey: "cu_vs_alu", symptom: "Units have power, but run out of order!", why: "CU directs control signals & execution order.", wrong: { alu: "ALU computes math, not order.", clock: "Clock sets the beat; CU sets the plan." } },
+    { ans: "regs", need: "regs", cKey: "regs_vs_l1", symptom: "Active operands vanish between steps!", why: "Registers hold active operands inside the core.", wrong: { l1: "L1 caches RAM blocks; active operands sit in REG.", alu: "ALU computes; it doesn't store operands." } },
+    { ans: "clock", need: "clock", cKey: "cu_vs_clk", symptom: "Signals are drifting out of sync!", why: "Clock provides the shared timing pulse.", wrong: { cu: "CU picks ops; Clock provides the beat." } },
+    { ans: "pipe", need: "pipe", cKey: "pipe_fwd", symptom: "Only 1 instruction runs at a time (no overlap)!", why: "Pipeline overlaps IF-ID-EX-MEM-WB stages.", wrong: { cu: "CU sends control; Pipeline overlaps multiple instructions." } },
+    { ans: "decoder", need: "decoder", cKey: "dec_vs_cu", symptom: "01 10 01 arrives, CPU can't tell ADD from LOAD!", why: "Decoder translates opcode bits into signals.", wrong: { cu: "Decoder parses opcode bits first." } },
+    { ans: "l1", need: "l1", cKey: "regs_vs_l1", symptom: "RAM too slow (60ns)! Loop data stalls core!", why: "L1 Cache keeps recent memory blocks 1ns from the core.", wrong: { regs: "REG holds single operands; memory blocks live in L1." } },
+    { ans: "l2", need: "l2", cKey: "l2_tier", symptom: "L1 missed! Need on-die backup before slow RAM!", why: "L2 Cache catches L1 misses in ~4ns.", wrong: { l1: "L1 already missed—L2 is the larger backup cache!" } },
+    { ans: "fpu", need: "fpu", cKey: "fpu_float", symptom: "3.14159 × 10² stalls integer hardware!", why: "FPU handles IEEE-754 decimal numbers.", wrong: { alu: "Standard ALU handles integers; FPU handles floats." } },
+    { ans: "cores", need: "cores", cKey: "cores_serial", symptom: "4 independent tasks queued on 1 lane!", why: "Multi-core runs parallel streams simultaneously.", wrong: { pipe: "Pipeline overlaps 1 stream; Multi-core runs separate threads." } }
 ];
 
 var CONFUSIONS = {
@@ -92,31 +83,39 @@ var CONFUSIONS = {
     cu_vs_clk: { stage: 1, title: "Control Unit vs Clock", a: ["Control Unit", "Decides WHAT signals fire."], b: ["Clock", "Sends the timing PULSE so everything steps together."], hint1: "Timing/rhythm out of sync points to the Clock!", hint2: "CU controls what happens; Clock controls when (the beat)." },
     dec_vs_cu: { stage: 2, title: "Decoder vs Control Unit", a: ["Instruction Decoder", "Parses opcode bits (ADD vs LOAD)."], b: ["Control Unit", "Drives control wires after the opcode is decoded."], hint1: "Can't tell ADD from LOAD? That's binary opcode parsing (Decoder)!", hint2: "Decoder translates the instruction bits; CU executes the resulting control plan." }
 };
-var BOT_DARES = [
-    { id: "combo5", text: "Hit a 5-Combo in any game", reward: 160, check: function (c) { return c.combo >= 5; } },
-    { id: "fault1", text: "Fix a 3D Fault on 1st click", reward: 200, check: function (c) { return c.faultFirstTry; } },
-    { id: "pipe3", text: "Score 80+ in Hazard Lab", reward: 260, check: function (c) { return c.game === "pipe" && c.score >= 80; } },
-    { id: "l1_75", text: "Finish Cache Keeper ≥ 75% hits", reward: 300, check: function (c) { return c.game === "l1" && c.hitRate >= 75; } },
-    { id: "stars3", text: "Earn 3 Stars on any part", reward: 350, check: function (c) { return c.stars === 3; } }
+
+var CHIP_ERAS = [
+    { id: "bare", name: "BARE SILICON", short: "Empty board", blurb: "No processor yet. Open MENU → STAGES to build parts onto silicon.", nextHint: "Install your first part from Stage 1.", ready: function () { return true; } },
+    { id: "4004", name: "INTEL 4004 CLASS", short: "1971 · first microprocessor", blurb: "A tiny early CPU. First commercial processor on one chip.", nextHint: "Upgrade ALU to 8-bit and build Registers.", ready: function () { return partsOn() >= 1; } },
+    { id: "6502", name: "MOS 6502 CLASS", short: "1975 · 8-bit home computers", blurb: "8-bit chips that powered early home computers and consoles.", nextHint: "Upgrade ALU to 16-bit and build the Clock.", ready: function () { return lvl("alu") >= 2 && lvl("regs") >= 1; } },
+    { id: "8086", name: "INTEL 8086 CLASS", short: "1978 · 16-bit PC era", blurb: "16-bit math with a real system clock. Early PC territory.", nextHint: "Upgrade ALU to 32-bit and build the Decoder.", ready: function () { return lvl("alu") >= 3 && lvl("clock") >= 1; } },
+    { id: "386", name: "INTEL 386 CLASS", short: "1985 · 32-bit protected mode", blurb: "32-bit processing plus a smarter instruction decoder.", nextHint: "Upgrade Pipeline and push Clock to 200 MHz class.", ready: function () { return lvl("alu") >= 4 && lvl("decoder") >= 1; } },
+    { id: "pentium", name: "PENTIUM CLASS", short: "1990s · pipelines go fast", blurb: "Faster clocks and a deeper pipeline keep more work moving at once.", nextHint: "Max the ALU to 64-bit and build L1 Cache.", ready: function () { return lvl("pipe") >= 2 && lvl("clock") >= 3; } },
+    { id: "athlon64", name: "ATHLON 64 CLASS", short: "2003 · mainstream 64-bit", blurb: "64-bit ALU with fast L1 cache right beside the core.", nextHint: "Build FPU, L2 Cache, and upgrade Multi-core to Dual.", ready: function () { return lvl("alu") >= 5 && lvl("l1") >= 1; } },
+    { id: "modern", name: "MODERN MULTI-CORE", short: "Today · many cores, deep cache", blurb: "Multiple cores, L2 cache, and a floating-point unit working together.", nextHint: "You reached the top chip class! Keep upgrading for maximum speed.", ready: function () { return lvl("cores") >= 2 && lvl("l2") >= 1 && lvl("fpu") >= 1; } }
 ];
 
-// 16x16 Pixel Art Rocket/Chip pattern for the Live Visual Render Test!
-var PIXEL_ART = [
-    ".......YY.......",
-    "......YYYY......",
-    ".....YYWWYY.....",
-    ".....YWWWWY.....",
-    "....BBWWWWBB....",
-    "....BBCCCCBB....",
-    "...BBBCCCCBBB...",
-    "...BBBBBBBBBB...",
-    "..RBBBBBBBBBBQ..",
-    "..RBBGGGGGGBBQ..",
-    ".RRBBGGGGGGGBBQ.",
-    ".RRBBBBBBBBBBQQ.",
-    "....BB.BB.BB....",
-    "....YY....YY....",
-    "...YYR....RYY...",
-    "...R........R..."
+var CHAT_QA = [
+    { id: "what", q: "What is this?", a: "You build a 3D CPU piece by piece. Earn instructions, unlock parts in MENU → STAGES, and trace real datapaths." },
+    { id: "instr", q: "What are instructions?", a: "Instructions are your build currency. Hit the green zone on TIME IT for 1.25×, or beat Stage minigames to earn more." },
+    { id: "bar", q: "How does TIME IT + TRACE work?", a: "Pick ADD, LW, or BEQ, then press SPACE or EXECUTE when the needle hits green (1.25×). It awards instructions AND lights up that instruction's 3D path!" },
+    { id: "menu", q: "Where are the stages & upgrades?", a: "Click MENU at the top-right to open STAGES, UPGRADES, PARTS LAB, PROGRESS, and SETTINGS." },
+    { id: "eras", q: "What are chip eras?", a: "As you build and upgrade parts, your silicon evolves through real CPU history: 4004, 6502, 8086, 386, Pentium, Athlon 64, and Modern Multi-Core." },
+    { id: "era4004", era: "4004", q: "What is the 4004?", a: "The Intel 4004 was the first commercial microprocessor in 1971—tiny, 4-bit, and the start of CPUs on one chip." },
+    { id: "era6502", era: "6502", q: "What is the 6502?", a: "The MOS 6502 was a famous 8-bit chip in the 1970s that powered early home computers and consoles." },
+    { id: "era8086", era: "8086", q: "What is the 8086?", a: "The Intel 8086 launched the 16-bit PC era with wider integer math and a steady system clock." },
+    { id: "era386", era: "386", q: "What is the 386?", a: "The Intel 386 brought mainstream 32-bit computing with wider memory reach and smarter decoding." },
+    { id: "eraPentium", era: "pentium", q: "What is Pentium class?", a: "Pentium-era chips pushed faster clocks and deeper pipelines so more instructions overlapped simultaneously." },
+    { id: "era64", era: "athlon64", q: "What is Athlon 64 class?", a: "Mainstream 64-bit computing with wide registers/ALU and fast L1 cache right next to the core." },
+    { id: "eraModern", era: "modern", q: "What is modern multi-core?", a: "Today's processors combine multiple cores, deep L1/L2 cache hierarchies, and pipelined FPUs." },
+    { id: "cu", part: "cu", q: "What is the CU?", a: PART.cu.what + " " + PART.cu.analogy },
+    { id: "alu", part: "alu", q: "What is the ALU?", a: PART.alu.what + " " + PART.alu.analogy },
+    { id: "regs", part: "regs", q: "What are registers?", a: PART.regs.what + " " + PART.regs.analogy },
+    { id: "clock", part: "clock", q: "What is the clock?", a: PART.clock.what + " " + PART.clock.analogy },
+    { id: "pipe", part: "pipe", q: "What is a pipeline?", a: PART.pipe.what + " " + PART.pipe.analogy },
+    { id: "decoder", part: "decoder", q: "What is the decoder?", a: PART.decoder.what + " " + PART.decoder.analogy },
+    { id: "l1", part: "l1", q: "What is L1 cache?", a: PART.l1.what + " " + PART.l1.analogy },
+    { id: "l2", part: "l2", q: "What is L2 cache?", a: PART.l2.what + " " + PART.l2.analogy },
+    { id: "fpu", part: "fpu", q: "What is the FPU?", a: PART.fpu.what + " " + PART.fpu.analogy },
+    { id: "cores", part: "cores", q: "What are cores?", a: PART.cores.what + " " + PART.cores.analogy }
 ];
-var PX_COLORS = { ".": "#0f172a", "B": "#38bdf8", "C": "#7dd3fc", "W": "#f8fafc", "Y": "#fbbf24", "G": "#10b981", "R": "#f87171", "Q": "#fb7185" };

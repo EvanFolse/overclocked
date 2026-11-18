@@ -1,4 +1,4 @@
-// chip.js: Isometric 3D chip drawing, install animation, fault diagnosis
+// chip.js: Isometric 3D chip drawing, install animation, dismissible fault diagnosis
 // ---------------------------------------------------------
 var OX = 360, OY = 95, K = 0.8;
 function iso(x, y, z) { return [OX + (x - y) * 0.866 * K, OY + (x + y) * 0.5 * K - z * K]; }
@@ -8,7 +8,8 @@ function line3(a, b, c, e) { var p = iso(a[0], a[1], a[2]), q = iso(b[0], b[1], 
 function box(x, y, w, d, z0, h, t, l, r, e) { var z1 = z0 + h, s = ""; s += poly([[x, y + d, z1], [x + w, y + d, z1], [x + w, y + d, z0], [x, y + d, z0]], l, e); s += poly([[x + w, y, z1], [x + w, y + d, z1], [x + w, y + d, z0], [x + w, y, z0]], r, e); s += poly([[x, y, z1], [x + w, y, z1], [x + w, y + d, z1], [x, y + d, z1]], t, e); return s; }
 function shade(hex, amt) { var n = parseInt(hex.slice(1), 16), r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255; function f(v) { return amt > 0 ? Math.round(v + (255 - v) * amt) : Math.round(v * (1 + amt)); } return "rgb(" + f(r) + "," + f(g) + "," + f(b) + ")"; }
 function behind(a, b) { return (a.x + a.w <= b.x) || (a.y + a.d <= b.y); }
-function sortBoxes(list) { var out = [], rest = list.slice(); while (rest.length > 0) { var pick = 0; for (var i = 0; i < rest.length; i++) { var bl = false; for (var j = 0; j < rest.length; j++)if (i != j && behind(rest[j], rest[i]) && !behind(rest[i], rest[j])) { bl = true; break; } if (!bl) { pick = i; break; } } out.push(rest[pick]); rest.splice(pick, 1); } return out; }
+function sortBoxes(list) { var out = [], rest = list.slice(); while (rest.length > 0) { var pick = 0; for (var i = 0; i < rest.length; i++) { var bl = false; for (var j = 0; j < rest.length; j++) if (i != j && behind(rest[j], rest[i]) && !behind(rest[i], rest[j])) { bl = true; break; } if (!bl) { pick = i; break; } } out.push(rest[pick]); rest.splice(pick, 1); } return out; }
+
 function buildChipSvg(opts) {
     var inter = opts.interactive, onMap = opts.onMap, lvMap = opts.lvMap, uid = inter ? "" : "m_";
     var s = "<defs><filter id='" + uid + "soft' x='-30%' y='-30%' width='160%' height='160%'><feGaussianBlur stdDeviation='14'/></filter>";
@@ -44,30 +45,35 @@ function buildChipSvg(opts) {
     }
     return s;
 }
-function drawChip() { var m = {}; for (var i = 0; i < PARTS.length; i++)m[PARTS[i].key] = game.parts[PARTS[i].key].on; el("chip").innerHTML = buildChipSvg({ interactive: true, onMap: m }); }
+
+function drawChip() { var m = {}; for (var i = 0; i < PARTS.length; i++) m[PARTS[i].key] = game.parts[PARTS[i].key].on; el("chip").innerHTML = buildChipSvg({ interactive: true, onMap: m }); }
 function kickAnim() { if (!animOn) { animOn = true; requestAnimationFrame(animStep); } }
 function animStep() { var mv = false; for (var i = 0; i < PARTS.length; i++) { var p = game.parts[PARTS[i].key]; if (!p.on) continue; var t = heightOf(p.level), d = t - p.h; if (game.reduce || Math.abs(d) <= 0.4) p.h = t; else { p.h += d * 0.14; mv = true; } } drawChip(); if (mv) requestAnimationFrame(animStep); else animOn = false; }
 function setHot(k) { hot = k; drawChip(); setTimeout(function () { if (hot == k) { hot = ""; drawChip(); } }, 2400); }
-function installPart(k) { var p = game.parts[k]; if (p.on) return; p.on = true; p.level = 1; p.h = 0; kickAnim(); renderLeft(); renderStats(); renderHud(); refreshDiagUi(); if (installedCount() === 2) setTimeout(spawnGoldenChip, 7000); }
+function installPart(k) { var p = game.parts[k]; if (p.on) return; p.on = true; p.level = 1; p.h = 0; kickAnim(); renderLeft(); renderStats(); renderHud(); refreshDiagUi(); }
 
 function refreshDiagUi() {
-    var ready = FAULTS.filter(function (f) { return game.parts[f.need] && game.parts[f.need].on; });
-    el("diagBtn").classList.toggle("hidden", !(ready.length >= 2 && !activeFault && !activeGoldenRescue));
-    el("finaleBtn").classList.toggle("hidden", !allStagesPassed());
-    var gb = el("goldenBanner");
-    if (activeGoldenRescue) {
-        gb.classList.remove("hidden");
-        gb.innerHTML = "<span><b style='color:#b45309;font-size:14px'>🪙 " + activeGoldenRescue.badge + "</b> <span class='mono' style='font-size:12px;color:#78350f'>" + activeGoldenRescue.clue + "</span></span><span style='display:flex;gap:8px;align-items:center'><b id='rescueCd' class='mono' style='color:#d97706'>" + activeGoldenRescue.left + "s</b><button class='ghost' onclick='cancelGoldenRescue(false)'>✕</button></span>";
-    } else gb.classList.add("hidden");
-    var fb = el("faultBanner");
+    if (el("finaleBtn")) el("finaleBtn").classList.toggle("hidden", !allStagesPassed());
+    var fb = el("faultBanner"); if (!fb) return;
     if (activeFault) {
         fb.classList.remove("hidden");
-        fb.innerHTML = "<span><b style='color:#b45309'>🚨 FAULT:</b> " + activeFault.symptom + "</span><span class='mono' style='color:#4a47c8;font-size:11px;font-weight:700;white-space:nowrap'>CLICK 3D PART</span>";
+        fb.innerHTML = "<span><b style='color:#b45309'>🚨 FAULT:</b> " + activeFault.symptom + "</span><span style='display:flex;gap:8px;align-items:center;'><span class='mono' style='color:#4a47c8;font-size:11px;font-weight:700;white-space:nowrap'>CLICK 3D PART</span><button class='ghost' style='padding:2px 7px;' onclick='dismissFault()'>✕</button></span>";
     } else fb.classList.add("hidden");
 }
+
+function dismissFault() {
+    activeFault = null;
+    refreshDiagUi();
+    BOT.say("Fault alert dismissed—keep building or hit green on TIME IT!", "idle", "");
+}
+
 function triggerFault() {
-    if (activeGoldenRescue) return;
-    var pool = FAULTS.filter(function (f) { return game.parts[f.need] && game.parts[f.need].on; }); if (pool.length < 2) { toast("Build 2 parts first!"); return; }
-    activeFault = pool[rand(0, pool.length - 1)]; activeFault.firstTry = true; refreshDiagUi();
-    BOT.say("🚨 Fault alert! Read the symptom above the chip and click the failing 3D component.", "alert", "warn"); beep(300, 120);
+    if (activeFault) return;
+    var pool = FAULTS.filter(function (f) { return game.parts[f.need] && game.parts[f.need].on; });
+    if (pool.length < 2) return;
+    activeFault = pool[rand(0, pool.length - 1)];
+    activeFault.firstTry = true;
+    refreshDiagUi();
+    BOT.say("🚨 Fault alert! Read the symptom above the chip and click the failing 3D component.", "alert", "warn");
+    beep(300, 120);
 }
