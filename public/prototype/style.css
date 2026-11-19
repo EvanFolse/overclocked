@@ -19,10 +19,6 @@ body {
     transition: background 0.4s ease;
 }
 
-body.frenzy-on {
-    background: radial-gradient(1100px 700px at 50% 25%, #fffbeb 0%, #fef3c7 55%, #fde68a 100%);
-}
-
 body::before {
     content: "";
     position: fixed;
@@ -331,50 +327,10 @@ body::before {
     margin-top: 2px;
 }
 
-body.frenzy-on #cp {
-    color: #d97706;
-    text-shadow: 0 4px 24px rgba(245, 158, 11, 0.55);
-}
-
 #cps {
     font-family: ui-monospace, Menlo, monospace;
     color: #3b82a0;
     font-size: 14px;
-}
-
-body.frenzy-on #cps {
-    color: #b45309;
-    font-weight: 800;
-}
-
-#frenzyBanner {
-    margin-top: 6px;
-    background: linear-gradient(135deg, #f59e0b, #ea580c);
-    color: #fff;
-    font-family: ui-monospace, Menlo, monospace;
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 1px;
-    padding: 6px 16px;
-    border-radius: 999px;
-    box-shadow: 0 6px 20px rgba(234, 88, 12, 0.4);
-    animation: pulseb 0.7s infinite alternate;
-}
-
-#goldenBanner {
-    width: 100%;
-    max-width: 740px;
-    margin: 6px 0;
-    padding: 10px 14px;
-    border-radius: 12px;
-    border: 2.5px solid #f59e0b;
-    background: linear-gradient(135deg, #fffbeb, #fef3c7);
-    box-shadow: 0 8px 24px rgba(245, 158, 11, 0.35);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 10px;
-    animation: pulseb 0.8s infinite alternate;
 }
 
 #faultBanner {
@@ -440,86 +396,6 @@ body.frenzy-on #cps {
     z-index: 20;
     animation: popin 0.2s ease-out;
     white-space: nowrap;
-}
-
-.golden-chip-btn {
-    position: absolute;
-    z-index: 25;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: linear-gradient(135deg, #fef08a, #f59e0b 55%, #d97706);
-    color: #451a03;
-    border: 2.5px solid #fffbeb;
-    border-radius: 999px;
-    padding: 8px 16px;
-    font-family: ui-monospace, Menlo, monospace;
-    font-size: 12px;
-    font-weight: 900;
-    cursor: pointer;
-    box-shadow: 0 0 30px rgba(245, 158, 11, 0.9), 0 8px 20px rgba(0, 0, 0, 0.25);
-    animation: goldenDrift 10s linear forwards, goldenGlow 0.55s ease-in-out infinite alternate;
-}
-
-.golden-chip-btn:hover {
-    transform: scale(1.1);
-}
-
-@keyframes goldenDrift {
-    0% {
-        left: 4%;
-        top: 22%;
-        opacity: 0;
-    }
-
-    8% {
-        opacity: 1;
-    }
-
-    35% {
-        left: 62%;
-        top: 10%;
-    }
-
-    70% {
-        left: 54%;
-        top: 64%;
-    }
-
-    92% {
-        opacity: 1;
-    }
-
-    100% {
-        left: 10%;
-        top: 52%;
-        opacity: 0;
-    }
-}
-
-@keyframes goldenGlow {
-    from {
-        filter: drop-shadow(0 0 6px #fde047);
-    }
-
-    to {
-        filter: drop-shadow(0 0 20px #f59e0b) brightness(1.1);
-    }
-}
-
-.golden-spin {
-    display: inline-block;
-    animation: spinSlow 2.2s linear infinite;
-}
-
-@keyframes spinSlow {
-    from {
-        transform: rotate(0deg);
-    }
-
-    to {
-        transform: rotate(360deg);
-    }
 }
 
 .float {
@@ -602,11 +478,6 @@ body.frenzy-on #cps {
     transition: transform 0.08s;
 }
 
-body.frenzy-on #runBtn {
-    background: linear-gradient(135deg, #f59e0b, #ea580c);
-    box-shadow: 0 8px 24px rgba(245, 158, 11, 0.5);
-}
-
 #runBtn:active {
     transform: scale(0.96);
 }
@@ -621,18 +492,6 @@ body.frenzy-on #runBtn {
     font-weight: 700;
     cursor: pointer;
     box-shadow: 0 8px 20px rgba(37, 99, 235, 0.28);
-}
-
-#diagBtn {
-    background: linear-gradient(135deg, #f59e0b, #d97706);
-    color: #fff;
-    border: 0;
-    border-radius: 999px;
-    padding: 11px 18px;
-    font-size: 13.5px;
-    font-weight: 700;
-    cursor: pointer;
-    box-shadow: 0 8px 20px rgba(217, 119, 6, 0.32);
 }
 
 #finaleBtn {
@@ -2626,12 +2485,6 @@ table.gantt td.fwd {
     animation: flow 1s linear infinite;
 }
 
-body.frenzy-on .trace.live {
-    stroke: #fde047;
-    stroke-width: 3;
-    animation: flow 0.38s linear infinite;
-}
-
 @keyframes flow {
     to {
         stroke-dashoffset: -30;
@@ -3203,4 +3056,51 @@ body.overclock-on #chipWrap svg {
 body.overclock-on .trace.live {
     stroke: #fbbf24;
     stroke-width: 2.6;
+}
+
+/* Client Benchmark Card in Left Sidebar */
+#benchCard {
+    border: 1.5px solid #bae6fd;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(240, 249, 255, 0.9));
+}
+.bench-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.bench-row {
+    background: #fff;
+    border: 1px solid #dbe4ec;
+    border-radius: 10px;
+    padding: 7px 9px;
+    margin-top: 6px;
+    cursor: pointer;
+    transition: transform 0.12s, border-color 0.12s;
+}
+.bench-row:hover {
+    transform: translateX(2px);
+    border-color: #0ea5e9;
+}
+.bench-row.passed {
+    border-color: rgba(16, 185, 129, 0.65);
+    background: #f0fdf4;
+}
+.bench-row-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    gap: 6px;
+}
+.bench-row-sub {
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 2px;
+}
+
+.bench-row.ready {
+    border-color: #0ea5e9;
+    background: #f0f9ff;
+    box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.16);
 }

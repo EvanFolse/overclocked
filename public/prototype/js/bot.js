@@ -64,6 +64,8 @@ function renderBot() {
     bub.innerHTML = BOT.text;
     var ck = topConfusionKey(), btnC = el("btnConfusion");
     if (ck) { btnC.classList.remove("hidden"); btnC.className = game.confusions[ck] >= 2 ? "pulse" : ""; } else btnC.classList.add("hidden");
+    var btnF = el("btnFault");
+    if (btnF) { btnF.classList.toggle("hidden", installedCount() < 2); btnF.className = activeFault ? "pulse" : (installedCount() < 2 ? "hidden" : ""); }
     var gb = el("gameBotBar");
     if (gb) { gb.className = BOT.tone || ""; gb.innerHTML = "<span style='font-size:18px'>" + (BOT.mood === "alert" ? "🚨" : BOT.mood === "think" ? "🤔" : BOT.mood === "happy" ? "✨" : "🤖") + "</span><span>" + BOT.text + "</span>"; }
     renderBotDrawer();

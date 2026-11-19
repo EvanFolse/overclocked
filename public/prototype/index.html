@@ -35,18 +35,21 @@
                     <button onclick="toggleDrawer('ask')">💬 Ask Bot</button>
                     <button onclick="toggleDrawer('demo')">🎬 Watch Part Demo</button>
                     <button onclick="botTip()">💡 Quick Hint</button>
+                    <button id="btnFault" class="hidden" onclick="runFaultTest()">🚨 Fault Test</button>
                 </div>
                 <div id="botDrawer" class="bot-drawer hidden"></div>
             </div>
+            <div id="benchCard" class="card"></div>
         </aside>
 
         <main id="center">
             <div class="center-top">
                 <div></div>
                 <div id="hudTop">
-                    <div class="label">INSTRUCTIONS</div>
+                    <div class="label">COMPUTE</div>
                     <div id="cp">0</div>
-                    <div id="cps">+0.0 instructions/sec</div>
+                    <div id="cps">+0.0 ops/sec</div>
+                    <div id="ironLine" class="era" style="margin-top:2px;"></div>
                 </div>
                 <div style="display:flex;justify-content:flex-end;">
                     <button id="menuToggle" onclick="toggleMenu()">MENU</button>
@@ -78,7 +81,7 @@
                     <div id="timingNeedle"></div>
                 </div>
                 <div id="timingLegend">
-                    <span class="g"><b>GREEN</b> 1.25×</span>
+                    <span class="g"><b>GREEN</b> 1.25× (HW-linked)</span>
                     <span class="y"><b>OTHER</b> 0.75×</span>
                     <span><b>SPACE</b> or <b>EXECUTE</b></span>
                 </div>
@@ -148,6 +151,7 @@
             </div>
         </div>
     </div>
+    <div id="benchModal" class="modal-bg hidden"></div>
     <div id="toast"></div>
 
     <script src="js/content.js"></script>
@@ -169,6 +173,7 @@
     <script src="js/games/l2.js"></script>
     <script src="js/games/fpu.js"></script>
     <script src="js/games/cores.js"></script>
+    <script src="js/benchmark.js"></script>
     <script src="js/main.js"></script>
 </body>
 

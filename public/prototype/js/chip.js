@@ -54,6 +54,8 @@ function installPart(k) { var p = game.parts[k]; if (p.on) return; p.on = true; 
 
 function refreshDiagUi() {
     if (el("finaleBtn")) el("finaleBtn").classList.toggle("hidden", !allStagesPassed());
+    var btnF = el("btnFault");
+    if (btnF) { btnF.classList.toggle("hidden", installedCount() < 2); btnF.className = activeFault ? "pulse" : (installedCount() < 2 ? "hidden" : ""); }
     var fb = el("faultBanner"); if (!fb) return;
     if (activeFault) {
         fb.classList.remove("hidden");
@@ -65,6 +67,12 @@ function dismissFault() {
     activeFault = null;
     refreshDiagUi();
     BOT.say("Fault alert dismissed—keep building or hit green on TIME IT!", "idle", "");
+}
+
+function runFaultTest() {
+    if (installedCount() < 2) { toast("Build at least 2 CPU parts first!"); return; }
+    if (activeFault) { BOT.say("🚨 Fault already active above the chip: <b>" + activeFault.symptom + "</b> — click the failing 3D part!", "alert", "warn"); beep(300, 90); return; }
+    triggerFault();
 }
 
 function triggerFault() {

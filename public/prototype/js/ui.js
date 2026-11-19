@@ -23,12 +23,15 @@ function renderLeft() {
 
 function renderHud() {
     var era = checkEra(true);
-    el("cps").innerHTML = "+" + totalCps().toFixed(1) + " instructions/sec" + (overclockOn && lvl("clock") > 0 ? " (🔥 1.5× OC)" : "");
+    var m = cpuMetrics();
+    el("cps").innerHTML = "+" + m.opsPerSec.toFixed(1) + " ops/sec" + (overclockOn && lvl("clock") > 0 ? " (🔥 OC)" : "");
+    if (el("ironLine")) el("ironLine").textContent = m.opsPerSec > 0 ? ("CLK " + (m.mhz >= 1000 ? (m.mhz / 1000).toFixed(1) + " GHz" : m.mhz + " MHz") + " · CPI " + m.cpiEff.toFixed(2) + " · L1 " + m.l1Hit + "% · " + m.cores + "C · " + (game.archChoices.isa || "risc").toUpperCase()) : "Build Stage 1 to start CPU formula";
     var ob = el("ocBtn"); if (ob) { ob.classList.toggle("hidden", lvl("clock") <= 0); ob.classList.toggle("on", overclockOn); ob.innerHTML = overclockOn ? "🔥 OVERCLOCK: ON" : "🔥 OVERCLOCK: OFF"; }
     el("build").innerHTML = era.short + " · BUILD LEVEL " + totalLevels();
     el("clickVal").innerHTML = "+" + clickPower();
     el("era").innerHTML = era.name;
     refreshDiagUi();
+    if (typeof renderBenchList === "function") renderBenchList();
 }
 
 function renderStats() {
@@ -50,7 +53,7 @@ function clickPart(key) {
             if (activeFault.firstTry) { game.right++; game.objStats[stIdx].hits++; }
             var reward = Math.max(60, Math.round(totalCps() * 8 + 60));
             gainCp(reward); setHot(key);
-            toast("✅ Repaired " + PART[key].short + "! +" + fmt(reward) + " instructions");
+            toast("✅ Repaired " + PART[key].short + "! +" + fmt(reward) + " ops");
             BOT.hit(activeFault.cKey, "✅ Repaired <b>" + PART[key].name + "</b>! " + activeFault.why);
             activeFault = null; refreshDiagUi(); renderHud();
             if (menuOpen && !view && tab === "progress") renderRight();
@@ -107,7 +110,7 @@ function partThumb(P) {
 }
 
 function renderUpgrades() {
-    var h = "<h2 class='h'>UPGRADES</h2><p class='muted'>Spend instructions to level up hardware. Higher module stars unlock Lv 3–5 (★→Lv2, ★★→Lv4, ★★★→Lv5).</p>", cnt = 0;
+    var h = "<h2 class='h'>UPGRADES</h2><p class='muted'>Spend Compute (ops) to level up hardware. Higher module stars unlock Lv 3–5 (★→Lv2, ★★→Lv4, ★★★→Lv5).</p>", cnt = 0;
     for (var g = 1; g <= 5; g++) {
         var part = "";
         for (var i = 0; i < PARTS.length; i++) {
@@ -137,7 +140,7 @@ function buyUpgrade(key) {
     var p = game.parts[key], cap = maxLevelFor(key);
     if (p.level >= cap) { toast("Earn " + needStarFor(p.level + 1) + " in " + GAMES[key].title + " to unlock Lv " + (p.level + 1) + "!"); return; }
     var cost = upCost(key);
-    if (game.cp < cost) { toast("Not enough instructions yet! Hit green on TIME IT or play a stage."); return; }
+    if (game.cp < cost) { toast("Not enough Compute (ops) yet! Hit green on TIME IT or play a stage."); return; }
     game.cp -= cost; p.level++; kickAnim(); renderHud(); renderStats(); renderRight();
     BOT.say("Upgraded <b>" + PART[key].name + "</b> to Lv " + p.level + ": " + PART[key].levelNotes[p.level - 1], "happy", "good");
 }
@@ -187,7 +190,7 @@ function renderProgress() {
     h += "<div class='part'><b>Course Objective Accuracy</b><div class='muted' style='font-size:11px;margin-bottom:8px'>Evidence across all 5 COD objectives:</div>";
     for (var ob = 0; ob < 5; ob++) { var st = game.objStats[ob] || { hits: 0, misses: 0 }, tot = st.hits + st.misses, pct = tot > 0 ? Math.round((st.hits / tot) * 100) : 0; h += "<div style='font-size:12px;display:flex;justify-content:space-between;'><span>" + STAGES[ob].objTitle + "</span><b class='mono'>" + (tot > 0 ? pct + "% (" + st.hits + "/" + tot + ")" : "—") + "</b></div><div class='bar'><div style='width:" + pct + "%'></div></div>"; }
     var topCk = topConfusionKey(); if (topCk) h += "<div style='margin-top:6px;font-size:12px;color:#b45309'><b>Top Weak Spot:</b> " + CONFUSIONS[topCk].title + " <button class='ghost' style='margin-left:6px;padding:2px 8px;' onclick=\"openConfusionKey('" + topCk + "')\">⚖️ Review</button></div>";
-    h += "</div><div class='part'><b>Total instructions earned</b><div class='mono' style='font-size:20px;color:#1f9d73'>" + fmt(game.earned) + "</div></div>";
+    h += "</div><div class='part'><b>Total Compute earned (ops)</b><div class='mono' style='font-size:20px;color:#1f9d73'>" + fmt(game.earned) + "</div></div>";
     h += "<div class='part'><b>Next goal</b><div class='muted'>" + next + "</div>" + (allStagesPassed() ? "<button class='btn' style='margin-top:6px' onclick='openEvolution(false)'>🏆 View CPU Evolution &amp; Feedback</button>" : "") + "</div>";
     el("rbody").innerHTML = h;
 }
@@ -196,9 +199,9 @@ function renderSettings() {
     var h = "<h2 class='h'>SETTINGS</h2><div class='part'><b>Welcome &amp; Finale Preview</b><div class='muted'>Replay the animated start screen, or preview the 5-Model CPU Evolution + Feedback flow.</div><button class='btn' onclick='openWelcome()'>Show Welcome Screen</button><button class='ghost' onclick='openEvolution(true)'>🎬 Preview Ending (Models 1–5 &amp; Feedback)</button></div>";
     h += "<div class='part'><b>Reduce motion</b><div class='muted'>Turns off floating chip, glowing wires and rising animations.</div><button class='btn' onclick='toggleReduce()'>" + (game.reduce ? "Motion is OFF (click to turn on)" : "Motion is ON (click to turn off)") + "</button></div>";
     h += "<div class='part'><b>Sound effects</b><div class='muted'>Beeps for hits and misses in minigames.</div><button class='btn' onclick='toggleSound()'>" + (game.sound ? "Sound is ON (click to turn off)" : "Sound is OFF (click to turn on)") + "</button></div>";
-    h += "<div class='part'><b>Showcase / Grading Mode</b><div class='muted'>Unlock all 5 stages right away so instructors or reviewers can play any stage in any order.</div><button class='btn' style='background:#0ea5e9' onclick='unlockAllStages()'>🎓 Unlock All 5 Stages</button></div>";
+    h += "<div class='part'><b>Showcase / Grading Mode</b><div class='muted'>Unlock all 5 stages right away so instructors or reviewers can play any stage in any order.</div><button class='btn' style='background:#0ea5e9' onclick='unlockAllStages()'>🎓 Unlock All 5 Stages</button><button class='ghost' onclick='relockStages()'>🔒 Re-lock Stages</button></div>";
     h += "<div class='part'><b>Save</b><div class='muted'>Saves automatically under <code>" + SAVE_KEY + "</code>.</div></div>";
-    h += "<div class='part'><b>Reset everything</b><div class='muted'>Deletes your chip, instructions and stage progress.</div><button class='btn' style='background:#c94a4a' onclick='resetGame()'>" + (resetArmed ? "Click again to DELETE everything" : "Reset game") + "</button></div>";
+    h += "<div class='part'><b>Reset everything</b><div class='muted'>Deletes your chip, Compute and stage progress.</div><button class='btn' style='background:#c94a4a' onclick='resetGame()'>" + (resetArmed ? "Click again to DELETE everything" : "Reset game") + "</button></div>";
     el("rbody").innerHTML = h;
 }
 
@@ -222,4 +225,16 @@ function unlockAllStages() {
     save(); renderStages(); renderRight();
     toast("🎓 All 5 stages unlocked! Open STAGES to play any level.");
     BOT.say("🎓 <b>Showcase Mode:</b> All 5 stages unlocked in <b>MENU → STAGES</b>!", "happy", "good");
+}
+
+function relockStages() {
+    game.stages[0] = (game.stages[0] === "passed") ? "passed" : "open";
+    for (var i = 1; i < 5; i++) {
+        if (game.stages[i] !== "passed") {
+            game.stages[i] = (game.stages[i - 1] === "passed") ? "open" : "locked";
+        }
+    }
+    save(); renderStages(); renderRight();
+    toast("🔒 Unfinished stages re-locked to normal progression.");
+    BOT.say("🔒 Restored normal stage progression in <b>MENU → STAGES</b>.", "idle", "");
 }

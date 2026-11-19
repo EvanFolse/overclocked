@@ -52,7 +52,7 @@ function quitGame() {
 
 function showIntro() {
     var g = G, def = g.def, P = PART[g.key], ov = mk(g.arena, "div", "overlay", "");
-    ov.innerHTML = "<div class='bigicon'>" + def.icon + "</div><div class='otitle'>" + def.title + "</div><div class='orule'>" + def.rule + "</div><div class='ostars'>★ " + def.stars[0] + " (Lv2) &nbsp; ★★ " + def.stars[1] + " (Lv4) &nbsp; ★★★ " + def.stars[2] + " (Lv5)</div><div>" + (game.parts[g.key].on ? "Earn instructions &amp; higher stars!" : "Earn ★ to build <b>" + P.name + "</b>! (needs " + MIN_BUILD_ACC + "% accuracy)") + "</div>";
+    ov.innerHTML = "<div class='bigicon'>" + def.icon + "</div><div class='otitle'>" + def.title + "</div><div class='orule'>" + def.rule + "</div><div class='ostars'>★ " + def.stars[0] + " (Lv2) &nbsp; ★★ " + def.stars[1] + " (Lv4) &nbsp; ★★★ " + def.stars[2] + " (Lv5)</div><div>" + (game.parts[g.key].on ? "Earn Compute (ops) &amp; higher stars!" : "Earn ★ to build <b>" + P.name + "</b>! (needs " + MIN_BUILD_ACC + "% accuracy)") + "</div>";
     mk(ov, "button", "bigbtn", "▶ PLAY").onclick = beginPlay;
 }
 
@@ -99,7 +99,7 @@ function endGame() {
     if (topRunC) { var ci = CONFUSIONS[topRunC]; debriefHtml = "<div class='debrief'><b>🤖 ChipBot Post-Run Debrief (" + runAcc + "% accuracy):</b><br>Watch <b>" + ci.title + "</b> (" + topCnt + " slip" + (topCnt > 1 ? "s" : "") + "): " + ci.hint1 + "</div>"; BOT.say("Run finished (" + runAcc + "% accuracy). Review <b>" + ci.title + "</b> on the left anytime!", "think", "warn"); }
     else if (stars > 0) BOT.say("Clean run (" + runAcc + "% accuracy)! Build &amp; upgrade on silicon!", "happy", "good");
     var starTxt = ""; for (var s = 0; s < 3; s++) starTxt += (s < stars) ? "⭐" : "☆";
-    var ov = mk(g.arena, "div", "overlay", ""), html = "<div class='stars'>" + starTxt + "</div><div class='otitle'>" + (stars > 0 ? "NICE!" : "TRY AGAIN") + "</div><div>Score <b>" + g.score + "</b> · Accuracy <b>" + runAcc + "%</b></div><div class='gain'>+" + fmt(pay) + " instructions</div>";
+    var ov = mk(g.arena, "div", "overlay", ""), html = "<div class='stars'>" + starTxt + "</div><div class='otitle'>" + (stars > 0 ? "NICE!" : "TRY AGAIN") + "</div><div>Score <b>" + g.score + "</b> · Accuracy <b>" + runAcc + "%</b></div><div class='gain'>+" + fmt(pay) + " ops</div>";
     if (installed) html += "<div class='inst'>🎉 " + P.name + " mounted onto 3D silicon!</div>";
     if (stageRes.msg !== "") html += "<div class='inst'>🏁 " + stageRes.msg + "</div>";
     if (accBlocked) html += "<div class='muted'>Accuracy " + accPct + "%: you need at least " + MIN_BUILD_ACC + "% to build this part. Slow down and read the hints.</div>";
@@ -130,7 +130,7 @@ function checkStages() {
     for (var i = 0; i < STAGES.length; i++) {
         if (game.stages[i] !== "open") continue;
         var all = true; for (var j = 0; j < STAGES[i].parts.length; j++) if (!game.parts[STAGES[i].parts[j]].on) all = false;
-        if (all) { game.stages[i] = "passed"; if (i + 1 < STAGES.length && game.stages[i + 1] === "locked") game.stages[i + 1] = "open"; var b = (i + 1) * 150; gainCp(b); msg += "Stage " + (i + 1) + " complete! +" + b + " instructions. "; newlyPassed.push(i); }
+        if (all) { game.stages[i] = "passed"; if (i + 1 < STAGES.length && game.stages[i + 1] === "locked") game.stages[i + 1] = "open"; var b = (i + 1) * 150; gainCp(b); msg += "Stage " + (i + 1) + " complete! +" + b + " ops. "; newlyPassed.push(i); }
     }
     renderLeft();
     if (BOT.drawer === "ask") renderBotDrawer();

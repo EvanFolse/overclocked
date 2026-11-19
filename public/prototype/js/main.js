@@ -11,6 +11,8 @@ function load() {
         base.reduce = !!g.reduce; base.sound = (g.sound !== false); base.stars = g.stars || {};
         if (g.seenStages && g.seenStages.length === 5) base.seenStages = g.seenStages;
         if (g.archChoices && g.archChoices.isa) base.archChoices = { isa: g.archChoices.isa };
+        if (g.benchPassed) base.benchPassed = g.benchPassed;
+        if (g.benchBaseline) base.benchBaseline = g.benchBaseline;
         if (g.confusions) base.confusions = g.confusions;
         if (g.stageConfusions && g.stageConfusions.length === 5) base.stageConfusions = g.stageConfusions;
         if (g.objStats && g.objStats.length === 5) base.objStats = g.objStats;
@@ -28,12 +30,12 @@ function load() {
 }
 
 function overlaysOpen() {
-    var ids = ["welcomeScreen", "evolutionScreen", "stageTheater", "feedbackModal"];
+    var ids = ["welcomeScreen", "evolutionScreen", "stageTheater", "feedbackModal", "benchModal"];
     for (var i = 0; i < ids.length; i++) if (el(ids[i]) && !el(ids[i]).classList.contains("hidden")) return true;
     return false;
 }
 
-function renderAll() { renderStages(); renderBot(); renderStats(); renderHud(); renderRight(); drawChip(); }
+function renderAll() { renderStages(); renderBot(); if (typeof renderBenchList === "function") renderBenchList(); renderStats(); renderHud(); renderRight(); drawChip(); }
 
 setInterval(function () { gainCp(totalCps() / 10); }, 100);
 
