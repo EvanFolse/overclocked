@@ -275,19 +275,32 @@
   .gstats { display: flex; justify-content: space-between; align-items: baseline; font-family: ui-monospace, Menlo, monospace; font-size: 11px; letter-spacing: 1px; color: var(--muted); margin-bottom: 8px; }
   .gstats b { font-size: 22px; color: var(--ink); }
   #gCombo { color: #e08a00; font-weight: 800; }
-  .arena { position: relative; min-height: 430px; background: linear-gradient(180deg, #ffffff, #eef4fa); border: 1px solid #dbe4ec; border-radius: 16px; padding: 14px; display: flex; flex-direction: column; align-items: center; gap: 12px; overflow: hidden; user-select: none; }
+  .arena { position: relative; min-height: 360px; height: min(58vh, 420px); background: linear-gradient(180deg, #ffffff, #eef4fa); border: 1px solid #dbe4ec; border-radius: 16px; padding: 10px; display: flex; flex-direction: column; align-items: center; gap: 10px; overflow: hidden; user-select: none; }
   .arena.shake { animation: shake 0.3s; }
   @keyframes shake { 25% { transform: translateX(-7px); } 75% { transform: translateX(7px); } }
-  .overlay { position: absolute; inset: 0; background: rgba(255, 255, 255, 0.97); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 22px; z-index: 6; }
-  .bigicon { font-size: 56px; }
-  .otitle { font-family: ui-monospace, Menlo, monospace; font-weight: 800; letter-spacing: 3px; font-size: 20px; }
-  .orule { font-size: 15px; line-height: 1.45; max-width: 320px; }
-  .ostars { font-family: ui-monospace, Menlo, monospace; font-size: 12px; color: var(--muted); }
+  .overlay {
+    position: absolute; inset: 0; background: rgba(255, 255, 255, 0.98);
+    display: flex; flex-direction: column; align-items: stretch; justify-content: space-between;
+    gap: 6px; text-align: left; padding: 12px 12px 10px; z-index: 6; overflow: hidden;
+  }
+  .overlay .introTop { display: flex; flex-direction: column; gap: 6px; min-height: 0; flex: 1; }
+  .bigicon { font-size: 28px; line-height: 1; text-align: center; }
+  .otitle { font-family: ui-monospace, Menlo, monospace; font-weight: 800; letter-spacing: 2px; font-size: 15px; text-align: center; }
+  .oabout { font-size: 12px; line-height: 1.35; color: var(--ink); }
+  .orule { font-size: 12px; line-height: 1.35; color: var(--muted); }
+  .okey {
+    text-align: left; background: #f3f0ff; border: 1px solid #d5ccff; border-radius: 10px;
+    padding: 8px 10px; font-size: 11px; line-height: 1.35; color: #2f2c9c;
+  }
+  .okey b { display: block; font-family: ui-monospace, Menlo, monospace; font-size: 9px; letter-spacing: 1.2px; margin-bottom: 3px; color: var(--indigo); }
+  .ostars { font-family: ui-monospace, Menlo, monospace; font-size: 10px; color: var(--muted); text-align: center; }
+  .overlay .introBottom { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 0 0 auto; }
   .stars { font-size: 38px; letter-spacing: 6px; }
   .gain { font-family: ui-monospace, Menlo, monospace; font-size: 26px; font-weight: 800; color: var(--mint); }
   .inst { background: #e3f7ee; color: #137a57; font-weight: 700; padding: 6px 12px; border-radius: 10px; font-size: 14px; }
-  button.bigbtn { background: linear-gradient(135deg, #22b585, #1a8f6a); color: #fff; border: 0; border-radius: 999px; padding: 13px 30px; font-size: 17px; font-weight: 800; cursor: pointer; box-shadow: 0 8px 20px rgba(31, 157, 115, 0.35); }
+  button.bigbtn { background: linear-gradient(135deg, #22b585, #1a8f6a); color: #fff; border: 0; border-radius: 999px; padding: 10px 22px; font-size: 14px; font-weight: 800; cursor: pointer; box-shadow: 0 6px 16px rgba(31, 157, 115, 0.3); }
   button.bigbtn:active { transform: scale(0.96); }
+  .overlay button.bigbtn { width: 100%; max-width: 220px; }
   .gtoast { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); padding: 5px 13px; border-radius: 999px; font-weight: 700; font-size: 13px; background: #1c2b3a; color: #fff; z-index: 4; white-space: nowrap; max-width: 92%; overflow: hidden; text-overflow: ellipsis; }
   .gtoast.good { background: #1f9d73; }
   .gtoast.bad { background: #d24b4b; }
@@ -1583,9 +1596,19 @@ function showIntro() {
   var P = PART[g.key];
   var ov = mk(g.arena, "div", "overlay", "");
   var line = game.parts[g.key].on ? "Earn instructions and stars!" : "Earn ★ to build the <b>" + P.name + "</b>!";
-  ov.innerHTML = "<div class='bigicon'>" + def.icon + "</div><div class='otitle'>" + def.title + "</div><div class='orule'>" + def.rule + "</div>" +
-    "<div class='ostars'>★ " + def.stars[0] + " &nbsp; ★★ " + def.stars[1] + " &nbsp; ★★★ " + def.stars[2] + "</div><div>" + line + "</div>";
-  var pb = mk(ov, "button", "bigbtn", "▶ PLAY");
+  var top = "<div class='introTop'>";
+  top += "<div class='bigicon'>" + def.icon + "</div>";
+  top += "<div class='otitle'>" + def.title + "</div>";
+  if (def.about) { top += "<div class='oabout'>" + def.about + "</div>"; }
+  top += "<div class='orule'><b>How to play:</b> " + def.rule + "</div>";
+  if (def.key) { top += "<div class='okey'><b>QUICK KEY</b>" + def.key + "</div>"; }
+  top += "</div>";
+  var bottom = "<div class='introBottom'>";
+  bottom += "<div class='ostars'>★ " + def.stars[0] + " · ★★ " + def.stars[1] + " · ★★★ " + def.stars[2] + "</div>";
+  bottom += "<div class='muted' style='font-size:11px;text-align:center'>" + line + "</div>";
+  bottom += "</div>";
+  ov.innerHTML = top + bottom;
+  var pb = mk(ov.querySelector(".introBottom"), "button", "bigbtn", "▶ PLAY");
   pb.onclick = beginPlay;
 }
 
@@ -1758,7 +1781,9 @@ function checkStages() {
 // =====================================================
 GAMES.cu = {
   icon: "🎛️", title: "DISPATCHER", time: 30, stars: [60, 140, 230],
-  rule: "Send each instruction to the part that does the work!<br>Tap a button or press 1 · 2 · 3.",
+  about: "The Control Unit is a traffic cop. It reads each command and sends it to the right part. Route them before time runs out.",
+  rule: "Send each instruction to the right part. Tap a button or press 1 · 2 · 3.",
+  key: "ADD / SUB / AND / OR = send to the math unit<br>MOV / SWAP / COPY = send to registers (move values)<br>LOAD / STORE = send to memory (get or save data)<br>R1 and R2 mean register slot 1 and 2",
   takeaway: "The Control Unit does no math itself. It decodes each instruction and sends it to the right part.",
   start: function (g, arena) {
     var list = [
@@ -1819,7 +1844,9 @@ GAMES.cu = {
 // =====================================================
 GAMES.alu = {
   icon: "🧮", title: "BIT FLIP", time: 45, stars: [50, 120, 200],
-  rule: "Flip the bottom lamps to make the result of the operation, then hit RUN!",
+  about: "The math unit is the chip's calculator. It only uses on and off bits. Flip lamps to build the binary answer.",
+  rule: "Flip the bottom lamps to match the result, then hit RUN.",
+  key: "Each lamp is one bit worth 8, 4, 2, or 1<br>AND means both inputs must be 1<br>OR means either input can be 1<br>XOR means the inputs are different<br>ADD means add the two binary numbers",
   takeaway: "The ALU works in binary. Every lamp is a bit worth 8, 4, 2 or 1.",
   start: function (g, arena) {
     var hints = { AND: "1 only where BOTH are 1", OR: "1 where EITHER is 1", XOR: "1 where they DIFFER", ADD: "add the numbers in binary" };
@@ -1901,7 +1928,9 @@ GAMES.alu = {
 // =====================================================
 GAMES.regs = {
   icon: "🗂️", title: "KEEP IT CLOSE", time: 0, stars: [50, 100, 150],
-  rule: "Instructions need their variables IN a register. Tap a variable, then a register slot, to load it before the timer ends!",
+  about: "Registers are tiny fast sticky notes. A command only runs quickly if its values are already in those notes.",
+  rule: "Tap a value in slow memory, then tap a register slot. Keep both values ready before the timer ends.",
+  key: "ADD / SUB / MUL / AND = math commands using two values<br>Letters like a, b, c are values living in slow memory<br>R1 to R4 are the fast register slots<br>If a value is missing, the processor has to wait",
   takeaway: "Registers hold what the CPU needs right now. If data isn't in a register, the CPU stalls waiting on slower memory.",
   start: function (g, arena) {
     var names = ["a", "b", "c", "d", "e", "f", "g"];
@@ -2002,7 +2031,9 @@ GAMES.regs = {
 // =====================================================
 GAMES.clock = {
   icon: "⏱️", title: "BEAT SYNC", time: 30, stars: [150, 400, 750],
-  rule: "Hit TICK (or press SPACE) the moment a beat lands in the ring. Every part of the CPU steps on the beat!",
+  about: "The clock is the drummer. Every part steps on each beat. Hit the beat on time to keep the chip in sync.",
+  rule: "Hit TICK or press SPACE when a beat lands in the green ring.",
+  key: "Green ring = perfect hit window<br>Too early or too late = miss<br>A good hit lights every part together",
   takeaway: "The clock gives every part the same beat. A faster clock means more steps every second.",
   start: function (g, arena) {
     var track = mk(arena, "div", "track", "");
@@ -2082,7 +2113,9 @@ GAMES.clock = {
 // =====================================================
 GAMES.pipe = {
   icon: "🏭", title: "ASSEMBLY LINE", time: 40, stars: [100, 230, 380],
-  rule: "Instructions flow through 5 stages. When a hazard freezes the line, tap the matching fix FAST!<br>Keys: 1 · 2",
+  about: "A pipeline is an assembly line for instructions. Several move at once. If one blocks another, that jam is a hazard. Clear it fast.",
+  rule: "When a hazard freezes the line, tap the matching fix. Keys: 1 · 2.",
+  key: "Data hazard = one step needs a value another step is still making<br>Control hazard = a branch changes which instruction comes next<br>Fixes: pass the value forward, or guess the branch",
   takeaway: "A pipeline finishes one instruction every tick, but hazards stall it unless the CPU forwards data or predicts branches.",
   start: function (g, arena) {
     var names = ["Fetch", "Decode", "Execute", "Memory", "Write"];
@@ -2168,12 +2201,14 @@ GAMES.pipe = {
 // =====================================================
 GAMES.decoder = {
   icon: "🔐", title: "CRACK THE OPCODE", time: 45, stars: [60, 140, 220],
-  rule: "DECODE: turn bits into an instruction. ENCODE: flip bits to build the instruction. The key is on screen!",
+  about: "Instructions are just 1s and 0s. The decoder turns those bits into a real command. You will read bits and build them.",
+  rule: "Decode means turn bits into a command. Encode means flip bits to build the command. Use the key below.",
+  key: "First 2 bits = the operation<br>00 = ADD · 01 = SUBTRACT · 10 = AND · 11 = OR<br>Next bits = which register slots to use<br>00 = register 0 · 01 = register 1 · 10 = register 2 · 11 = register 3",
   takeaway: "An instruction is just bits: a few pick the operation and a few pick each register. The decoder reads them.",
   start: function (g, arena) {
     var ops = ["ADD", "SUB", "AND", "OR"];
     var regsN = ["R0", "R1", "R2", "R3"];
-    mk(arena, "div", "legend", "<b>OP</b> 00 ADD · 01 SUB · 10 AND · 11 OR<br><b>REG</b> 00 R0 · 01 R1 · 10 R2 · 11 R3");
+    mk(arena, "div", "legend", "<b>OPERATION</b> 00 ADD · 01 SUBTRACT · 10 AND · 11 OR<br><b>REGISTER</b> 00 slot 0 · 01 slot 1 · 10 slot 2 · 11 slot 3");
     var body = mk(arena, "div", "dbody", "");
     var round = 0, mode = "decode", op = 0, a = 0, b = 0;
     var bits = [], sel = [0, 0, 0];
@@ -2250,7 +2285,9 @@ GAMES.decoder = {
 // =====================================================
 GAMES.l1 = {
   icon: "⚡", title: "CACHE KEEPER", time: 45, stars: [70, 150, 230],
-  rule: "The CPU asks for data. On a MISS, kick out the OLDEST slot: the one with the reddest bar!<br>Keys 1 · 2 · 3",
+  about: "Level 1 cache is a tiny desk next to the processor. A hit means the data is already there. A miss means make room by dropping the oldest item.",
+  rule: "On a miss, kick out the oldest slot (the reddest bar). Keys 1 · 2 · 3.",
+  key: "Hit = the data is already in the cache<br>Miss = it is not there, so load it in<br>Redder bar = older. Kick that one out to make space",
   takeaway: "A cache keeps recently used data close. When it is full, it throws out the least recently used (LRU) item.",
   start: function (g, arena) {
     var all = ["A", "B", "C", "D", "E", "F", "G"];
@@ -2336,7 +2373,9 @@ GAMES.l1 = {
 // =====================================================
 GAMES.l2 = {
   icon: "🗄️", title: "MEMORY SORTER", time: 35, stars: [70, 150, 240],
-  rule: "Hot data (🔥) goes in tiny, fast memory. Cold data (❄️) goes in huge, slow storage.<br>Keys 1 to 5.",
+  about: "Hot data should stay close and fast. Cold data can live farther away. That ladder is the memory hierarchy.",
+  rule: "Put hot data in tiny fast memory and cold data in huge slow storage. Keys 1 to 5.",
+  key: "Hot = used a lot, keep it close<br>Cold = rarely used, store it farther away<br>Fastest to slowest: registers, level 1 cache, level 2 cache, main memory, disk",
   takeaway: "Memory is a hierarchy: the more often you need data, the closer and faster the place you keep it.",
   start: function (g, arena) {
     var places = [["REG", "tiny · fastest"], ["L1", "small · fast"], ["L2", "medium"], ["RAM", "big · slow"], ["SSD", "huge · slowest"]];
@@ -2401,7 +2440,9 @@ GAMES.l2 = {
 // =====================================================
 GAMES.fpu = {
   icon: "🎯", title: "FLOAT THE POINT", time: 40, stars: [48, 110, 180],
-  rule: "The exponent tells the decimal point how far to FLOAT. Tap the gap where the point belongs!",
+  about: "Floating-point numbers store digits plus an exponent that slides the decimal point. Place that point in the right gap.",
+  rule: "Look at the exponent, then tap the gap where the decimal point belongs.",
+  key: "Example: 3.2 × 10² means slide the point 2 spots right → 320<br>A negative exponent slides the point left<br>This is what the floating-point unit is built to do",
   takeaway: "Floating-point numbers store digits plus an exponent. The exponent says how far the decimal point floats.",
   start: function (g, arena) {
     var big = mk(arena, "div", "sci", "");
@@ -2464,7 +2505,9 @@ GAMES.fpu = {
 // =====================================================
 GAMES.cores = {
   icon: "🧩", title: "CORE SCHEDULER", time: 35, stars: [80, 160, 240],
-  rule: "Tap a core to give it the next task. Keep every core busy!<br>🔒 tasks need ALL cores idle first.",
+  about: "Multi-core means several mini processors on one chip. Independent jobs can run together. Serial jobs make every core wait and work as one.",
+  rule: "Tap a core to give it the next task. Keep cores busy. Locked tasks need all cores idle.",
+  key: "Normal task = one core can take it<br>Locked serial task = every core must be free first<br>Idle cores waste time, so keep handing out work",
   takeaway: "More cores do more work at once, but only if there are independent tasks to hand out. Serial work can't be split.",
   start: function (g, arena) {
     var cores = [];
