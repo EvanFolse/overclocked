@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@600;700;800&family=Orbitron:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=4">
+    <link rel="stylesheet" href="style.css?v=5">
 </head>
 
 <body>
@@ -17,7 +17,7 @@
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
                 <div>
                     <div class="logo">OVERCLOCKED</div>
-                    <div class="era" id="era">MODEL 0 · BARE SILICON</div>
+                    <div class="era" id="era">BARE SILICON</div>
                 </div>
                 <button class="ghost" onclick="openWelcome()">? Intro</button>
             </div>
@@ -29,59 +29,79 @@
                         <div class="bot-mood" id="botMoodLabel">Ready to build!</div>
                     </div>
                 </div>
-                <div id="botBubble" class="bot-bubble">Click <b>1 · KNOW CPU</b> below to start building your 3D
-                    processor!</div>
-                <div id="botDareBox" class="dare-bar"></div>
+                <div id="botBubble" class="bot-bubble">Open <b>MENU → STAGES</b> to build Stage 1, or ask me anything!</div>
                 <div class="bot-btns">
-                    <button id="btnConfusion" class="hidden" onclick="toggleDrawer('confusion')">⚖️ Fix
-                        Confusion</button>
+                    <button id="btnConfusion" class="hidden" onclick="toggleDrawer('confusion')">⚖️ Fix Confusion</button>
                     <button onclick="toggleDrawer('ask')">💬 Ask Bot</button>
                     <button onclick="toggleDrawer('demo')">🎬 Watch Part Demo</button>
                     <button onclick="botTip()">💡 Quick Hint</button>
+                    <button id="btnFault" class="hidden" onclick="runFaultTest()">🚨 Fault Test</button>
                 </div>
                 <div id="botDrawer" class="bot-drawer hidden"></div>
             </div>
-            <div class="card">
-                <div class="label">STAGES</div>
-                <div id="stageList"></div>
-            </div>
+            <div id="benchCard" class="card"></div>
         </aside>
 
         <main id="center">
-            <div class="label">COMPUTE POINTS</div>
-            <div id="cp">0 CP</div>
-            <div id="cps">+0.0 CP/sec</div>
-            <div id="frenzyBanner" class="hidden"></div>
-            <div id="goldenBanner" class="hidden"></div>
+            <div class="center-top">
+                <div></div>
+                <div id="hudTop">
+                    <div class="label">COMPUTE</div>
+                    <div id="cp">0</div>
+                    <div id="cps">+0.0 ops/sec</div>
+                    <div id="ironLine" class="era" style="margin-top:2px;"></div>
+                </div>
+                <div style="display:flex;justify-content:flex-end;">
+                    <button id="menuToggle" onclick="toggleMenu()">MENU</button>
+                </div>
+            </div>
+
             <div id="faultBanner" class="hidden"></div>
+
             <div id="chipWrap">
                 <div id="chipBob"><svg id="chip" viewBox="0 30 720 460"></svg></div>
                 <div id="chipDemoLayer"></div>
-                <div id="goldenLayer"></div>
                 <div id="floats"></div>
             </div>
-            <div class="label" id="build">BUILD LEVEL 0</div>
-            <div class="inst-pills">
-                <span class="mono" style="font-size:10px;color:var(--muted);">TRACE INSTRUCTION:</span>
-                <button id="inst_ADD" class="inst-pill on" onclick="setExecInst('ADD')">ADD R1,R2,R3</button>
-                <button id="inst_LW" class="inst-pill" onclick="setExecInst('LW')">LW R1,[0x40]</button>
-                <button id="inst_BEQ" class="inst-pill" onclick="setExecInst('BEQ')">BEQ R1,R2,L1</button>
+
+            <div class="label" id="build">Empty board · BUILD LEVEL 0</div>
+
+            <div id="timingWrap">
+                <div class="inst-pills">
+                    <span class="mono" style="font-size:10px;color:var(--muted);">TRACE:</span>
+                    <button id="inst_ADD" class="inst-pill on" onclick="setExecInst('ADD')">ADD R1,R2,R3</button>
+                    <button id="inst_LW" class="inst-pill" onclick="setExecInst('LW')">LW R1,[0x40]</button>
+                    <button id="inst_BEQ" class="inst-pill" onclick="setExecInst('BEQ')">BEQ R1,R2,L1</button>
+                </div>
+                <div id="traceReadout">Pick ADD / LW / BEQ and hit green on TIME IT!</div>
+                <div id="timingBar" onclick="hitTiming()" title="Click or press Space when the needle is in green">
+                    <div id="timingYellowL"></div>
+                    <div id="timingYellowR"></div>
+                    <div id="timingGreen"></div>
+                    <div id="timingNeedle"></div>
+                </div>
+                <div id="timingLegend">
+                    <span class="g"><b>GREEN</b> 1.25× (HW-linked)</span>
+                    <span class="y"><b>OTHER</b> 0.75×</span>
+                    <span><b>SPACE</b> or <b>EXECUTE</b></span>
+                </div>
+                <div class="actionRow">
+                    <button id="runBtn" onclick="hitTiming()">⚡ EXECUTE <span id="execName">ADD</span> <span id="clickVal">+1</span></button>
+                    <button id="ocBtn" class="hidden" onclick="toggleOverclock()">🔥 OVERCLOCK: OFF</button>
+                    <button id="finaleBtn" class="hidden" onclick="openEvolution(false)">🏆 CPU Evolution &amp; Feedback</button>
+                </div>
             </div>
-            <div id="traceReadout">Pick ADD / LW / BEQ and click Execute to watch the 3D path light up!</div>
-            <div class="actionRow">
-                <button id="runBtn" onclick="runInstruction()">⚡ Execute <span id="execName">ADD</span> <span
-                        id="clickVal">+1</span></button>
-                <button id="benchBtn" onclick="openBenchmark()">🎨 Test Render &amp; Benchmark</button>
-                <button id="diagBtn" class="hidden" onclick="triggerFault()">🔧 Diagnose Fault</button>
-                <button id="finaleBtn" class="hidden" onclick="openEvolution(false)">🏆 CPU Evolution &amp;
-                    Feedback</button>
-            </div>
+
             <div id="stats"></div>
         </main>
 
         <section id="right">
-            <div class="label">MENU</div>
+            <div id="menuHead">
+                <div class="label">MENU</div>
+                <button id="menuClose" onclick="toggleMenu()">Close</button>
+            </div>
             <div id="tabs">
+                <button id="tab_stages" onclick="setTab('stages')">STAGES</button>
                 <button id="tab_upgrades" onclick="setTab('upgrades')">UPGRADES</button>
                 <button id="tab_learning" onclick="setTab('learning')">PARTS LAB</button>
                 <button id="tab_progress" onclick="setTab('progress')">PROGRESS</button>
@@ -108,20 +128,14 @@
         <div id="theaterBanner" class="banner-panel"></div>
     </div>
 
-    <div id="benchModal" class="modal-bg hidden">
-        <div class="modal-card" id="benchCard"></div>
-    </div>
-
     <div id="feedbackModal" class="modal-bg hidden">
         <div class="modal-card fb-dark">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;">
                 <div>
                     <h2 style="margin:0;">Help us make Overclocked better</h2>
-                    <div class="muted" style="color:#94a3b8;font-size:12px;margin-top:3px;">All 5 CPU stages complete ·
-                        saved locally</div>
+                    <div class="muted" style="color:#94a3b8;font-size:12px;margin-top:3px;">All 5 CPU stages complete · saved locally</div>
                 </div>
-                <button class="ghost" style="background:#1e293b;color:#cbd5e1;border-color:#334155;"
-                    onclick="closeFeedback()">✕</button>
+                <button class="ghost" style="background:#1e293b;color:#cbd5e1;border-color:#334155;" onclick="closeFeedback()">✕</button>
             </div>
             <div class="fb-label">HOW FUN WAS IT?</div>
             <div class="fb-stars" id="fbStars"></div>
@@ -132,20 +146,17 @@
             <div class="fb-label">ONE IDEA TO MAKE IT BETTER</div>
             <textarea id="fbNote" class="fb-area" placeholder="Optional note..."></textarea>
             <div style="display:flex;gap:8px;margin-top:14px;align-items:center;flex-wrap:wrap;">
-                <button class="btn" style="background:#06b6d4;color:#0f172a;font-weight:800;padding:10px 20px;"
-                    onclick="submitFeedback()">SUBMIT</button>
-                <button class="ghost" style="background:#1e293b;color:#cbd5e1;border-color:#334155;"
-                    onclick="copyFeedbackLog()">📋 Copy Log (<span id="fbCount">0</span>)</button>
+                <button class="btn" style="background:#06b6d4;color:#0f172a;font-weight:800;padding:10px 20px;" onclick="submitFeedback()">SUBMIT</button>
+                <button class="ghost" style="background:#1e293b;color:#cbd5e1;border-color:#334155;" onclick="copyFeedbackLog()">📋 Copy Log (<span id="fbCount">0</span>)</button>
             </div>
         </div>
     </div>
+    <div id="benchModal" class="modal-bg hidden"></div>
     <div id="toast"></div>
 
     <script src="js/content.js"></script>
     <script src="js/core.js"></script>
     <script src="js/theater.js"></script>
-    <script src="js/golden.js"></script>
-    <script src="js/benchmark.js"></script>
     <script src="js/welcome.js"></script>
     <script src="js/feedback.js"></script>
     <script src="js/bot.js"></script>
@@ -162,6 +173,7 @@
     <script src="js/games/l2.js"></script>
     <script src="js/games/fpu.js"></script>
     <script src="js/games/cores.js"></script>
+    <script src="js/benchmark.js"></script>
     <script src="js/main.js"></script>
 </body>
 

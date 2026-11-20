@@ -1,28 +1,149 @@
-// games/pipe.js: one minigame = GAMES.pipe
+// games/pipe.js: Procedural Hazard Lab (no register/Gantt spoilers)
 // ---------------------------------------------------------
 GAMES.pipe = {
-    icon: "🏭", title: "HAZARD LAB", time: 65, stars: [60, 140, 220], badPenalty: 12, rule: "Look at the red conflict &amp; Gantt chart! Pick <b>Run Normal</b>, <b>Forward</b>, <b>Stall 1</b>, or <b>Flush</b> (Keys 1–4).",
+    icon: "🏭",
+    title: "HAZARD LAB",
+    time: 70,
+    stars: [80, 170, 260],
+    badPenalty: 12,
+    rule: "Inspect the registers &amp; timeline yourself! Pick <b>Run Normal</b>, <b>Forward</b>, <b>Stall 1</b>, or <b>Flush</b> (Keys 1–4).",
     start: function (g, arena) {
-        var baseCases = [
-            { a: "ADD R1, R2, R3", b: "SUB R4, R5, R6", tag: "Clean (0 Stalls)", best: 0, confKey: "pipe_none", rows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "EX", "MEM", "WB", "", ""]], solvedRows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "EX", "MEM", "WB", "", ""]], cpi: "1.00", whyBad: ["", "Independent regs → 0 stalls!", "No conflict → no stall!", "No branch here!"] },
-            { a: "ADD <b style='color:#dc2626'>R1</b>, R2, R3", b: "SUB R4, <b style='color:#dc2626'>R1</b>, R5", tag: "EX→EX Forward", best: 1, confKey: "pipe_fwd", rows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "HAZ!", "EX?", "MEM", "", ""]], solvedRows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "EX⚡", "MEM", "WB", "", ""]], cpi: "1.00", whyBad: ["R1 conflict!", "", "ALU finishes R1 in EX → Forward (0 stalls)!", "Not a branch!"] },
-            { a: "LW  <b style='color:#dc2626'>R1</b>, 0(R2)", b: "ADD R3, <b style='color:#dc2626'>R1</b>, R4", tag: "Load-Use: 1 Stall", best: 2, confKey: "pipe_loaduse", rows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "HAZ!", "EX?", "MEM", "", ""]], solvedRows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "🫧", "EX⚡", "MEM", "WB", ""]], cpi: "1.50", whyBad: ["R1 isn't loaded yet!", "LW finishes MEM at C4 → 1 cycle too late!", "", "Don't flush valid ADD!"] },
-            { a: "LW  R5, 0(R1) [MEM]", b: "IFETCH Inst [1 Port]", tag: "Structural: 1 Stall", best: 2, confKey: "pipe_struct", rows: [["IF", "ID", "EX", "MEM!", "WB", "", "", ""], ["", "", "", "IF!", "ID", "EX", "MEM", "WB"]], solvedRows: [["IF", "ID", "EX", "MEM!", "WB", "", "", ""], ["", "", "", "🫧", "IF", "ID", "EX", "MEM"]], cpi: "1.50", whyBad: ["Both collide on 1 memory port at C4!", "Forward fixes regs, not 1 memory bus!", "", "Just stall IF 1 cycle!"] },
-            { a: "BEQ R1, R2, L1 (TAKEN)", b: "ADD R3, R4, R5 (PC+4)", tag: "Branch Flush", best: 3, confKey: "pipe_branch", rows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "EX?", "MEM", "WB", "", ""]], solvedRows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "FLUSH", "—", "—", "", ""]], cpi: "1.50", whyBad: ["Wrong-path ADD corrupts R3!", "Forward can't undo wrong fetch!", "Stall keeps wrong instruction!", ""] }
-        ];
-        var transferCases = [
-            { a: "LW  <b style='color:#dc2626'>R1</b>, 0(R2)", b: "ADD R7, R8, R9 <span style='color:#059669'>[unrelated]</span>", c: "SUB R4, <b style='color:#dc2626'>R1</b>, R5", tag: "Scheduled! MEM→EX Fwd", best: 1, confKey: "pipe_sched", rows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "EX", "MEM", "WB", "", ""], ["", "", "IF", "ID", "EX?", "MEM", "WB", ""]], solvedRows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "EX", "MEM", "WB", "", ""], ["", "", "IF", "ID", "EX⚡", "MEM", "WB", ""]], cpi: "1.00", whyBad: ["SUB reads R1 → needs MEM→EX Fwd!", "", "B already filled the 1-cycle wait → 0 extra stalls!", "No branch!"] },
-            { a: "LW  <b style='color:#dc2626'>R1</b>, 0(R2)", b: "ADD R3, <b style='color:#dc2626'>R1</b>, R4 <span style='color:#dc2626'>[adjacent]</span>", c: "SUB R5, R6, R7", tag: "Adjacent Load-Use: 1 Stall", best: 2, confKey: "pipe_loaduse", rows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "HAZ!", "EX?", "MEM", "", ""], ["", "", "IF", "ID", "EX", "MEM", "WB", ""]], solvedRows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "🫧", "EX⚡", "MEM", "WB", ""], ["", "", "IF", "ID", "🫧", "EX", "MEM", "WB"]], cpi: "1.33", whyBad: ["ADD immediately follows LW!", "ADD didn't wait for LW's MEM stage!", "", "Don't flush valid work!"] },
-            { a: "ADD R1, R2, R3", b: "SUB R4, R5, R6", c: "MUL R7, R8, R9", tag: "3-Inst Clean Pipe", best: 0, confKey: "pipe_none", rows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "EX", "MEM", "WB", "", ""], ["", "", "IF", "ID", "EX", "MEM", "WB", ""]], solvedRows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "EX", "MEM", "WB", "", ""], ["", "", "IF", "ID", "EX", "MEM", "WB", ""]], cpi: "1.00", whyBad: ["", "All 3 instructions are independent!", "0 stalls needed!", "No branch!"] }
-        ];
+        var ops = ["ADD", "SUB", "AND", "OR", "XOR"];
+        function pickRegs(count) {
+            var pool = ["R1", "R2", "R3", "R4", "R5", "R6", "R7"], out = [];
+            while (out.length < count) {
+                var r = pool[rand(0, pool.length - 1)];
+                if (out.indexOf(r) === -1) out.push(r);
+            }
+            return out;
+        }
+        function makeCase(use3) {
+            var r = pickRegs(7), opA = ops[rand(0, ops.length - 1)], opB = ops[rand(0, ops.length - 1)];
+            var kinds = use3 ? ["sched_ok", "adj_load", "clean3", "branch2", "fwd2"] : ["clean2", "fwd2", "loaduse2", "struct2", "branch2"];
+            var k = kinds[rand(0, kinds.length - 1)];
+
+            if (k === "clean2") {
+                return {
+                    a: opA + " " + r[0] + ", " + r[1] + ", " + r[2],
+                    b: opB + " " + r[3] + ", " + r[4] + ", " + r[5],
+                    tag: "Clean (0 Stalls)", best: 0, confKey: "pipe_none",
+                    rows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "EX", "MEM", "WB", "", ""]],
+                    solvedRows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "EX", "MEM", "WB", "", ""]],
+                    cpi: "1.00",
+                    whyBad: ["", r[3] + " reads " + r[4] + "," + r[5] + " (not " + r[0] + ") → 0 stalls!", "No RAW dependency → no stall!", "Not a branch!"]
+                };
+            }
+            if (k === "fwd2") {
+                var swapSrc = Math.random() < 0.5;
+                return {
+                    a: opA + " " + r[0] + ", " + r[1] + ", " + r[2],
+                    b: opB + " " + r[3] + ", " + (swapSrc ? r[4] + ", " + r[0] : r[0] + ", " + r[4]),
+                    tag: "EX→EX Forward", best: 1, confKey: "pipe_fwd",
+                    rows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "EX", "MEM", "WB", "", ""]],
+                    solvedRows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "EX⚡", "MEM", "WB", "", ""]],
+                    cpi: "1.00",
+                    whyBad: ["B reads " + r[0] + " written by A!", "", "ALU finishes " + r[0] + " at EX → Forward (0 stalls)!", "Not a branch!"]
+                };
+            }
+            if (k === "loaduse2") {
+                return {
+                    a: "LW  " + r[0] + ", 0(" + r[1] + ")",
+                    b: opB + " " + r[2] + ", " + r[0] + ", " + r[3],
+                    tag: "Load-Use: 1 Stall", best: 2, confKey: "pipe_loaduse",
+                    rows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "EX", "MEM", "WB", "", ""]],
+                    solvedRows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "🫧", "EX⚡", "MEM", "WB", ""]],
+                    cpi: "1.50",
+                    whyBad: [r[0] + " isn't loaded from memory yet!", "LW finishes MEM at C4 → 1 cycle too late for EX!", "", "Don't flush a valid instruction!"]
+                };
+            }
+            if (k === "struct2") {
+                return {
+                    a: "LW  " + r[0] + ", 0(" + r[1] + ") [MEM]",
+                    b: "IFETCH Inst [1 Mem Port]",
+                    tag: "Structural: 1 Stall", best: 2, confKey: "pipe_struct",
+                    rows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "", "", "IF", "ID", "EX", "MEM", "WB"]],
+                    solvedRows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "", "", "🫧", "IF", "ID", "EX", "MEM"]],
+                    cpi: "1.50",
+                    whyBad: ["MEM and IF collide on the single memory port at C4!", "Forwarding fixes registers, not a 1-port memory bus!", "", "Stall IF 1 cycle instead of flushing!"]
+                };
+            }
+            if (k === "branch2") {
+                return {
+                    a: "BEQ " + r[0] + ", " + r[1] + ", L1 (TAKEN)",
+                    b: opB + " " + r[2] + ", " + r[3] + ", " + r[4] + " (PC+4)",
+                    tag: "Branch Flush", best: 3, confKey: "pipe_branch",
+                    rows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "EX", "MEM", "WB", "", ""]],
+                    solvedRows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "FLUSH", "—", "—", "", ""]],
+                    cpi: "1.50",
+                    whyBad: ["Wrong-path " + opB + " would corrupt " + r[2] + "!", "Forwarding can't undo a wrong-path fetch!", "Stalling keeps the wrong-path instruction!", ""]
+                };
+            }
+            if (k === "sched_ok") {
+                return {
+                    a: "LW  " + r[0] + ", 0(" + r[1] + ")",
+                    b: opA + " " + r[2] + ", " + r[3] + ", " + r[4],
+                    c: opB + " " + r[5] + ", " + r[0] + ", " + r[6],
+                    tag: "Scheduled! MEM→EX Fwd", best: 1, confKey: "pipe_sched",
+                    rows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "EX", "MEM", "WB", "", ""], ["", "", "IF", "ID", "EX", "MEM", "WB", ""]],
+                    solvedRows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "EX", "MEM", "WB", "", ""], ["", "", "IF", "ID", "EX⚡", "MEM", "WB", ""]],
+                    cpi: "1.00",
+                    whyBad: ["C reads " + r[0] + " from LW → needs MEM→EX Fwd!", "", "Unrelated B already filled the 1-cycle load slot → 0 extra stalls!", "No branch taken!"]
+                };
+            }
+            if (k === "adj_load") {
+                return {
+                    a: "LW  " + r[0] + ", 0(" + r[1] + ")",
+                    b: opA + " " + r[2] + ", " + r[0] + ", " + r[3],
+                    c: opB + " " + r[4] + ", " + r[5] + ", " + r[6],
+                    tag: "Adjacent Load-Use: 1 Stall", best: 2, confKey: "pipe_loaduse",
+                    rows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "EX", "MEM", "WB", "", ""], ["", "", "IF", "ID", "EX", "MEM", "WB", ""]],
+                    solvedRows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "🫧", "EX⚡", "MEM", "WB", ""], ["", "", "IF", "ID", "🫧", "EX", "MEM", "WB"]],
+                    cpi: "1.33",
+                    whyBad: ["B immediately reads " + r[0] + " before LW's MEM stage!", "LW finishes MEM at C4, too late for B's EX at C4!", "", "Don't flush valid work!"]
+                };
+            }
+            return {
+                a: opA + " " + r[0] + ", " + r[1] + ", " + r[2],
+                b: opB + " " + r[3] + ", " + r[4] + ", " + r[5],
+                c: "ADD " + r[6] + ", " + r[1] + ", " + r[4],
+                tag: "3-Inst Clean Pipe", best: 0, confKey: "pipe_none",
+                rows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "EX", "MEM", "WB", "", ""], ["", "", "IF", "ID", "EX", "MEM", "WB", ""]],
+                solvedRows: [["IF", "ID", "EX", "MEM", "WB", "", "", ""], ["", "IF", "ID", "EX", "MEM", "WB", "", ""], ["", "", "IF", "ID", "EX", "MEM", "WB", ""]],
+                cpi: "1.00",
+                whyBad: ["", "All destination registers (" + r[0] + "," + r[3] + "," + r[6] + ") are independent!", "0 stalls needed!", "No branch!"]
+            };
+        }
+
         var labels = [["✅ RUN NORMALLY", "1 · No hazard (0 stalls)"], ["🔁 FORWARD DATA", "2 · EX/MEM→EX (0 stalls)"], ["⏸️ STALL 1 CYCLE", "3 · Load-Use / 1-Port Mem"], ["🧹 FLUSH PATH", "4 · Taken branch"]];
         var cur = null, solved = 0, locking = false, ganttWrap = mk(arena, "div", "", ""); ganttWrap.style.width = "100%";
         var card = mk(arena, "div", "pinfo", ""), row = mk(arena, "div", "fixrow", "");
         for (var i = 0; i < 4; i++)(function (idx) { mk(row, "button", "fixbtn", labels[idx][0] + "<small>" + labels[idx][1] + "</small>").onclick = function () { pick(idx); }; })(i);
-        function clsOf(v) { return (v === "HAZ!" || v === "MEM!" || v === "IF!" || v === "EX?") ? "haz" : (v === "🫧" || v === "FLUSH") ? "bub" : v.indexOf("⚡") !== -1 ? "fwd" : v && v !== "—" ? "stg" : ""; }
-        function drawGantt(rows, st) { var names = ["A", "B", "C"], body = rows.map(function (r, idx) { return "<tr><td><b>" + names[idx] + "</b></td>" + r.map(function (v) { return "<td class='" + clsOf(v) + "'>" + v + "</td>"; }).join("") + "</tr>"; }).join(""); ganttWrap.innerHTML = "<table class='gantt'><tr><th>Inst</th><th>C1</th><th>C2</th><th>C3</th><th>C4</th><th>C5</th><th>C6</th><th>C7</th><th>C8</th></tr>" + body + "</table><div class='mono' style='font-size:11px;color:#4a47c8;margin-top:4px;text-align:right;'>" + st + "</div>"; }
-        function next() { locking = false; var u3 = (solved >= 3 && Math.random() < 0.55); cur = u3 ? transferCases[rand(0, transferCases.length - 1)] : baseCases[rand(0, baseCases.length - 1)]; drawGantt(cur.rows, u3 ? "⭐ 3-Inst Scheduling Mode" : "Check timeline &amp; registers"); card.innerHTML = "<div><b>A:</b> " + cur.a + "</div><div style='margin-top:2px'><b>B:</b> " + cur.b + "</div>" + (cur.c ? "<div style='margin-top:2px'><b>C:</b> " + cur.c + "</div>" : ""); g.info("solved " + solved); }
-        function pick(idx) { if (!cur || locking) return; if (idx === cur.best) { solved++; locking = true; drawGantt(cur.solvedRows, "✅ " + cur.tag + " · CPI " + cur.cpi); g.good(cur.c ? 25 : 20, "✔ " + cur.tag + " (CPI " + cur.cpi + ")", cur.confKey); g.after(1000, next); } else g.bad(cur.whyBad[idx], cur.confKey); }
-        g.onKey = function (k) { if (k >= "1" && k <= "4") { pick(Number(k) - 1); return true; } return false; }; next();
+        function clsOf(v) { return (v === "🫧" || v === "FLUSH") ? "bub" : v.indexOf("⚡") !== -1 ? "fwd" : v && v !== "—" ? "stg" : ""; }
+        function drawGantt(rows, st) {
+            var names = ["A", "B", "C"];
+            var body = rows.map(function (r, idx) {
+                return "<tr><td><b>" + names[idx] + "</b></td>" + r.map(function (v) { return "<td class='" + clsOf(v) + "'>" + v + "</td>"; }).join("") + "</tr>";
+            }).join("");
+            ganttWrap.innerHTML = "<table class='gantt'><tr><th>Inst</th><th>C1</th><th>C2</th><th>C3</th><th>C4</th><th>C5</th><th>C6</th><th>C7</th><th>C8</th></tr>" + body + "</table><div class='mono' style='font-size:11px;color:#4a47c8;margin-top:4px;text-align:right;'>" + st + "</div>";
+        }
+        function next() {
+            locking = false;
+            var u3 = (lvl("pipe") >= 2 || solved >= 3) && Math.random() < 0.6;
+            cur = makeCase(u3);
+            drawGantt(cur.rows, u3 ? "3-Inst Pipeline · Inspect rd vs rs1/rs2" : "Inspect registers &amp; cycle overlap");
+            card.innerHTML = "<div><b>A:</b> " + cur.a + "</div><div style='margin-top:2px'><b>B:</b> " + cur.b + "</div>" + (cur.c ? "<div style='margin-top:2px'><b>C:</b> " + cur.c + "</div>" : "");
+            g.info("solved " + solved);
+        }
+        function pick(idx) {
+            if (!cur || locking) return;
+            if (idx === cur.best) {
+                solved++; locking = true;
+                drawGantt(cur.solvedRows, "✅ " + cur.tag + " · CPI " + cur.cpi);
+                g.good(cur.c ? 25 : 20, "✔ " + cur.tag + " (CPI " + cur.cpi + ")", cur.confKey);
+                g.after(950, next);
+            } else g.bad(cur.whyBad[idx], cur.confKey);
+        }
+        g.onKey = function (k) { if (k >= "1" && k <= "4") { pick(Number(k) - 1); return true; } return false; };
+        next();
     }
 };
