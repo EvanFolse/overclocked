@@ -68,12 +68,12 @@
 
             <div id="timingWrap">
                 <div class="inst-pills">
-                    <span class="mono" style="font-size:10px;color:var(--muted);">TRACE:</span>
-                    <button id="inst_ADD" class="inst-pill on" onclick="setExecInst('ADD')">ADD R1,R2,R3</button>
-                    <button id="inst_LW" class="inst-pill" onclick="setExecInst('LW')">LW R1,[0x40]</button>
-                    <button id="inst_BEQ" class="inst-pill" onclick="setExecInst('BEQ')">BEQ R1,R2,L1</button>
+                    <span class="mono" style="font-size:10px;color:var(--muted);">PICK AN INSTRUCTION:</span>
+                    <button id="inst_ADD" class="inst-pill on" title="Adds two registers. Uses the ALU, skips memory." onclick="setExecInst('ADD')">ADD R1,R2,R3</button>
+                    <button id="inst_LW" class="inst-pill" title="Loads a value from memory. Fast if it is in cache, slow if not." onclick="setExecInst('LW')">LW R1,[0x40]</button>
+                    <button id="inst_BEQ" class="inst-pill" title="Branch if equal. Compares two registers, then may jump." onclick="setExecInst('BEQ')">BEQ R1,R2,L1</button>
                 </div>
-                <div id="traceReadout">Pick ADD / LW / BEQ and hit green on TIME IT!</div>
+                <div id="traceReadout">Pick an instruction, then hit green on TIME IT. The glowing path shows which CPU parts it uses.</div>
                 <div id="timingBar" onclick="hitTiming()" title="Click or press Space when the needle is in green">
                     <div id="timingYellowL"></div>
                     <div id="timingYellowR"></div>
