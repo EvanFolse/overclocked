@@ -5,7 +5,7 @@ var BENCH_MISSIONS = [
         id: "photo",
         icon: "📱",
         title: "Phone Camera Burst",
-        short: "Parallel · Multi-core & Amdahl",
+        short: "Fix: more cores",
         targetNs: 8.0,
         unit: "ns/px",
         reward: 1200,
@@ -17,7 +17,7 @@ var BENCH_MISSIONS = [
         id: "browser",
         icon: "🌐",
         title: "Browser & OS Tabs",
-        short: "Branchy · Pipeline & CU",
+        short: "Fix: pipeline & control unit",
         targetNs: 6.5,
         unit: "ns/op",
         reward: 650,
@@ -29,7 +29,7 @@ var BENCH_MISSIONS = [
         id: "bigdata",
         icon: "📊",
         title: "Big Data Table Scan",
-        short: "Memory-Bound · L1/L2 & ISA",
+        short: "Fix: L1/L2 cache",
         targetNs: 12.0,
         unit: "ns/row",
         reward: 950,
@@ -109,17 +109,17 @@ function renderBenchList() {
     var passedCnt = 0;
     for (var i = 0; i < BENCH_MISSIONS.length; i++) if (game.benchPassed[BENCH_MISSIONS[i].id]) passedCnt++;
 
-    var h = "<div class='bench-head'><span class='bot-name'>CLIENT BENCHMARKS</span><span class='mono' style='font-size:10.5px;color:var(--mint);font-weight:800'>" + passedCnt + "/3 PASSED</span></div>";
-    h += "<div class='muted' style='font-size:11px;margin:3px 0 6px;'><b>Lower = faster!</b> Click a task to spot bottlenecks, then build/upgrade CPU parts:</div>";
+    var h = "<div class='bench-head'><span class='bot-name'>SPEED TESTS</span><span class='mono' style='font-size:10.5px;color:var(--mint);font-weight:800'>" + passedCnt + "/3 PASSED</span></div>";
+    h += "<div class='muted' style='font-size:11px;margin:3px 0 6px;'>Real jobs your CPU has to run. Each one is slow because one part is weak. Upgrade that part to beat the goal. <b>Lower time = faster.</b></div>";
     for (var j = 0; j < BENCH_MISSIONS.length; j++) {
         var m = BENCH_MISSIONS[j], ev = evalBench(m.id), ok = !!game.benchPassed[m.id], meets = ev.timeNs <= m.targetNs;
         if (meets && !ok && !benchReadyNotified[m.id] && typeof eraReady !== "undefined" && eraReady && !G) {
             benchReadyNotified[m.id] = true;
-            if (typeof BOT !== "undefined") BOT.say("🎉 Your CPU now beats <b>" + m.icon + " " + m.title + "</b>! Click it under <b>CLIENT BENCHMARKS</b> on the left to claim +" + fmt(m.reward) + " ops!", "party", "good");
+            if (typeof BOT !== "undefined") BOT.say("🎉 Your CPU now beats <b>" + m.icon + " " + m.title + "</b>! Click it under <b>SPEED TESTS</b> on the left to claim +" + fmt(m.reward) + " ops!", "party", "good");
         }
         h += "<div class='bench-row" + (ok ? " passed" : (meets ? " ready" : "")) + "' onclick=\"openBenchmark('" + m.id + "')\">" +
             "<div class='bench-row-top'><span><b>" + m.icon + " " + m.title + "</b></span>" +
-            "<span class='mono' style='font-size:10px;white-space:nowrap;color:" + (ok ? "#059669" : (meets ? "#0284c7" : "#d97706")) + ";font-weight:800'>" + (ok ? "✓ PASS" : (meets ? "★ CLAIM!" : formatNs(ev.timeNs) + (ev.timeNs < 1000 ? " " + m.unit : ""))) + "</span></div>" +
+            "<span class='mono' style='font-size:10px;white-space:nowrap;color:" + (ok ? "#059669" : (meets ? "#0284c7" : "#d97706")) + ";font-weight:800'>" + (ok ? "✓ PASS" : (meets ? "★ CLAIM!" : formatNs(ev.timeNs) + (ev.timeNs < 1000 ? " " + m.unit : "/" + m.unit.split("/")[1]))) + "</span></div>" +
             "<div class='bench-row-sub'>" + m.short + " · Goal ≤ " + m.targetNs + " " + m.unit + "</div></div>";
     }
     card.innerHTML = h;
