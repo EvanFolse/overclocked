@@ -1,7 +1,14 @@
 // games/decoder.js: one minigame = GAMES.decoder
 // ---------------------------------------------------------
 GAMES.decoder = {
-    icon: "🔐", title: "CRACK THE OPCODE", time: 45, stars: [60, 140, 220], badPenalty: 6, rule: "DECODE: turn bits into an instruction. ENCODE: flip bits to match the key!",
+    icon: "🔐", title: "CRACK THE OPCODE", time: 45, stars: [60, 140, 220], badPenalty: 6,
+    about: "Learn the <b>instruction decoder</b>: it turns binary into a real command. Each puzzle is an <b>example 6-bit instruction</b>. Decode it, or encode the bits yourself.",
+    rule: "DECODE: turn bits into an instruction. ENCODE: flip bits to match the key!",
+    key: "<div class='key-cols'>" +
+        "<div class='key-col'><span class='key-num'>Field 1</span><b>OP</b><small>What to do</small><div class='key-ex'>00 ADD · 01 SUB<br>10 AND · 11 OR</div></div>" +
+        "<div class='key-col'><span class='key-num'>Field 2</span><b>REG A</b><small>First register</small><div class='key-ex'>00 R0 · 01 R1<br>10 R2 · 11 R3</div></div>" +
+        "<div class='key-col'><span class='key-num'>Field 3</span><b>REG B</b><small>Second register</small><div class='key-ex'>00 R0 · 01 R1<br>10 R2 · 11 R3</div></div>" +
+        "</div>",
     start: function (g, arena) {
         var ops = ["ADD", "SUB", "AND", "OR"], regsN = ["R0", "R1", "R2", "R3"]; mk(arena, "div", "legend", "<b>OP</b> 00 ADD · 01 SUB · 10 AND · 11 OR<br><b>REG</b> 00 R0 · 01 R1 · 10 R2 · 11 R3");
         var body = mk(arena, "div", "dbody", ""), round = 0, mode = "decode", op = 0, a = 0, b = 0, bits = [], sel = [0, 0, 0];

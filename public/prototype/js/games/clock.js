@@ -1,7 +1,14 @@
 // games/clock.js: one minigame = GAMES.clock
 // ---------------------------------------------------------
 GAMES.clock = {
-    icon: "⏱️", title: "CLOCK SYNC", time: 30, stars: [150, 400, 750], badPenalty: 10, rule: "Hit TICK (or SPACE) inside the green setup ring to latch CU, ALU, REG & MEM together!",
+    icon: "⏱️", title: "CLOCK SYNC", time: 30, stars: [150, 400, 750], badPenalty: 10,
+    about: "Learn the <b>clock</b>: the shared beat for CU, ALU, REG, and MEM. Each pulse is an <b>example clock edge</b>. Hit it only when signals have settled.",
+    rule: "Hit TICK (or SPACE) inside the green setup ring to latch CU, ALU, REG & MEM together!",
+    key: "<div class='key-cols'>" +
+        "<div class='key-col'><span class='key-num'>Window</span><b>GREEN</b><small>Setup ready</small><div class='key-ex'>Safe to latch<br>CU ALU REG MEM</div></div>" +
+        "<div class='key-col'><span class='key-num'>Action</span><b>TICK</b><small>Or press SPACE</small><div class='key-ex'>Clock edge<br>captures all</div></div>" +
+        "<div class='key-col'><span class='key-num'>Miss</span><b>EARLY/LATE</b><small>Out of sync</small><div class='key-ex'>Signals not<br>settled yet</div></div>" +
+        "</div>",
     start: function (g, arena) {
         var track = mk(arena, "div", "track", ""), zone = mk(track, "div", "zone", ""), W = track.clientWidth || 340, zoneX = W * 0.2; zone.style.left = (zoneX - 24) + "px";
         var row = mk(arena, "div", "partsrow", ""), chips = [], labels = ["CU", "ALU", "REG", "MEM"]; for (var i = 0; i < 4; i++)chips.push(mk(row, "span", "pchip", labels[i]));

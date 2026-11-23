@@ -6,7 +6,14 @@ GAMES.pipe = {
     time: 70,
     stars: [80, 170, 260],
     badPenalty: 12,
-    rule: "Inspect the registers &amp; timeline yourself! Pick <b>Run Normal</b>, <b>Forward</b>, <b>Stall 1</b>, or <b>Flush</b> (Keys 1–4).",
+    about: "Learn the <b>pipeline</b>: instructions overlap (IF→ID→EX→MEM→WB). Each round is an <b>example pair/triple</b>. Spot the hazard and pick the fix a real CPU would use.",
+    rule: "Inspect the registers and timeline. Pick Run Normal, Forward, Stall 1, or Flush (Keys 1-4).",
+    key: "<div class='key-cols cols-4'>" +
+        "<div class='key-col'><span class='key-num'>Key 1</span><b>NORMAL</b><small>No hazard</small><div class='key-ex'>Independent<br>registers</div></div>" +
+        "<div class='key-col'><span class='key-num'>Key 2</span><b>FORWARD</b><small>Pass result</small><div class='key-ex'>Needs value<br>still in EX</div></div>" +
+        "<div class='key-col'><span class='key-num'>Key 3</span><b>STALL 1</b><small>Wait 1 cycle</small><div class='key-ex'>Load-use<br>(LW then use)</div></div>" +
+        "<div class='key-col'><span class='key-num'>Key 4</span><b>FLUSH</b><small>Wrong path</small><div class='key-ex'>Taken branch<br>or jump</div></div>" +
+        "</div>",
     start: function (g, arena) {
         var ops = ["ADD", "SUB", "AND", "OR", "XOR"];
         function pickRegs(count) {

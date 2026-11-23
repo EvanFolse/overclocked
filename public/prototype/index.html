@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@600;700;800&family=Orbitron:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=5">
+    <link rel="stylesheet" href="style.css?v=14">
 </head>
 
 <body>
@@ -21,13 +21,34 @@
                 </div>
                 <button class="ghost" onclick="openWelcome()">? Intro</button>
             </div>
-            <div id="botCard" class="card">
-                <div class="bot-head">
-                    <div id="botFace" class="bot-avatar"></div>
-                    <div>
-                        <div class="bot-name">CHIPBOT · AI TUTOR</div>
-                        <div class="bot-mood" id="botMoodLabel">Ready to build!</div>
+            <div class="left-dock" role="toolbar" aria-label="Left tools">
+                <button type="button" id="btnBotDock" class="dock-btn" onclick="toggleLeftPanel('bot')" title="Tutor" aria-label="Open Tutor" aria-expanded="false">
+                    <span id="dockBotFace" class="dock-bot-face"></span>
+                    <span class="dock-label">Tutor</span>
+                </button>
+                <button type="button" id="btnBenchDock" class="dock-btn" onclick="toggleLeftPanel('bench')" title="Speed Testing" aria-label="Open Speed Testing" aria-expanded="false">
+                    <span class="dock-clock" aria-hidden="true">
+                        <svg viewBox="0 0 48 48" width="28" height="28">
+                            <circle cx="24" cy="26" r="14" fill="#0f172a" stroke="#38bdf8" stroke-width="2.5"/>
+                            <circle cx="24" cy="26" r="2.2" fill="#38bdf8"/>
+                            <path d="M24 16v10l7 4" fill="none" stroke="#7dd3fc" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M18 8h12" stroke="#94a3b8" stroke-width="2.4" stroke-linecap="round"/>
+                            <path d="M24 8v4" stroke="#94a3b8" stroke-width="2.4" stroke-linecap="round"/>
+                        </svg>
+                    </span>
+                    <span class="dock-label">Speed Testing</span>
+                </button>
+            </div>
+            <div id="botCard" class="card left-panel collapsed">
+                <div class="panel-head">
+                    <div class="bot-head">
+                        <div id="botFace" class="bot-avatar"></div>
+                        <div>
+                            <div class="bot-name">CHIPBOT · AI TUTOR</div>
+                            <div class="bot-mood" id="botMoodLabel">Ready to build!</div>
+                        </div>
                     </div>
+                    <button type="button" class="ghost panel-close" onclick="toggleLeftPanel('bot')" title="Collapse">✕</button>
                 </div>
                 <div id="botBubble" class="bot-bubble">Open <b>MENU → STAGES</b> to build Stage 1, or ask me anything!</div>
                 <div class="bot-btns">
@@ -39,7 +60,7 @@
                 </div>
                 <div id="botDrawer" class="bot-drawer hidden"></div>
             </div>
-            <div id="benchCard" class="card"></div>
+            <div id="benchCard" class="card left-panel collapsed"></div>
         </aside>
 
         <main id="center">

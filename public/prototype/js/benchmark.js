@@ -109,13 +109,15 @@ function renderBenchList() {
     var passedCnt = 0;
     for (var i = 0; i < BENCH_MISSIONS.length; i++) if (game.benchPassed[BENCH_MISSIONS[i].id]) passedCnt++;
 
-    var h = "<div class='bench-head'><span class='bot-name'>SPEED TESTS</span><span class='mono' style='font-size:10.5px;color:var(--mint);font-weight:800'>" + passedCnt + "/3 PASSED</span></div>";
+    var h = "<div class='panel-head'><div class='bench-head'><span class='bot-name'>SPEED TESTS</span><span class='mono' style='font-size:10.5px;color:var(--mint);font-weight:800'>" + passedCnt + "/3 PASSED</span></div><button type='button' class='ghost panel-close' onclick=\"toggleLeftPanel('bench')\" title='Collapse'>✕</button></div>";
     h += "<div class='muted' style='font-size:11px;margin:3px 0 6px;'>Real jobs your CPU has to run. Each one is slow because one part is weak. Upgrade that part to beat the goal. <b>Lower time = faster.</b></div>";
     for (var j = 0; j < BENCH_MISSIONS.length; j++) {
         var m = BENCH_MISSIONS[j], ev = evalBench(m.id), ok = !!game.benchPassed[m.id], meets = ev.timeNs <= m.targetNs;
         if (meets && !ok && !benchReadyNotified[m.id] && typeof eraReady !== "undefined" && eraReady && !G) {
             benchReadyNotified[m.id] = true;
-            if (typeof BOT !== "undefined") BOT.say("🎉 Your CPU now beats <b>" + m.icon + " " + m.title + "</b>! Click it under <b>SPEED TESTS</b> on the left to claim +" + fmt(m.reward) + " ops!", "party", "good");
+            if (typeof BOT !== "undefined") BOT.say("🎉 Your CPU now beats <b>" + m.icon + " " + m.title + "</b>! Tap the <b>clock icon</b> on the left, then claim +" + fmt(m.reward) + " ops!", "party", "good");
+            var dock = el("btnBenchDock");
+            if (dock && leftPanel !== "bench") dock.classList.add("dock-ping");
         }
         h += "<div class='bench-row" + (ok ? " passed" : (meets ? " ready" : "")) + "' onclick=\"openBenchmark('" + m.id + "')\">" +
             "<div class='bench-row-top'><span><b>" + m.icon + " " + m.title + "</b></span>" +

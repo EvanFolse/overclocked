@@ -34,10 +34,10 @@ function openGame(key, back) {
     makeApi(G);
     if (!menuOpen) { menuOpen = true; el("app").classList.add("menu-open"); el("menuToggle").innerHTML = "MENU ✓"; }
     el("tabs").style.display = "none";
-    var h = "<div class='rhead'><span>" + def.icon + " " + def.title + "</span><button class='ghost' onclick='quitGame()'>✕ Quit</button></div><div class='gbar'><div id='gTime'></div></div><div class='gstats'><span>SCORE <b id='gScore'>0</b></span><span id='gCombo'></span><span id='gInfo'></span></div><div id='gameBotBar'></div><div id='arena' class='arena'></div>";
+    var h = "<div class='rhead'><span>" + def.icon + " " + def.title + "</span><button class='ghost' onclick='quitGame()'>✕ Quit</button></div><div class='gbar'><div id='gTime'></div></div><div class='gstats'><span>SCORE <b id='gScore'>0</b></span><span id='gCombo'></span><span id='gInfo'></span></div><div id='gameKey' class='gkey hidden'></div><div id='gameBotBar'></div><div id='arena' class='arena'></div>";
     el("rbody").innerHTML = h;
     G.arena = el("arena");
-    BOT.say("Module: <b>" + PART[key].name + "</b> — build combos and aim for ≥70% accuracy!", "idle", "");
+    BOT.say("Module: <b>" + PART[key].name + "</b>. Build combos and aim for ≥70% accuracy!", "idle", "");
     showIntro();
 }
 
@@ -52,12 +52,35 @@ function quitGame() {
 
 function showIntro() {
     var g = G, def = g.def, P = PART[g.key], ov = mk(g.arena, "div", "overlay", "");
-    ov.innerHTML = "<div class='bigicon'>" + def.icon + "</div><div class='otitle'>" + def.title + "</div><div class='orule'>" + def.rule + "</div><div class='ostars'>★ " + def.stars[0] + " (Lv2) &nbsp; ★★ " + def.stars[1] + " (Lv4) &nbsp; ★★★ " + def.stars[2] + " (Lv5)</div><div>" + (game.parts[g.key].on ? "Earn Compute (ops) &amp; higher stars!" : "Earn ★ to build <b>" + P.name + "</b>! (needs " + MIN_BUILD_ACC + "% accuracy)") + "</div>";
-    mk(ov, "button", "bigbtn", "▶ PLAY").onclick = beginPlay;
+    var line = game.parts[g.key].on
+        ? "Earn Compute (ops) &amp; higher stars!"
+        : "Earn ★ to build <b>" + P.name + "</b>! (needs " + MIN_BUILD_ACC + "% accuracy)";
+    var top = "<div class='introTop'>";
+    top += "<div class='bigicon'>" + def.icon + "</div>";
+    top += "<div class='otitle'>" + def.title + "</div>";
+    if (def.about) top += "<div class='oabout'>" + def.about + "</div>";
+    top += "<div class='orule'><b>How to play:</b> " + def.rule + "</div>";
+    if (def.key) top += "<div class='okey'><b>EXAMPLE COMMANDS</b>" + def.key + "</div>";
+    top += "</div>";
+    var bottom = "<div class='introBottom'>";
+    bottom += "<div class='ostars'>★ " + def.stars[0] + " (Lv2) · ★★ " + def.stars[1] + " (Lv4) · ★★★ " + def.stars[2] + " (Lv5)</div>";
+    bottom += "<div class='muted' style='font-size:11px;text-align:center'>" + line + "</div>";
+    bottom += "</div>";
+    ov.innerHTML = top + bottom;
+    mk(ov.querySelector(".introBottom"), "button", "bigbtn", "▶ PLAY").onclick = beginPlay;
+}
+
+function showStickyKey(def) {
+    var box = el("gameKey");
+    if (!box) return;
+    if (!def.key) { box.classList.add("hidden"); box.innerHTML = ""; return; }
+    box.classList.remove("hidden");
+    box.innerHTML = "<b>EXAMPLE COMMANDS</b>" + def.key;
 }
 
 function beginPlay() {
     var g = G; g.arena.innerHTML = ""; g.score = 0; g.combo = 0; g.best = 0; g.hits = 0; g.misses = 0; g.runConfusions = {}; g.left = g.def.time; g.running = true; g.ended = false; hudUpdate(g);
+    showStickyKey(g.def);
     if (g.def.time > 0) g.every(100, function () { g.left -= 0.1; g.setBar(g.left / g.def.time); if (g.left <= 0) endGame(); }); else g.setBar(0);
     g.def.start(g, g.arena);
 }
@@ -83,6 +106,8 @@ document.addEventListener("keydown", function (e) { if (G && G.running && G.onKe
 function endGame() {
     var g = G; if (!g || g.ended) return;
     g.ended = true; stopGameTimers(g); g.setBar(0);
+    var keyBox = el("gameKey");
+    if (keyBox) { keyBox.classList.add("hidden"); keyBox.innerHTML = ""; }
     var stars = 0; for (var i = 0; i < 3; i++) if (g.score >= g.def.stars[i]) stars = i + 1;
     var accTot = g.hits + g.misses, accPct = accTot > 0 ? Math.round((g.hits / accTot) * 100) : 100;
     var accBlocked = (!game.parts[g.key].on && stars >= 1 && accPct < MIN_BUILD_ACC);
@@ -95,33 +120,51 @@ function endGame() {
     var stageRes = checkStages(); renderHud();
     var tot = g.hits + g.misses, runAcc = tot > 0 ? Math.round((g.hits / tot) * 100) : 100, topRunC = "", topCnt = 0;
     for (var ck in g.runConfusions) if (g.runConfusions[ck] > topCnt && CONFUSIONS[ck]) { topCnt = g.runConfusions[ck]; topRunC = ck; }
-    var debriefHtml = "";
-    if (topRunC) { var ci = CONFUSIONS[topRunC]; debriefHtml = "<div class='debrief'><b>🤖 ChipBot Post-Run Debrief (" + runAcc + "% accuracy):</b><br>Watch <b>" + ci.title + "</b> (" + topCnt + " slip" + (topCnt > 1 ? "s" : "") + "): " + ci.hint1 + "</div>"; BOT.say("Run finished (" + runAcc + "% accuracy). Review <b>" + ci.title + "</b> on the left anytime!", "think", "warn"); }
+    if (topRunC) BOT.say("Run finished (" + runAcc + "% accuracy). Review <b>" + CONFUSIONS[topRunC].title + "</b> on the left anytime!", "think", "warn");
     else if (stars > 0) BOT.say("Clean run (" + runAcc + "% accuracy)! Build &amp; upgrade on silicon!", "happy", "good");
     var starTxt = ""; for (var s = 0; s < 3; s++) starTxt += (s < stars) ? "⭐" : "☆";
-    var ov = mk(g.arena, "div", "overlay", ""), html = "<div class='stars'>" + starTxt + "</div><div class='otitle'>" + (stars > 0 ? "NICE!" : "TRY AGAIN") + "</div><div>Score <b>" + g.score + "</b> · Accuracy <b>" + runAcc + "%</b></div><div class='gain'>+" + fmt(pay) + " ops</div>";
-    if (installed) html += "<div class='inst'>🎉 " + P.name + " mounted onto 3D silicon!</div>";
-    if (stageRes.msg !== "") html += "<div class='inst'>🏁 " + stageRes.msg + "</div>";
-    if (accBlocked) html += "<div class='muted'>Accuracy " + accPct + "%: you need at least " + MIN_BUILD_ACC + "% to build this part. Slow down and read the hints.</div>";
-    else if (stars === 0 && !wasOn) html += "<div class='muted'>Reach ★ " + g.def.stars[0] + " to build this part.</div>";
-    html += debriefHtml; ov.innerHTML = html;
-    if (topRunC) mk(ov, "button", "ghost", "⚖️ Compare: " + CONFUSIONS[topRunC].title).onclick = function () { openConfusionKey(topRunC); };
+    var notes = "";
+    if (installed) notes += "<div class='inst'>🎉 " + P.name + " mounted onto silicon!</div>";
+    if (stageRes.msg !== "") notes += "<div class='inst'>🏁 " + stageRes.msg + "</div>";
+    if (accBlocked) notes += "<div class='result-note'>Accuracy " + accPct + "%. You need at least " + MIN_BUILD_ACC + "% to build this part.</div>";
+    else if (stars === 0 && !wasOn) notes += "<div class='result-note'>Reach ★ " + g.def.stars[0] + " to build this part.</div>";
+    if (topRunC) {
+        var ci = CONFUSIONS[topRunC];
+        notes += "<div class='debrief'><b>ChipBot tip</b> (" + runAcc + "% accuracy)<br>Watch <b>" + ci.title + "</b> (" + topCnt + " slip" + (topCnt > 1 ? "s" : "") + "): " + ci.hint1 + "</div>";
+    }
+    var ov = mk(g.arena, "div", "overlay result", "");
+    ov.innerHTML =
+        "<div class='resultTop'>" +
+        "<div class='stars'>" + starTxt + "</div>" +
+        "<div class='otitle'>" + (stars > 0 ? "NICE!" : "TRY AGAIN") + "</div>" +
+        "<div class='result-stats'>" +
+        "<div class='result-stat'><span>Score</span><b>" + g.score + "</b></div>" +
+        "<div class='result-stat'><span>Accuracy</span><b>" + runAcc + "%</b></div>" +
+        "<div class='result-stat'><span>Reward</span><b class='gain'>+" + fmt(pay) + "</b></div>" +
+        "</div>" +
+        notes +
+        "</div>" +
+        "<div class='resultBottom' id='resultActions'></div>";
+    var actions = el("resultActions");
+    if (topRunC) {
+        mk(actions, "button", "ghost result-btn", "⚖️ Compare: " + CONFUSIONS[topRunC].title).onclick = function () { openConfusionKey(topRunC); };
+    }
     if (stageRes.newlyPassed.length > 0) {
         var stDone = stageRes.newlyPassed[0], autoDebriefDone = false;
         var autoDebriefTid = setTimeout(function () {
             if (autoDebriefDone || G !== g) return;
             autoDebriefDone = true; quitGame(); openStageDebrief(stDone);
         }, 1050);
-        mk(ov, "button", "bigbtn", "🤖 View Stage " + (stDone + 1) + " Feedback Now →").onclick = function () {
+        mk(actions, "button", "bigbtn result-btn", "View Stage " + (stDone + 1) + " Feedback →").onclick = function () {
             if (autoDebriefDone) return;
             autoDebriefDone = true; clearTimeout(autoDebriefTid); quitGame(); openStageDebrief(stDone);
         };
-        mk(ov, "button", "ghost", "↻ Replay").onclick = function () {
+        mk(actions, "button", "ghost result-btn", "↻ Replay").onclick = function () {
             autoDebriefDone = true; clearTimeout(autoDebriefTid); openGame(key, g.back);
         };
     } else {
-        mk(ov, "button", "bigbtn", "↻ Play again").onclick = function () { openGame(key, g.back); };
-        mk(ov, "button", "ghost", "Back").onclick = quitGame;
+        mk(actions, "button", "bigbtn result-btn", "↻ Play again").onclick = function () { openGame(key, g.back); };
+        mk(actions, "button", "ghost result-btn", "Back").onclick = quitGame;
     }
 }
 

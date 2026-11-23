@@ -1,7 +1,14 @@
 // games/cu.js: one minigame = GAMES.cu
 // ---------------------------------------------------------
 GAMES.cu = {
-    icon: "🎛️", title: "DISPATCHER", time: 30, stars: [60, 140, 230], badPenalty: 10, rule: "Route each instruction to the unit that does the work (Keys 1 · 2 · 3).",
+    icon: "🎛️", title: "DISPATCHER", time: 30, stars: [60, 140, 230], badPenalty: 10,
+    about: "Learn the <b>Control Unit</b>: it does not do the work itself. It reads each command and routes it. Below are <b>example instructions</b> and where a CU would send them.",
+    rule: "Route each instruction to the unit that does the work (Keys 1 · 2 · 3).",
+    key: "<div class='key-cols'>" +
+        "<div class='key-col'><span class='key-num'>Key 1</span><b>ALU</b><small>Math &amp; logic</small><div class='key-ex'>ADD · SUB · AND<br>OR · CMP · INC</div></div>" +
+        "<div class='key-col'><span class='key-num'>Key 2</span><b>REGISTERS</b><small>Move values</small><div class='key-ex'>MOV · SWAP<br>COPY</div></div>" +
+        "<div class='key-col'><span class='key-num'>Key 3</span><b>MEMORY</b><small>Get or save RAM</small><div class='key-ex'>LOAD<br>STORE</div></div>" +
+        "</div>",
     start: function (g, arena) {
         var list = [["ADD R1, R2", 0], ["SUB R3, R1", 0], ["AND R2, R3", 0], ["OR R1, R4", 0], ["CMP R1, R2", 0], ["INC R3", 0], ["MOV R1, R2", 1], ["MOV R3, R4", 1], ["SWAP R1, R2", 1], ["COPY R2, R4", 1], ["LOAD R1, [40]", 2], ["STORE [44], R2", 2], ["LOAD R3, [8]", 2], ["STORE [12], R1", 2]];
         var names = [["⚙️ ALU", "math & logic"], ["🗂️ REGISTERS", "copy between slots"], ["📦 MEMORY", "load & store RAM"]], targets = ["alu", "regs", ""], patience = 3.6, cur = null, born = 0;

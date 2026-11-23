@@ -35,7 +35,16 @@ function overlaysOpen() {
     return false;
 }
 
-function renderAll() { renderStages(); renderBot(); if (typeof renderBenchList === "function") renderBenchList(); renderStats(); renderHud(); renderRight(); drawChip(); }
+function renderAll() {
+    renderStages();
+    renderBot();
+    if (typeof renderBenchList === "function") renderBenchList();
+    if (typeof applyLeftPanels === "function") applyLeftPanels();
+    renderStats();
+    renderHud();
+    renderRight();
+    drawChip();
+}
 
 setInterval(function () { gainCp(totalCps() / 10); }, 100);
 
