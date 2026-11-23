@@ -197,17 +197,51 @@ function renderProgress() {
 
 function renderSettings() {
     var h = "<h2 class='h'>SETTINGS</h2><div class='part'><b>Welcome &amp; Finale Preview</b><div class='muted'>Replay the animated start screen, or preview the 5-Model CPU Evolution + Feedback flow.</div><button class='btn' onclick='openWelcome()'>Show Welcome Screen</button><button class='ghost' onclick='openEvolution(true)'>🎬 Preview Ending (Models 1–5 &amp; Feedback)</button></div>";
+    h += "<div class='part'><b>Appearance</b><div class='muted'>Switch between light and dark mode for the builder UI.</div><button class='btn' onclick='toggleDarkMode()'>" + (game.dark ? "Dark mode is ON (click for light)" : "Dark mode is OFF (click for dark)") + "</button></div>";
     h += "<div class='part'><b>Reduce motion</b><div class='muted'>Turns off floating chip, glowing wires and rising animations.</div><button class='btn' onclick='toggleReduce()'>" + (game.reduce ? "Motion is OFF (click to turn on)" : "Motion is ON (click to turn off)") + "</button></div>";
     h += "<div class='part'><b>Sound effects</b><div class='muted'>Beeps for hits and misses in minigames.</div><button class='btn' onclick='toggleSound()'>" + (game.sound ? "Sound is ON (click to turn off)" : "Sound is OFF (click to turn on)") + "</button></div>";
     h += "<div class='part'><b>Showcase / Grading Mode</b><div class='muted'>Unlock all 5 stages right away so instructors or reviewers can play any stage in any order.</div><button class='btn' style='background:#0ea5e9' onclick='unlockAllStages()'>🎓 Unlock All 5 Stages</button><button class='ghost' onclick='relockStages()'>🔒 Re-lock Stages</button></div>";
+    h += "<div class='part'><b>Full unlock</b><div class='muted'>Install every CPU part at max level, open all stages, and grant ★★★ on each module. Useful for demos and testing.</div><button class='btn' style='background:#7c3aed' onclick='unlockEverything()'>🚀 Unlock All Parts &amp; Progress</button></div>";
     h += "<div class='part'><b>Save</b><div class='muted'>Saves automatically under <code>" + SAVE_KEY + "</code>.</div></div>";
     h += "<div class='part'><b>Reset everything</b><div class='muted'>Deletes your chip, Compute and stage progress.</div><button class='btn' style='background:#c94a4a' onclick='resetGame()'>" + (resetArmed ? "Click again to DELETE everything" : "Reset game") + "</button></div>";
     el("rbody").innerHTML = h;
 }
 
-function toggleReduce() { game.reduce = !game.reduce; applyMotion(); renderRight(); }
-function applyMotion() { document.body.className = (game.reduce ? "reduce " : "") + (overclockOn && lvl("clock") > 0 ? "overclock-on" : ""); }
+function toggleReduce() { game.reduce = !game.reduce; save(); applyTheme(); renderRight(); }
+function toggleDarkMode() { game.dark = !game.dark; save(); applyTheme(); renderRight(); toast(game.dark ? "Dark mode on." : "Light mode on."); }
+function applyTheme() {
+    var cls = [];
+    if (game.reduce) cls.push("reduce");
+    if (game.dark) cls.push("dark");
+    if (overclockOn && lvl("clock") > 0) cls.push("overclock-on");
+    document.body.className = cls.join(" ");
+}
+function applyMotion() { applyTheme(); }
 function toggleSound() { game.sound = !game.sound; renderRight(); }
+
+function unlockEverything() {
+    for (var i = 0; i < PARTS.length; i++) {
+        var k = PARTS[i].key;
+        game.parts[k].on = true;
+        game.parts[k].level = 5;
+        game.parts[k].h = heightOf(5);
+        game.stars[k] = 3;
+    }
+    for (var s = 0; s < 5; s++) {
+        game.stages[s] = "passed";
+        game.seenStages[s] = true;
+    }
+    if (!game.benchPassed) game.benchPassed = {};
+    for (var b = 0; b < BENCH_MISSIONS.length; b++) game.benchPassed[BENCH_MISSIONS[b].id] = true;
+    game.cp = Math.max(game.cp, 50000);
+    game.finaleShown = false;
+    save();
+    kickAnim();
+    applyTheme();
+    renderAll();
+    toast("🚀 Full unlock complete. Every part is maxed.");
+    BOT.say("🚀 <b>Full unlock:</b> all parts, stages, and stars are ready for demos!", "party", "good");
+}
 
 function resetGame() {
     if (!resetArmed) { resetArmed = true; renderRight(); setTimeout(function () { resetArmed = false; if (!G && !view && tab === "settings" && menuOpen) renderRight(); }, 4000); return; }

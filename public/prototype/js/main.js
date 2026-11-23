@@ -8,7 +8,7 @@ function load() {
         var g = JSON.parse(s), base = newGame();
         base.cp = g.cp || 0; base.earned = g.earned || 0; base.answers = g.answers || 0; base.right = g.right || 0;
         base.seenWelcome = !!(g.seenWelcome || g.seenHelp); base.finaleShown = !!g.finaleShown;
-        base.reduce = !!g.reduce; base.sound = (g.sound !== false); base.stars = g.stars || {};
+        base.reduce = !!g.reduce; base.sound = (g.sound !== false); base.dark = !!g.dark; base.stars = g.stars || {};
         if (g.seenStages && g.seenStages.length === 5) base.seenStages = g.seenStages;
         if (g.archChoices && g.archChoices.isa) base.archChoices = { isa: g.archChoices.isa };
         if (g.benchPassed) base.benchPassed = g.benchPassed;

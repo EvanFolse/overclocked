@@ -11,7 +11,7 @@ var TIMING_BASE_SPEED = 0.0075, TIMING_MAX_MULT = 1.5, GREEN_HALF = 0.035;
 function emptyObjStats() { return [{ hits: 0, misses: 0 }, { hits: 0, misses: 0 }, { hits: 0, misses: 0 }, { hits: 0, misses: 0 }, { hits: 0, misses: 0 }]; }
 function emptyStageConfs() { return [{}, {}, {}, {}, {}]; }
 function newGame() {
-    var g = { cp: 0, earned: 0, answers: 0, right: 0, seenWelcome: false, finaleShown: false, seenStages: [false, false, false, false, false], archChoices: { isa: "risc" }, benchPassed: {}, benchBaseline: {}, confusions: {}, stageConfusions: emptyStageConfs(), objStats: emptyObjStats(), reduce: false, sound: true, stars: {}, parts: {}, stages: ["open", "locked", "locked", "locked", "locked"] };
+    var g = { cp: 0, earned: 0, answers: 0, right: 0, seenWelcome: false, finaleShown: false, seenStages: [false, false, false, false, false], archChoices: { isa: "risc" }, benchPassed: {}, benchBaseline: {}, confusions: {}, stageConfusions: emptyStageConfs(), objStats: emptyObjStats(), reduce: false, sound: true, dark: false, stars: {}, parts: {}, stages: ["open", "locked", "locked", "locked", "locked"] };
     for (var i = 0; i < PARTS.length; i++) g.parts[PARTS[i].key] = { on: false, level: 1, h: 0 };
     return g;
 }

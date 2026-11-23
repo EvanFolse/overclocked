@@ -3461,3 +3461,162 @@ body.overclock-on .trace.live {
     background: #f0f9ff;
     box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.16);
 }
+
+/* ── Dark mode ── */
+body.dark {
+    --ink: #e8eef5;
+    --muted: #9aafc2;
+    --mint: #34d399;
+    --indigo: #a5b4fc;
+    --line: rgba(148, 180, 220, 0.12);
+    background: radial-gradient(1100px 700px at 50% 25%, #1a2332 0%, #121820 55%, #0b0f14 100%);
+    color: var(--ink);
+}
+
+body.dark #right {
+    background: rgba(22, 30, 42, 0.92);
+    border-left: 1px solid rgba(80, 100, 130, 0.35);
+    box-shadow: -10px 0 40px rgba(0, 0, 0, 0.35);
+}
+
+body.dark .card,
+body.dark .part,
+body.dark .stagecard {
+    background: rgba(30, 40, 55, 0.88);
+    border-color: rgba(100, 130, 170, 0.22);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
+}
+
+body.dark .stagecard {
+    background: rgba(36, 48, 66, 0.9);
+    border-color: rgba(129, 140, 248, 0.28);
+}
+
+body.dark .stagecard.passed {
+    border-color: rgba(52, 211, 153, 0.5);
+}
+
+body.dark #botCard {
+    border-color: rgba(129, 140, 248, 0.4);
+    background: linear-gradient(180deg, rgba(36, 42, 70, 0.95), rgba(28, 34, 55, 0.92));
+}
+
+body.dark .bot-bubble {
+    background: #1a2332;
+    border-color: #334155;
+    color: var(--ink);
+}
+
+body.dark .bot-bubble.warn {
+    background: #3b2f14;
+    border-color: #a16207;
+    color: #fde68a;
+}
+
+body.dark .bot-bubble.good {
+    background: #0f2e24;
+    border-color: #059669;
+    color: #a7f3d0;
+}
+
+body.dark #benchCard {
+    border-color: rgba(56, 189, 248, 0.35);
+    background: linear-gradient(180deg, rgba(20, 36, 52, 0.95), rgba(16, 28, 42, 0.92));
+}
+
+body.dark .bench-row {
+    background: #1a2736;
+    border-color: #334155;
+}
+
+body.dark .bench-row:hover {
+    border-color: #38bdf8;
+}
+
+body.dark .bench-row.passed {
+    background: #0f2e24;
+    border-color: rgba(52, 211, 153, 0.5);
+}
+
+body.dark .bench-row.ready {
+    background: #0c2a3d;
+    border-color: #0ea5e9;
+    box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.22);
+}
+
+body.dark .dock-btn {
+    border-color: rgba(129, 140, 248, 0.35);
+    background: linear-gradient(180deg, #1e293b, #151e2c);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+    color: var(--ink);
+}
+
+body.dark #btnBenchDock {
+    border-color: rgba(56, 189, 248, 0.35);
+    background: linear-gradient(180deg, #1a2838, #121c28);
+}
+
+body.dark .dock-label {
+    color: var(--muted);
+}
+
+body.dark .dock-btn.on .dock-label {
+    color: var(--indigo);
+}
+
+body.dark button.ghost {
+    background: #1e293b;
+    color: var(--ink);
+    border-color: #475569;
+}
+
+body.dark button.ghost:hover {
+    border-color: var(--indigo);
+    color: var(--indigo);
+}
+
+body.dark button.upg {
+    background: #1e3a5f;
+    color: #bfdbfe;
+    border-color: #3b82f6;
+}
+
+body.dark button.upg.can {
+    background: #059669;
+    color: #fff;
+    border-color: #059669;
+}
+
+body.dark button.upg.cap {
+    background: #422006;
+    color: #fde68a;
+    border-color: #a16207;
+}
+
+body.dark .bar {
+    background: #243044;
+}
+
+body.dark .rhead,
+body.dark .h {
+    color: var(--indigo);
+}
+
+body.dark #toast {
+    background: #e8eef5;
+    color: #0b0f14;
+}
+
+body.dark .donut-card {
+    background: rgba(30, 40, 55, 0.88);
+    border-color: rgba(100, 130, 170, 0.22);
+}
+
+body.dark input,
+body.dark select,
+body.dark textarea {
+    background: #1a2332;
+    color: var(--ink);
+    border-color: #475569;
+}
+
