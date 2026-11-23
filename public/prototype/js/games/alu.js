@@ -6,7 +6,14 @@ GAMES.alu = {
     time: 55,
     stars: [60, 140, 220],
     badPenalty: 6,
-    rule: "Flip lamps to match the result, then hit RUN!<br><b>Unsigned ADD ≥ 16</b> lights <b>CARRY(16)</b>. <b>Lv2+ Signed ADD</b> checks <b>V (Overflow)</b>!",
+    about: "Learn the <b>ALU</b> (the chip's calculator). Each round is an <b>example op</b> (AND, OR, XOR, or ADD) on binary bits, including carry and overflow.",
+    rule: "Flip lamps to match the result, then hit RUN. Unsigned ADD ≥ 16 lights CARRY(16). Lv2+ Signed ADD checks V (Overflow).",
+    key: "<div class='key-cols cols-4'>" +
+        "<div class='key-col'><span class='key-num'>Op</span><b>AND</b><small>Both bits 1</small><div class='key-ex'>1 only if<br>both are 1</div></div>" +
+        "<div class='key-col'><span class='key-num'>Op</span><b>OR</b><small>Either bit 1</small><div class='key-ex'>1 if either<br>input is 1</div></div>" +
+        "<div class='key-col'><span class='key-num'>Op</span><b>XOR</b><small>Bits differ</small><div class='key-ex'>1 where<br>inputs differ</div></div>" +
+        "<div class='key-col'><span class='key-num'>Op</span><b>ADD</b><small>Binary sum</small><div class='key-ex'>CARRY ≥ 16<br>V = overflow</div></div>" +
+        "</div>",
     start: function (g, arena) {
         var hints = {
             AND: "1 only where BOTH are 1",

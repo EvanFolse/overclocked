@@ -6,7 +6,13 @@ GAMES.fpu = {
     time: 55,
     stars: [60, 130, 210],
     badPenalty: 6,
-    rule: "Flip the 8 bits <b>[S | EEEE | MMM]</b> to encode the decimal!<br>Formula: <b>(−1)<sup>S</sup> × (1 + M/8) × 2<sup>(E − 7)</sup></b>",
+    about: "Learn the <b>FPU</b>: how computers store decimals. Each target is an <b>example float</b>. Encode it as sign, biased exponent, and fraction bits.",
+    rule: "Flip the 8 bits [S | EEEE | MMM] to encode the decimal. Formula: (−1)^S × (1 + M/8) × 2^(E − 7)",
+    key: "<div class='key-cols'>" +
+        "<div class='key-col'><span class='key-num'>1 bit</span><b>S</b><small>Sign</small><div class='key-ex'>0 = +<br>1 = −</div></div>" +
+        "<div class='key-col'><span class='key-num'>4 bits</span><b>E</b><small>Exponent</small><div class='key-ex'>Bias 7<br>0111 = 2⁰</div></div>" +
+        "<div class='key-col'><span class='key-num'>3 bits</span><b>M</b><small>Fraction</small><div class='key-ex'>1.MMM<br>000=1.0</div></div>" +
+        "</div>",
     start: function (g, arena) {
         mk(arena, "div", "legend", "<b>S (1b)</b> 0:+ 1:− &nbsp;|&nbsp; <b>E (4b)</b> bias=7 (0111=2⁰, 1000=2¹, 0110=2⁻¹)<br><b>M (3b)</b> 1.MMM (000=1.0, 100=1.5, 010=1.25, 110=1.75)");
         var targetEl = mk(arena, "div", "want", ""), hintEl = mk(arena, "div", "ophint", ""), tiles = mk(arena, "div", "tiles", "");

@@ -6,7 +6,13 @@ GAMES.l1 = {
     time: 50,
     stars: [80, 170, 260],
     badPenalty: 8,
-    rule: "Map each hex address to <b>Set = Addr mod 2</b> (Even→Set 0, Odd→Set 1). On a MISS, click the <b>empty</b> or <b>oldest-used</b> way in that Set!",
+    about: "Learn <b>L1 cache</b>: a tiny fast desk beside the core. Each hex address is an <b>example memory request</b>. Hit if it is already there; on a miss, place it with LRU rules.",
+    rule: "Map each hex address to Set = Addr mod 2 (Even→Set 0, Odd→Set 1). On a MISS, click the empty or oldest-used way in that Set!",
+    key: "<div class='key-cols'>" +
+        "<div class='key-col'><span class='key-num'>Result</span><b>HIT</b><small>Already there</small><div class='key-ex'>Data found<br>in that set</div></div>" +
+        "<div class='key-col'><span class='key-num'>Result</span><b>MISS</b><small>Must load in</small><div class='key-ex'>Empty way first<br>else oldest LRU</div></div>" +
+        "<div class='key-col'><span class='key-num'>Index</span><b>SET</b><small>Addr mod 2</small><div class='key-ex'>Even → Set 0<br>Odd → Set 1</div></div>" +
+        "</div>",
     start: function (g, arena) {
         var ways = (lvl("l1") >= 3) ? 3 : 2;
         var addrs = [0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9];

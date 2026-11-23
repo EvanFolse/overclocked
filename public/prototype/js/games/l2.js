@@ -6,7 +6,15 @@ GAMES.l2 = {
     time: 45,
     stars: [80, 170, 260],
     badPenalty: 8,
-    rule: "Reason by <b>data size</b> &amp; <b>access frequency</b>—no color hints! (Keys 1–5)",
+    about: "Learn the <b>memory hierarchy</b>. Each card is an <b>example workload</b>. Place it by size and how often it is used (hot close, cold farther).",
+    rule: "Reason by data size and access frequency. No color hints! (Keys 1-5)",
+    key: "<div class='key-cols cols-5'>" +
+        "<div class='key-col'><span class='key-num'>1</span><b>REG</b><small>Tiny</small><div class='key-ex'>Fastest</div></div>" +
+        "<div class='key-col'><span class='key-num'>2</span><b>L1</b><small>Small</small><div class='key-ex'>Very fast</div></div>" +
+        "<div class='key-col'><span class='key-num'>3</span><b>L2</b><small>Medium</small><div class='key-ex'>Still fast</div></div>" +
+        "<div class='key-col'><span class='key-num'>4</span><b>RAM</b><small>Large</small><div class='key-ex'>Slower</div></div>" +
+        "<div class='key-col'><span class='key-num'>5</span><b>SSD</b><small>Huge</small><div class='key-ex'>Slowest</div></div>" +
+        "</div>",
     start: function (g, arena) {
         var places = [
             ["REG", "Bytes · <1 ns"],

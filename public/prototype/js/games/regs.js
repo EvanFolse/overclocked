@@ -1,7 +1,14 @@
 // games/regs.js: one minigame = GAMES.regs
 // ---------------------------------------------------------
 GAMES.regs = {
-    icon: "🗂️", title: "KEEP IT CLOSE", time: 0, stars: [50, 100, 150], badPenalty: 8, rule: "Load both NOW variables into Registers R1–R4 before the timer runs out!",
+    icon: "🗂️", title: "KEEP IT CLOSE", time: 0, stars: [50, 100, 150], badPenalty: 8,
+    about: "Learn <b>registers</b>: tiny fast slots next to the ALU. Cards are <b>example instructions</b> (like ADD a, b). Both values must already be in R1-R4 or the CPU waits on slow RAM.",
+    rule: "Load both NOW variables into Registers R1-R4 before the timer runs out!",
+    key: "<div class='key-cols'>" +
+        "<div class='key-col'><span class='key-num'>Example</span><b>INSTRUCTION</b><small>Needs both values</small><div class='key-ex'>ADD a, b<br>SUB c, d</div></div>" +
+        "<div class='key-col'><span class='key-num'>Fast</span><b>REGISTERS</b><small>R1 to R4</small><div class='key-ex'>Tap RAM value<br>then a register</div></div>" +
+        "<div class='key-col'><span class='key-num'>Slow</span><b>RAM</b><small>Variables a-g</small><div class='key-ex'>Missing value<br>= CPU stall</div></div>" +
+        "</div>",
     start: function (g, arena) {
         var names = ["a", "b", "c", "d", "e", "f", "g"], colors = ["#ff6b6b", "#3aa0ff", "#22c55e", "#f5b301", "#a855f7", "#14b8a6", "#ec4899"], hotSet = ["a", "b", "c", "d"], total = 12, done = 0, dur = 5.2, born = Date.now(), regs = ["a", "b", "", ""], sel = "", queue = [], timerFill = null;
         mk(arena, "div", "glabel", "NEXT INSTRUCTIONS"); var queueEl = mk(arena, "div", "queue", ""); mk(arena, "div", "glabel", "REGISTERS (fast, tiny)"); var regsEl = mk(arena, "div", "regrow", ""); mk(arena, "div", "glabel", "RAM (tap var → tap R1–R4)"); var ramEl = mk(arena, "div", "ramrow", "");

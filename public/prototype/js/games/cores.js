@@ -6,7 +6,13 @@ GAMES.cores = {
     time: 35,
     stars: [90, 180, 270],
     badPenalty: 6,
-    rule: "Dispatch IMG/MAT/VEC to idle cores.<br>🔒 SERIAL locks need ALL cores idle &amp; limit <b>Amdahl Speedup</b>!",
+    about: "Learn <b>multi-core</b> and Amdahl's Law. IMG/MAT/VEC are <b>example parallel jobs</b>. 🔒 SERIAL cannot be split, so every core must wait.",
+    rule: "Dispatch IMG/MAT/VEC to idle cores. 🔒 SERIAL needs ALL cores idle and limits Amdahl Speedup!",
+    key: "<div class='key-cols'>" +
+        "<div class='key-col'><span class='key-num'>Parallel</span><b>IMG</b><small>Image job</small><div class='key-ex'>Any idle<br>core</div></div>" +
+        "<div class='key-col'><span class='key-num'>Parallel</span><b>MAT / VEC</b><small>Math jobs</small><div class='key-ex'>Any idle<br>core</div></div>" +
+        "<div class='key-col'><span class='key-num'>Amdahl</span><b>SERIAL</b><small>Cannot split</small><div class='key-ex'>All cores free<br>then blocks all</div></div>" +
+        "</div>",
     start: function (g, arena) {
         var coreCount = (lvl("cores") >= 2) ? 4 : 3;
         var cores = [], queue = [], serialUntil = 0, parLabels = ["IMG", "MAT", "VEC", "RAY"], parTime = 0, serTime = 0;

@@ -3,9 +3,18 @@
 var chatLog = [{ who: "bot", text: "Hey! Open <b>MENU → STAGES</b> to build Stage 1, or tap a question below anytime." }];
 var chatBusy = false;
 
+var leftPanel = ""; // "" | "bot" | "bench"
+
 var BOT = {
     mood: "idle", text: "Open <b>MENU → STAGES</b> to build Stage 1, or ask me anything!", tone: "", drawer: "", lastCKey: "",
-    say: function (msg, mood, tone) { BOT.text = msg; BOT.mood = mood || "idle"; BOT.tone = tone || ""; renderBot(); },
+    say: function (msg, mood, tone) {
+        BOT.text = msg; BOT.mood = mood || "idle"; BOT.tone = tone || "";
+        renderBot();
+        if (leftPanel !== "bot") {
+            var dock = el("btnBotDock");
+            if (dock) dock.classList.add("dock-ping");
+        }
+    },
     miss: function (cKey, fallbackMsg) {
         game.confusions[cKey] = (game.confusions[cKey] || 0) + 1; BOT.lastCKey = cKey;
         if (CONFUSIONS[cKey]) { var st = CONFUSIONS[cKey].stage; if (!game.stageConfusions[st]) game.stageConfusions[st] = {}; game.stageConfusions[st][cKey] = (game.stageConfusions[st][cKey] || 0) + 1; }
@@ -16,6 +25,35 @@ var BOT = {
     },
     hit: function (cKey, msg) { if (cKey && game.confusions[cKey] > 0) game.confusions[cKey]--; if (msg) BOT.say(msg, "happy", "good"); }
 };
+
+function toggleLeftPanel(which) {
+    leftPanel = (leftPanel === which) ? "" : which;
+    applyLeftPanels();
+}
+
+function openLeftPanel(which) {
+    leftPanel = which;
+    applyLeftPanels();
+}
+
+function applyLeftPanels() {
+    var bot = el("botCard"), bench = el("benchCard");
+    var btnBot = el("btnBotDock"), btnBench = el("btnBenchDock");
+    if (bot) bot.classList.toggle("collapsed", leftPanel !== "bot");
+    if (bench) bench.classList.toggle("collapsed", leftPanel !== "bench");
+    if (btnBot) {
+        btnBot.classList.toggle("on", leftPanel === "bot");
+        btnBot.setAttribute("aria-expanded", leftPanel === "bot" ? "true" : "false");
+        if (leftPanel === "bot") btnBot.classList.remove("dock-ping");
+    }
+    if (btnBench) {
+        btnBench.classList.toggle("on", leftPanel === "bench");
+        btnBench.setAttribute("aria-expanded", leftPanel === "bench" ? "true" : "false");
+        if (leftPanel === "bench") btnBench.classList.remove("dock-ping");
+    }
+    if (leftPanel === "bot") renderBot();
+    if (leftPanel === "bench" && typeof renderBenchList === "function") renderBenchList();
+}
 
 function topConfusionKey() { var best = "", max = 0; for (var k in game.confusions) if (game.confusions[k] > max && CONFUSIONS[k]) { max = game.confusions[k]; best = k; } return max > 0 ? best : ""; }
 
@@ -57,13 +95,20 @@ function askChat(id) {
 
 function renderBot() {
     var labels = { idle: "Online · watching your CPU", happy: "Nice reasoning!", think: "Analyzing slip...", alert: "Confusion detected!", party: "Era / Stage milestone! ★" };
-    el("botFace").innerHTML = humanoidBotSvg(BOT.mood, 54, 64);
-    el("botMoodLabel").textContent = labels[BOT.mood] || labels.idle;
+    var face = humanoidBotSvg(BOT.mood, 54, 64);
+    var faceEl = el("botFace"); if (faceEl) faceEl.innerHTML = face;
+    var dockFace = el("dockBotFace"); if (dockFace) dockFace.innerHTML = humanoidBotSvg(BOT.mood, 36, 44);
+    var moodEl = el("botMoodLabel"); if (moodEl) moodEl.textContent = labels[BOT.mood] || labels.idle;
     var bub = el("botBubble");
-    bub.className = "bot-bubble" + (BOT.tone ? " " + BOT.tone : "");
-    bub.innerHTML = BOT.text;
+    if (bub) {
+        bub.className = "bot-bubble" + (BOT.tone ? " " + BOT.tone : "");
+        bub.innerHTML = BOT.text;
+    }
     var ck = topConfusionKey(), btnC = el("btnConfusion");
-    if (ck) { btnC.classList.remove("hidden"); btnC.className = game.confusions[ck] >= 2 ? "pulse" : ""; } else btnC.classList.add("hidden");
+    if (btnC) {
+        if (ck) { btnC.classList.remove("hidden"); btnC.className = game.confusions[ck] >= 2 ? "pulse" : ""; }
+        else btnC.classList.add("hidden");
+    }
     var btnF = el("btnFault");
     if (btnF) { btnF.classList.toggle("hidden", installedCount() < 2); btnF.className = activeFault ? "pulse" : (installedCount() < 2 ? "hidden" : ""); }
     var gb = el("gameBotBar");
@@ -71,8 +116,17 @@ function renderBot() {
     renderBotDrawer();
 }
 
-function toggleDrawer(mode) { BOT.drawer = (BOT.drawer === mode) ? "" : mode; renderBotDrawer(); }
-function openConfusionKey(ck) { BOT.lastCKey = ck; BOT.drawer = "confusion"; renderBotDrawer(); }
+function toggleDrawer(mode) {
+    if (mode) openLeftPanel("bot");
+    BOT.drawer = (BOT.drawer === mode) ? "" : mode;
+    renderBotDrawer();
+}
+function openConfusionKey(ck) {
+    openLeftPanel("bot");
+    BOT.lastCKey = ck;
+    BOT.drawer = "confusion";
+    renderBotDrawer();
+}
 
 function renderBotDrawer() {
     var d = el("botDrawer"); if (!d) return;
