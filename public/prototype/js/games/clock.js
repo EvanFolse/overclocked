@@ -2,12 +2,28 @@
 // ---------------------------------------------------------
 GAMES.clock = {
     icon: "⏱️", title: "CLOCK SYNC", time: 30, stars: [150, 400, 750], badPenalty: 10,
-    about: "Learn the <b>clock</b>: the shared beat for CU, ALU, REG, and MEM. Each pulse is an <b>example clock edge</b>. Hit it only when signals have settled.",
-    rule: "Hit TICK (or SPACE) inside the green setup ring to latch CU, ALU, REG & MEM together!",
+    menuIntro: true,
+    about: "The CPU clock is the shared beat that tells CU, ALU, registers, and memory when to capture new values. Hit TICK inside the green window so everything latches together. Manually pressing the edge is a game simplification. Real chips keep ticking on their own.",
+    rule: "",
+    introKeyTitle: "TIMING BASICS",
+    introKey: ""
+        + accCard("🟢", "Green Window", "Safe timing zone", "",
+            keyDef("Meaning", "Signals have had time to settle")
+            + keyDef("Play", "Only tick while the note is in the green ring")
+            + keyDef("Idea", "Like meeting a setup-time requirement"))
+        + accCard("⏱️", "Clock Edge", "The capture moment", "SPC",
+            keyDef("Meaning", "The instant sequential parts store new values")
+            + keyDef("Play", "Press TICK or Space on the edge")
+            + keyDef("Note", "You trigger edges here; real CPUs free-run"))
+        + accCard("⚠️", "Timing Miss", "Too early or too late", "",
+            keyDef("Early", "Values were not ready yet")
+            + keyDef("Late", "The capture moment already passed")
+            + keyDef("Idea", "A simple stand-in for failing timing checks")),
+    keyTitle: "QUICK REFERENCE",
     key: "<div class='key-cols'>" +
         "<div class='key-col'><span class='key-num'>Window</span><b>GREEN</b><small>Setup ready</small><div class='key-ex'>Safe to latch<br>CU ALU REG MEM</div></div>" +
         "<div class='key-col'><span class='key-num'>Action</span><b>TICK</b><small>Or press SPACE</small><div class='key-ex'>Clock edge<br>captures all</div></div>" +
-        "<div class='key-col'><span class='key-num'>Miss</span><b>EARLY/LATE</b><small>Out of sync</small><div class='key-ex'>Signals not<br>settled yet</div></div>" +
+        "<div class='key-col'><span class='key-num'>Miss</span><b>EARLY / LATE</b><small>Out of sync</small><div class='key-ex'>Signals not<br>settled yet</div></div>" +
         "</div>",
     start: function (g, arena) {
         var track = mk(arena, "div", "track", ""), zone = mk(track, "div", "zone", ""), W = track.clientWidth || 340, zoneX = W * 0.2; zone.style.left = (zoneX - 24) + "px";

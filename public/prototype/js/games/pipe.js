@@ -6,9 +6,36 @@ GAMES.pipe = {
     time: 70,
     stars: [80, 170, 260],
     badPenalty: 12,
-    about: "Learn the <b>pipeline</b>: instructions overlap (IF→ID→EX→MEM→WB). Each round is an <b>example pair/triple</b>. Spot the hazard and pick the fix a real CPU would use.",
-    rule: "Inspect the registers and timeline. Pick Run Normal, Forward, Stall 1, or Flush (Keys 1-4).",
-    key: "<div class='key-cols cols-4'>" +
+    menuIntro: true,
+    about: "Pipelining lets the CPU work on different stages of several instructions at once. Sometimes those instructions collide. Spot the hazard, then choose the fix a real five-stage pipeline would use.",
+    rule: "",
+    introKeyTitle: "PIPELINE &amp; FIXES",
+    introKey: ""
+        + accCard("🏭", "Five Stages", "How one instruction flows", "",
+            keyDef("IF", "Instruction Fetch from memory")
+            + keyDef("ID", "Instruction Decode / read regs")
+            + keyDef("EX", "Execute in the ALU")
+            + keyDef("MEM", "Memory access if needed")
+            + keyDef("WB", "Write results back to registers"))
+        + accCard("▶️", "Run Normally", "No hazard in the way", "1",
+            keyDef("When", "Instructions use independent registers")
+            + keyDef("Ex", "ADD R1,R2,R3 then SUB R4,R5,R6")
+            + keyDef("Do", "Let both continue with no extra wait"))
+        + accCard("⚡", "Forward Data", "Pass a result early", "2",
+            keyDef("When", "The next instruction needs a value still in EX")
+            + keyDef("Ex", "ADD R1,R2,R3 then AND R4,R1,R5")
+            + keyDef("Do", "Forward instead of waiting for write-back"))
+        + accCard("⏸️", "Stall 1 Cycle", "Pause until data is ready", "3",
+            keyDef("When", "A load result is needed immediately after")
+            + keyDef("Ex", "LW R1,[..] then ADD R2,R1,R3")
+            + keyDef("Do", "Insert one bubble so MEM can finish"))
+        + accCard("🚿", "Flush Path", "Wrong path was fetched", "4",
+            keyDef("When", "A taken branch or jump changes direction")
+            + keyDef("Ex", "BEQ that is taken after later ops were fetched")
+            + keyDef("Do", "Discard the wrong-path instructions")),
+    keyTitle: "QUICK REFERENCE",
+    key: "<div class='pipe-stage-bar'>IF fetch · ID decode · EX execute · MEM memory · WB write-back</div>"
+        + "<div class='key-cols cols-4'>" +
         "<div class='key-col'><span class='key-num'>Key 1</span><b>NORMAL</b><small>No hazard</small><div class='key-ex'>Independent<br>registers</div></div>" +
         "<div class='key-col'><span class='key-num'>Key 2</span><b>FORWARD</b><small>Pass result</small><div class='key-ex'>Needs value<br>still in EX</div></div>" +
         "<div class='key-col'><span class='key-num'>Key 3</span><b>STALL 1</b><small>Wait 1 cycle</small><div class='key-ex'>Load-use<br>(LW then use)</div></div>" +

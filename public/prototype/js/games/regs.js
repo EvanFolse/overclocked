@@ -2,10 +2,27 @@
 // ---------------------------------------------------------
 GAMES.regs = {
     icon: "🗂️", title: "KEEP IT CLOSE", time: 0, stars: [50, 100, 150], badPenalty: 8,
-    about: "Learn <b>registers</b>: tiny fast slots next to the ALU. Cards are <b>example instructions</b> (like ADD a, b). Both values must already be in R1-R4 or the CPU waits on slow RAM.",
-    rule: "Load both NOW variables into Registers R1-R4 before the timer runs out!",
+    menuIntro: true,
+    about: "Registers are tiny, ultra-fast storage right next to the ALU. Before an instruction like ADD a, b can run, both values need to already be in R1-R4. Load from slower RAM, look ahead in the queue, and reuse values that are already close.",
+    rule: "",
+    introKeyTitle: "WHERE VALUES LIVE",
+    introKey: ""
+        + accCard("🧾", "Instructions", "Need their operands ready", "",
+            keyDef("ADD", "Needs both values available now")
+            + keyDef("SUB", "Same rule: both operands must be close")
+            + keyDef("MUL", "Also waits if either value is still in RAM")
+            + keyDef("Tip", "Watch the NEXT cards and prepare early"))
+        + accCard("🗂️", "Registers", "Fast slots R1–R4", "",
+            keyDef("Role", "Hold values the ALU needs immediately")
+            + keyDef("How", "Tap a RAM variable, then tap an empty register")
+            + keyDef("Reuse", "Keep hot values in registers when you can"))
+        + accCard("📦", "RAM", "Bigger, but slower", "",
+            keyDef("Role", "Stores more variables than registers can")
+            + keyDef("Cost", "If a needed value is only in RAM, the CPU stalls")
+            + keyDef("Play", "Move soon-needed variables into registers first")),
+    keyTitle: "QUICK REFERENCE",
     key: "<div class='key-cols'>" +
-        "<div class='key-col'><span class='key-num'>Example</span><b>INSTRUCTION</b><small>Needs both values</small><div class='key-ex'>ADD a, b<br>SUB c, d</div></div>" +
+        "<div class='key-col'><span class='key-num'>Now</span><b>INSTRUCTION</b><small>Needs both values</small><div class='key-ex'>ADD a, b<br>SUB c, d</div></div>" +
         "<div class='key-col'><span class='key-num'>Fast</span><b>REGISTERS</b><small>R1 to R4</small><div class='key-ex'>Tap RAM value<br>then a register</div></div>" +
         "<div class='key-col'><span class='key-num'>Slow</span><b>RAM</b><small>Variables a-g</small><div class='key-ex'>Missing value<br>= CPU stall</div></div>" +
         "</div>",

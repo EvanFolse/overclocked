@@ -50,23 +50,67 @@ function quitGame() {
     renderRight();
 }
 
+function keyDef(code, text) {
+    return "<div class='key-def'><span>" + code + "</span> " + text + "</div>";
+}
+
+function accCard(ico, name, purpose, hotkey, bodyHtml) {
+    return "<div class='key-acc'>"
+        + "<button type='button' class='key-acc-head'>"
+        + "<span class='key-acc-ico'>" + ico + "</span>"
+        + "<span class='key-acc-meta'><b>" + name + "</b><small>" + purpose + "</small></span>"
+        + (hotkey ? "<span class='key-acc-hotkey'>" + hotkey + "</span>" : "")
+        + "<span class='key-acc-chev' aria-hidden='true'></span></button>"
+        + "<div class='key-acc-body'><div class='key-defs'>" + bodyHtml + "</div></div></div>";
+}
+
+function bindKeyAccordions(root) {
+    if (!root) return;
+    var heads = root.querySelectorAll(".key-acc-head");
+    for (var i = 0; i < heads.length; i++) {
+        heads[i].onclick = function () {
+            var card = this.parentNode;
+            var willOpen = !card.classList.contains("open");
+            var siblings = root.querySelectorAll(".key-acc");
+            for (var j = 0; j < siblings.length; j++) siblings[j].classList.remove("open");
+            if (willOpen) card.classList.add("open");
+        };
+    }
+}
+
 function showIntro() {
-    var g = G, def = g.def, P = PART[g.key], ov = mk(g.arena, "div", "overlay", "");
+    var g = G, def = g.def, P = PART[g.key], ov = mk(g.arena, "div", "overlay" + (def.menuIntro ? " menu-intro" : ""), "");
     var line = game.parts[g.key].on
         ? "Earn Compute (ops) &amp; higher stars!"
         : "Earn ★ to build <b>" + P.name + "</b>! (needs " + MIN_BUILD_ACC + "% accuracy)";
-    var top = "<div class='introTop'>";
+    var topCls = "introTop";
+    if (def.menuIntro) topCls += " introTop--menu";
+    else if (def.learn) topCls += " introTop--rich";
+    var top = "<div class='" + topCls + "'>";
     top += "<div class='bigicon'>" + def.icon + "</div>";
     top += "<div class='otitle'>" + def.title + "</div>";
-    if (def.about) top += "<div class='oabout'>" + def.about + "</div>";
-    top += "<div class='orule'><b>How to play:</b> " + def.rule + "</div>";
-    if (def.key) top += "<div class='okey'><b>EXAMPLE COMMANDS</b>" + def.key + "</div>";
+    if (def.menuIntro) {
+        if (def.about) top += "<div class='oabout oabout--menu'>" + def.about + "</div>";
+    } else if (def.learn) {
+        if (def.about) top += "<div class='ointro-block'><span class='ointro-label'>Introduction</span><div class='ointro-body'>" + def.about + "</div></div>";
+        top += "<div class='ointro-block'><span class='ointro-label'>How to play</span><div class='ointro-body'>" + def.rule + "</div></div>";
+        top += "<div class='ointro-block'><span class='ointro-label'>Learning objective</span><div class='ointro-body'>" + def.learn + "</div></div>";
+    } else {
+        if (def.about) top += "<div class='oabout'>" + def.about + "</div>";
+        if (def.rule) top += "<div class='orule'><b>How to play:</b> " + def.rule + "</div>";
+    }
+    var introKey = def.introKey || def.key;
+    if (introKey) {
+        var keyBoxCls = def.menuIntro ? "okey okey--menu" : "okey";
+        top += "<div class='" + keyBoxCls + "'><b>" + (def.introKeyTitle || def.keyTitle || "REFERENCE") + "</b>" + introKey + "</div>";
+    }
     top += "</div>";
     var bottom = "<div class='introBottom'>";
     bottom += "<div class='ostars'>★ " + def.stars[0] + " (Lv2) · ★★ " + def.stars[1] + " (Lv4) · ★★★ " + def.stars[2] + " (Lv5)</div>";
     bottom += "<div class='muted' style='font-size:11px;text-align:center'>" + line + "</div>";
     bottom += "</div>";
     ov.innerHTML = top + bottom;
+    bindKeyAccordions(ov);
     mk(ov.querySelector(".introBottom"), "button", "bigbtn", "▶ PLAY").onclick = beginPlay;
 }
 
@@ -75,7 +119,7 @@ function showStickyKey(def) {
     if (!box) return;
     if (!def.key) { box.classList.add("hidden"); box.innerHTML = ""; return; }
     box.classList.remove("hidden");
-    box.innerHTML = "<b>EXAMPLE COMMANDS</b>" + def.key;
+    box.innerHTML = "<b>" + (def.keyTitle || "REFERENCE") + "</b>" + def.key;
 }
 
 function beginPlay() {

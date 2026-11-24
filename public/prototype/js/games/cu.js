@@ -2,8 +2,26 @@
 // ---------------------------------------------------------
 GAMES.cu = {
     icon: "🎛️", title: "DISPATCHER", time: 30, stars: [60, 140, 230], badPenalty: 10,
-    about: "Learn the <b>Control Unit</b>: it does not do the work itself. It reads each command and routes it. Below are <b>example instructions</b> and where a CU would send them.",
-    rule: "Route each instruction to the unit that does the work (Keys 1 · 2 · 3).",
+    menuIntro: true,
+    about: "You're the Control Unit. Decode each instruction and send it to the unit that actually does the work: ALU for math and logic, registers for moving values, or memory for load and store. Tap a card below if you want a quick command refresher.",
+    rule: "",
+    introKeyTitle: "CHOOSE A UNIT",
+    introKey: ""
+        + accCard("⚙️", "ALU", "Math &amp; logic", "1",
+            keyDef("ADD", "Add values")
+            + keyDef("SUB", "Subtract values")
+            + keyDef("AND", "Bitwise AND")
+            + keyDef("OR", "Bitwise OR")
+            + keyDef("CMP", "Compare values")
+            + keyDef("INC", "Increase by 1"))
+        + accCard("🗂️", "Registers", "Move values", "2",
+            keyDef("MOV", "Copy between registers")
+            + keyDef("SWAP", "Exchange two registers")
+            + keyDef("COPY", "Duplicate a register"))
+        + accCard("📦", "Memory", "Get or save RAM", "3",
+            keyDef("LOAD", "Read memory into a register")
+            + keyDef("STORE", "Write a register into memory")),
+    keyTitle: "QUICK REFERENCE",
     key: "<div class='key-cols'>" +
         "<div class='key-col'><span class='key-num'>Key 1</span><b>ALU</b><small>Math &amp; logic</small><div class='key-ex'>ADD · SUB · AND<br>OR · CMP · INC</div></div>" +
         "<div class='key-col'><span class='key-num'>Key 2</span><b>REGISTERS</b><small>Move values</small><div class='key-ex'>MOV · SWAP<br>COPY</div></div>" +

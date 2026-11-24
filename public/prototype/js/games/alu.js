@@ -6,8 +6,26 @@ GAMES.alu = {
     time: 55,
     stars: [60, 140, 220],
     badPenalty: 6,
-    about: "Learn the <b>ALU</b> (the chip's calculator). Each round is an <b>example op</b> (AND, OR, XOR, or ADD) on binary bits, including carry and overflow.",
-    rule: "Flip lamps to match the result, then hit RUN. Unsigned ADD ≥ 16 lights CARRY(16). Lv2+ Signed ADD checks V (Overflow).",
+    menuIntro: true,
+    about: "The ALU is the chip's calculator. Flip the bit lamps to match AND, OR, XOR, or ADD results the way hardware would, then hit RUN. Open a card below for a quick binary refresher.",
+    rule: "",
+    introKeyTitle: "OPERATIONS",
+    introKey: ""
+        + accCard("⋀", "AND", "Both bits must be 1", "",
+            keyDef("Rule", "Output is 1 only when both inputs are 1.")
+            + keyDef("Ex", "1 AND 1 → 1 · 1 AND 0 → 0"))
+        + accCard("⋁", "OR", "Either bit can be 1", "",
+            keyDef("Rule", "Output is 1 when at least one input is 1.")
+            + keyDef("Ex", "1 OR 0 → 1 · 0 OR 0 → 0"))
+        + accCard("⊕", "XOR", "Bits that differ", "",
+            keyDef("Rule", "Output is 1 when the inputs are different.")
+            + keyDef("Ex", "1 XOR 0 → 1 · 1 XOR 1 → 0"))
+        + accCard("＋", "ADD", "Binary sum + flags", "",
+            keyDef("Rule", "Add the bits using place values 8-4-2-1.")
+            + keyDef("Carry", "For 4-bit unsigned, carry lights when the sum goes past 15.")
+            + keyDef("Overflow", "For 4-bit signed (-8..7), overflow means the true sum cannot fit.")
+            + keyDef("Ex", "0111 + 0001 = 1000 (unsigned 8; signed may overflow)")),
+    keyTitle: "QUICK REFERENCE",
     key: "<div class='key-cols cols-4'>" +
         "<div class='key-col'><span class='key-num'>Op</span><b>AND</b><small>Both bits 1</small><div class='key-ex'>1 only if<br>both are 1</div></div>" +
         "<div class='key-col'><span class='key-num'>Op</span><b>OR</b><small>Either bit 1</small><div class='key-ex'>1 if either<br>input is 1</div></div>" +
