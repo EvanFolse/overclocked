@@ -2,8 +2,28 @@
 // ---------------------------------------------------------
 GAMES.decoder = {
     icon: "🔐", title: "CRACK THE OPCODE", time: 45, stars: [60, 140, 220], badPenalty: 6,
-    about: "Learn the <b>instruction decoder</b>: it turns binary into a real command. Each puzzle is an <b>example 6-bit instruction</b>. Decode it, or encode the bits yourself.",
-    rule: "DECODE: turn bits into an instruction. ENCODE: flip bits to match the key!",
+    menuIntro: true,
+    about: "The instruction decoder turns raw bits into a command the CPU can run. You'll read or build a simple 6-bit instruction: 2 bits for the operation, then 2 bits for each register.",
+    rule: "",
+    introKeyTitle: "BIT FIELDS",
+    introKey: ""
+        + accCard("⚙️", "OP", "What to do", "2b",
+            keyDef("00", "ADD")
+            + keyDef("01", "SUB")
+            + keyDef("10", "AND")
+            + keyDef("11", "OR")
+            + keyDef("Play", "Decode: read bits → pick the op. Encode: set bits to match the target."))
+        + accCard("🅰️", "REG A", "First register", "2b",
+            keyDef("00", "R0")
+            + keyDef("01", "R1")
+            + keyDef("10", "R2")
+            + keyDef("11", "R3"))
+        + accCard("🅱️", "REG B", "Second register", "2b",
+            keyDef("00", "R0")
+            + keyDef("01", "R1")
+            + keyDef("10", "R2")
+            + keyDef("11", "R3")),
+    keyTitle: "QUICK REFERENCE",
     key: "<div class='key-cols'>" +
         "<div class='key-col'><span class='key-num'>Field 1</span><b>OP</b><small>What to do</small><div class='key-ex'>00 ADD · 01 SUB<br>10 AND · 11 OR</div></div>" +
         "<div class='key-col'><span class='key-num'>Field 2</span><b>REG A</b><small>First register</small><div class='key-ex'>00 R0 · 01 R1<br>10 R2 · 11 R3</div></div>" +

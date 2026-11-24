@@ -6,8 +6,32 @@ GAMES.l2 = {
     time: 45,
     stars: [80, 170, 260],
     badPenalty: 8,
-    about: "Learn the <b>memory hierarchy</b>. Each card is an <b>example workload</b>. Place it by size and how often it is used (hot close, cold farther).",
-    rule: "Reason by data size and access frequency. No color hints! (Keys 1-5)",
+    menuIntro: true,
+    about: "Memory is a ladder from tiny-and-fast to huge-and-slow. Each card is a workload. Place it by size and how often it is used: hot data stays close, cold archives can live farther away. Keys 1-5 pick the tier.",
+    rule: "",
+    introKeyTitle: "MEMORY TIERS",
+    introKey: ""
+        + accCard("1️⃣", "REG", "Tiny · fastest", "1",
+            keyDef("Size", "Bytes")
+            + keyDef("Speed", "Under 1 ns")
+            + keyDef("Use", "Active counters and ALU operands"))
+        + accCard("2️⃣", "L1", "Small · very fast", "2",
+            keyDef("Size", "Kilobytes")
+            + keyDef("Speed", "About 1 ns")
+            + keyDef("Use", "Tight loops and hot instructions"))
+        + accCard("3️⃣", "L2", "Medium · still fast", "3",
+            keyDef("Size", "Hundreds of KB to MB")
+            + keyDef("Speed", "About 4 ns")
+            + keyDef("Use", "Working sets that miss L1"))
+        + accCard("4️⃣", "RAM", "Large · slower", "4",
+            keyDef("Size", "Gigabytes")
+            + keyDef("Speed", "About 60 ns")
+            + keyDef("Use", "Active programs and game worlds"))
+        + accCard("5️⃣", "SSD", "Huge · slowest", "5",
+            keyDef("Size", "Terabytes")
+            + keyDef("Speed", "About 100 µs")
+            + keyDef("Use", "Cold files and backups")),
+    keyTitle: "QUICK REFERENCE",
     key: "<div class='key-cols cols-5'>" +
         "<div class='key-col'><span class='key-num'>1</span><b>REG</b><small>Tiny</small><div class='key-ex'>Fastest</div></div>" +
         "<div class='key-col'><span class='key-num'>2</span><b>L1</b><small>Small</small><div class='key-ex'>Very fast</div></div>" +

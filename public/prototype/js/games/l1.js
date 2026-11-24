@@ -6,8 +6,22 @@ GAMES.l1 = {
     time: 50,
     stars: [80, 170, 260],
     badPenalty: 8,
-    about: "Learn <b>L1 cache</b>: a tiny fast desk beside the core. Each hex address is an <b>example memory request</b>. Hit if it is already there; on a miss, place it with LRU rules.",
-    rule: "Map each hex address to Set = Addr mod 2 (Even→Set 0, Odd→Set 1). On a MISS, click the empty or oldest-used way in that Set!",
+    menuIntro: true,
+    about: "L1 cache is a tiny, ultra-fast desk beside the core. Each hex address is a memory request. If that block is already cached it's a hit; on a miss, place it in the right set using empty space first, then least-recently-used (LRU).",
+    rule: "",
+    introKeyTitle: "CACHE RULES",
+    introKey: ""
+        + accCard("✅", "Hit", "Already in the set", "",
+            keyDef("Meaning", "The address is already stored in that set")
+            + keyDef("Do", "Confirm the hit. No eviction needed"))
+        + accCard("❌", "Miss", "Must bring it in", "",
+            keyDef("Meaning", "That address is not in the set yet")
+            + keyDef("Do", "Click an empty way, or the oldest (LRU) way if full"))
+        + accCard("🗂️", "Set", "Which shelf to use", "",
+            keyDef("Rule", "Set = address mod 2")
+            + keyDef("Even", "Goes to Set 0")
+            + keyDef("Odd", "Goes to Set 1")),
+    keyTitle: "QUICK REFERENCE",
     key: "<div class='key-cols'>" +
         "<div class='key-col'><span class='key-num'>Result</span><b>HIT</b><small>Already there</small><div class='key-ex'>Data found<br>in that set</div></div>" +
         "<div class='key-col'><span class='key-num'>Result</span><b>MISS</b><small>Must load in</small><div class='key-ex'>Empty way first<br>else oldest LRU</div></div>" +

@@ -6,8 +6,22 @@ GAMES.cores = {
     time: 35,
     stars: [90, 180, 270],
     badPenalty: 6,
-    about: "Learn <b>multi-core</b> and Amdahl's Law. IMG/MAT/VEC are <b>example parallel jobs</b>. 🔒 SERIAL cannot be split, so every core must wait.",
-    rule: "Dispatch IMG/MAT/VEC to idle cores. 🔒 SERIAL needs ALL cores idle and limits Amdahl Speedup!",
+    menuIntro: true,
+    about: "Multi-core chips run independent work in parallel, but some tasks cannot be split. Dispatch image and math jobs to idle cores. A SERIAL job needs every core free, then blocks them all. That serial fraction caps speedup (Amdahl's Law).",
+    rule: "",
+    introKeyTitle: "WORKLOAD TYPES",
+    introKey: ""
+        + accCard("🖼️", "IMG", "Parallel image job", "",
+            keyDef("Do", "Send it to any idle core")
+            + keyDef("Why", "Independent work can run beside other jobs"))
+        + accCard("🧮", "MAT / VEC / RAY", "Parallel math jobs", "",
+            keyDef("Do", "Dispatch to any idle core")
+            + keyDef("Why", "Same idea: split across free cores"))
+        + accCard("🔒", "SERIAL", "Cannot be split", "",
+            keyDef("Need", "All cores must be idle first")
+            + keyDef("Effect", "Then it occupies every core")
+            + keyDef("Amdahl", "More serial time lowers max speedup")),
+    keyTitle: "QUICK REFERENCE",
     key: "<div class='key-cols'>" +
         "<div class='key-col'><span class='key-num'>Parallel</span><b>IMG</b><small>Image job</small><div class='key-ex'>Any idle<br>core</div></div>" +
         "<div class='key-col'><span class='key-num'>Parallel</span><b>MAT / VEC</b><small>Math jobs</small><div class='key-ex'>Any idle<br>core</div></div>" +

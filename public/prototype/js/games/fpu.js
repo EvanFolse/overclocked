@@ -6,8 +6,25 @@ GAMES.fpu = {
     time: 55,
     stars: [60, 130, 210],
     badPenalty: 6,
-    about: "Learn the <b>FPU</b>: how computers store decimals. Each target is an <b>example float</b>. Encode it as sign, biased exponent, and fraction bits.",
-    rule: "Flip the 8 bits [S | EEEE | MMM] to encode the decimal. Formula: (−1)^S × (1 + M/8) × 2^(E − 7)",
+    menuIntro: true,
+    about: "The FPU stores decimal numbers as bits. In this mini float you set 8 bits: 1 sign, 4 exponent, 3 fraction. Value = (−1)^S × (1 + M/8) × 2^(E − 7). Flip bits to match the target number.",
+    rule: "",
+    introKeyTitle: "FLOAT FIELDS",
+    introKey: ""
+        + accCard("±", "Sign (S)", "1 bit", "",
+            keyDef("0", "Positive (+)")
+            + keyDef("1", "Negative (−)"))
+        + accCard("E", "Exponent", "4 bits · bias 7", "",
+            keyDef("Idea", "Stored E means real power E − 7")
+            + keyDef("0111", "Power 2⁰ (times 1)")
+            + keyDef("1000", "Power 2¹ (times 2)")
+            + keyDef("0110", "Power 2⁻¹ (times 0.5)"))
+        + accCard("M", "Fraction", "3 bits · 1.MMM", "",
+            keyDef("000", "1.0")
+            + keyDef("100", "1.5")
+            + keyDef("010", "1.25")
+            + keyDef("110", "1.75")),
+    keyTitle: "QUICK REFERENCE",
     key: "<div class='key-cols'>" +
         "<div class='key-col'><span class='key-num'>1 bit</span><b>S</b><small>Sign</small><div class='key-ex'>0 = +<br>1 = −</div></div>" +
         "<div class='key-col'><span class='key-num'>4 bits</span><b>E</b><small>Exponent</small><div class='key-ex'>Bias 7<br>0111 = 2⁰</div></div>" +
