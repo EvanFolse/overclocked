@@ -710,15 +710,15 @@ body.dark .tutor-fault-card {
     left: 50%;
     top: 14%;
     transform: translateX(-50%);
-    background: rgba(15, 23, 42, 0.92);
+    background: rgba(15, 23, 42, 0.94);
     color: #f8fafc;
-    border: 2px solid #38bdf8;
+    border: 2px solid #fde047;
     border-radius: 999px;
     padding: 8px 18px;
     font-family: ui-monospace, Menlo, monospace;
     font-size: 13px;
     font-weight: 800;
-    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.4);
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.35), 0 10px 30px rgba(15, 23, 42, 0.45), 0 0 24px rgba(253, 224, 71, 0.55);
     pointer-events: none;
     z-index: 20;
     animation: popin 0.2s ease-out;
@@ -3326,17 +3326,26 @@ table.gantt td.fwd {
 }
 
 .trace {
-    stroke: rgba(255, 180, 110, 0.22);
-    stroke-width: 2.2;
+    stroke: rgba(255, 180, 110, 0.28);
+    stroke-width: 2.4;
     fill: none;
 }
 
 .trace.live {
     stroke: #ffb35a;
-    stroke-width: 2.6;
-    stroke-dasharray: 7 8;
-    animation: flow 0.9s linear infinite;
-    filter: drop-shadow(0 0 3px rgba(255, 170, 70, 0.65));
+    stroke-width: 3.2;
+    stroke-dasharray: 8 7;
+    animation: flow 0.75s linear infinite;
+    filter: drop-shadow(0 0 5px rgba(255, 170, 70, 0.85));
+}
+
+/* Active TRACE / demo hop — make the current path jump out */
+.trace.live.path {
+    stroke: #fff7c2;
+    stroke-width: 5.5;
+    stroke-dasharray: 10 5;
+    animation: flowPath 0.45s linear infinite, pathGlow 0.55s ease-in-out infinite alternate;
+    filter: drop-shadow(0 0 10px #ffd24a) drop-shadow(0 0 18px rgba(255, 255, 255, 0.95));
 }
 
 @keyframes flow {
@@ -3345,25 +3354,43 @@ table.gantt td.fwd {
     }
 }
 
+@keyframes flowPath {
+    to {
+        stroke-dashoffset: -40;
+    }
+}
+
+@keyframes pathGlow {
+    from {
+        stroke: #ffe566;
+        stroke-width: 4.5;
+    }
+
+    to {
+        stroke: #ffffff;
+        stroke-width: 6.5;
+    }
+}
+
 .partg {
     cursor: pointer;
 }
 
 .partg:hover {
-    filter: brightness(1.12);
+    filter: brightness(1.22) drop-shadow(0 0 8px rgba(255, 255, 255, 0.45));
 }
 
 .partg.hot {
-    animation: hotpulse 0.65s ease-in-out infinite alternate;
+    animation: hotpulse 0.5s ease-in-out infinite alternate;
 }
 
 @keyframes hotpulse {
     from {
-        filter: brightness(1) drop-shadow(0 0 0 #fff);
+        filter: brightness(1.35) saturate(1.35) drop-shadow(0 0 10px #fff) drop-shadow(0 0 22px #67e8f9);
     }
 
     to {
-        filter: brightness(1.45) drop-shadow(0 0 12px #fff);
+        filter: brightness(2.05) saturate(1.7) drop-shadow(0 0 22px #fff) drop-shadow(0 0 38px #fde047) drop-shadow(0 0 54px rgba(56, 189, 248, 0.95));
     }
 }
 
@@ -3909,7 +3936,12 @@ body.overclock-on #chipWrap svg {
 }
 body.overclock-on .trace.live {
     stroke: #fbbf24;
-    stroke-width: 2.6;
+    stroke-width: 3.4;
+}
+
+body.overclock-on .trace.live.path {
+    stroke: #fff7ed;
+    stroke-width: 6;
 }
 
 /* Left dock: ChipBot + Speed Tests icons */

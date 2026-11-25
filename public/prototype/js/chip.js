@@ -11,8 +11,9 @@ function shade(hex, amt) { var n = parseInt(hex.slice(1), 16), r = (n >> 16) & 2
 function behind(a, b) { return (a.x + a.w <= b.x) || (a.y + a.d <= b.y); }
 function sortBoxes(list) { var out = [], rest = list.slice(); while (rest.length > 0) { var pick = 0; for (var i = 0; i < rest.length; i++) { var bl = false; for (var j = 0; j < rest.length; j++) if (i != j && behind(rest[j], rest[i]) && !behind(rest[i], rest[j])) { bl = true; break; } if (!bl) { pick = i; break; } } out.push(rest[pick]); rest.splice(pick, 1); } return out; }
 
-function edge(col, sel) {
-    if (sel) return 'stroke="#ffffff" stroke-width="2.2" stroke-linejoin="round"';
+function edge(col, sel, hotMark) {
+    if (hotMark) return 'stroke="#fffef0" stroke-width="3.4" stroke-linejoin="round" stroke-opacity="1"';
+    if (sel) return 'stroke="#ffffff" stroke-width="2.8" stroke-linejoin="round"';
     return 'stroke="' + shade(col, 0.62) + '" stroke-width="0.85" stroke-linejoin="round" stroke-opacity="0.9"';
 }
 function boxC(x, y, w, d, z0, h, col, e) {
@@ -105,13 +106,18 @@ function railV(x, y0, y1, z, h, col, e) {
 }
 
 // ---- Per-part layered hardware (geometry, not flat stickers) ----
-function partHardware(key, x, y, w, d, z0, h, col, lv, isSel, filterId) {
+function partHardware(key, x, y, w, d, z0, h, col, lv, isSel, filterId, isHot) {
     var s = "", H = Math.max(h, 0.4), base = z0;
     // Favor tall raised structures over a single slab so depth reads at chip scale
     var bodyH = Math.max(2.0, H * 0.38), raise = Math.max(2.4, H * 0.72);
-    var zBody = base, e = edge(col, isSel);
+    var zBody = base, e = edge(col, isSel, isHot);
     var neon = shade(col, 0.55), gold = "#f0c35a";
     s += contactShadow(x, y, w, d, base, filterId);
+    if (isHot) {
+        // Exaggerated path/demo halo so the active unit is unmistakable
+        s += topFace(x - 5, y - 5, w + 10, d + 10, base - 0.15, "rgba(255, 250, 200, 0.22)", 'stroke="#fffef0" stroke-width="3.2" stroke-opacity="0.95"');
+        s += topFace(x - 2, y - 2, w + 4, d + 4, base - 0.05, "rgba(125, 211, 252, 0.18)", 'stroke="#67e8f9" stroke-width="2.2" stroke-opacity="0.9"');
+    }
 
     if (key === "clock") {
         // Dominant octagonal oscillator tower (most recognizable silhouette)
@@ -445,11 +451,12 @@ function buildChipSvg(opts) {
     for (i = 0; i < wires.length; i++) {
         var a = PART[wires[i][0]], b = PART[wires[i][1]];
         var live = onMap[a.key] && onMap[b.key];
+        var pathLit = inter && live && (hot == a.key || hot == b.key);
         var ax = (a.slot[0] + a.slot[2] / 2) * 50, ay = (a.slot[1] + a.slot[3] / 2) * 50;
         var bx = (b.slot[0] + b.slot[2] / 2) * 50, by = (b.slot[1] + b.slot[3] / 2) * 50;
         // subtle under-trace channel on die
-        s += line3([ax, ay, 18.7], [bx, by, 18.7], "", 'stroke="rgba(0,0,0,0.35)" stroke-width="3.2" stroke-linecap="round"');
-        s += line3([ax, ay, 18.85], [bx, by, 18.85], "trace" + (live ? " live" : ""));
+        s += line3([ax, ay, 18.7], [bx, by, 18.7], "", 'stroke="rgba(0,0,0,0.35)" stroke-width="' + (pathLit ? "6.5" : "3.2") + '" stroke-linecap="round"');
+        s += line3([ax, ay, 18.85], [bx, by, 18.85], "trace" + (live ? " live" : "") + (pathLit ? " path" : ""));
     }
 
     for (i = 0; i < PARTS.length; i++) {
@@ -468,10 +475,11 @@ function buildChipSvg(opts) {
     for (i = 0; i < list.length; i++) {
         var B = list[i], info = PART[B.key], col = info.color;
         var isSel = inter && (typeof selected !== "undefined") && selected == B.key;
+        var isHot = inter && hot == B.key;
         // Invisible hit slab keeps selection / fault clicks reliable over complex geometry
-        s += (inter ? '<g class="partg' + (hot == B.key ? " hot" : "") + '" onclick="clickPart(\'' + B.key + '\')"><title>' + info.name + '</title>' : '<g>');
+        s += (inter ? '<g class="partg' + (isHot ? " hot" : "") + '" onclick="clickPart(\'' + B.key + '\')"><title>' + info.name + '</title>' : '<g>');
         s += topFace(B.x, B.y, B.w, B.d, 18.1, "rgba(0,0,0,0)", 'stroke="none"');
-        s += partHardware(B.key, B.x, B.y, B.w, B.d, 18, B.h, col, B.lv, isSel, uid + "softPad");
+        s += partHardware(B.key, B.x, B.y, B.w, B.d, 18, B.h, col, B.lv, isSel, uid + "softPad", isHot);
         var top = labelAnchor(B.key, B.x, B.y, B.w, B.d, 18, B.h);
         var lab = 'font-family="ui-monospace,Menlo,monospace" text-anchor="middle" fill="#fff" stroke="rgba(0,0,0,0.5)" stroke-width="2.8" paint-order="stroke" font-weight="800"';
         s += '<text x="' + top[0].toFixed(1) + '" y="' + top[1].toFixed(1) + '" font-size="12" ' + lab + '>' + info.short + '</text>';

@@ -171,9 +171,9 @@ function traceExecPath(l1HitOverride) {
                 else if (!l1Hit && !game.parts.l2.on) suffix = " → 🐢 L1 Miss → Slow RAM!";
             }
             el("traceReadout").textContent = execInst + ": " + labels.join(" → ") + suffix;
-        }, idx * 160));
+        }, idx * 240));
     });
-    traceTimers.push(setTimeout(function () { hot = ""; drawChip(); }, steps.length * 160 + 250));
+    traceTimers.push(setTimeout(function () { hot = ""; drawChip(); }, steps.length * 240 + 350));
 }
 
 function timingSpeed() {
