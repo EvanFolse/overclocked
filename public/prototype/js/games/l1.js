@@ -3,11 +3,11 @@
 GAMES.l1 = {
     icon: "⚡",
     title: "CACHE KEEPER",
-    time: 50,
-    stars: [80, 170, 260],
+    time: 55,
+    stars: [55, 115, 175],
     badPenalty: 8,
     menuIntro: true,
-    about: "L1 cache is a tiny, ultra-fast desk beside the core. Each hex address is a memory request. If that block is already cached it's a hit; on a miss, place it in the right set using empty space first, then least-recently-used (LRU).",
+    about: "L1 cache is a tiny, ultra-fast desk beside the core. Each hex address is a memory request. If that block is already cached it's a hit; on a miss, place it in the right set using empty space first, then the least recently used block.",
     rule: "",
     introKeyTitle: "CACHE RULES",
     introKey: ""
@@ -16,7 +16,7 @@ GAMES.l1 = {
             + keyDef("Do", "Confirm the hit. No eviction needed"))
         + accCard("❌", "Miss", "Must bring it in", "",
             keyDef("Meaning", "That address is not in the set yet")
-            + keyDef("Do", "Click an empty way, or the oldest (LRU) way if full"))
+            + keyDef("Do", "Click an empty way, or the oldest (least recently used) way if full"))
         + accCard("🗂️", "Set", "Which shelf to use", "",
             keyDef("Rule", "Set = address mod 2")
             + keyDef("Even", "Goes to Set 0")
@@ -24,13 +24,13 @@ GAMES.l1 = {
     keyTitle: "QUICK REFERENCE",
     key: "<div class='key-cols'>" +
         "<div class='key-col'><span class='key-num'>Result</span><b>HIT</b><small>Already there</small><div class='key-ex'>Data found<br>in that set</div></div>" +
-        "<div class='key-col'><span class='key-num'>Result</span><b>MISS</b><small>Must load in</small><div class='key-ex'>Empty way first<br>else oldest LRU</div></div>" +
+        "<div class='key-col'><span class='key-num'>Result</span><b>MISS</b><small>Must load in</small><div class='key-ex'>Empty way first<br>else oldest least recently used</div></div>" +
         "<div class='key-col'><span class='key-num'>Index</span><b>SET</b><small>Addr mod 2</small><div class='key-ex'>Even → Set 0<br>Odd → Set 1</div></div>" +
         "</div>",
     start: function (g, arena) {
         var ways = (lvl("l1") >= 3) ? 3 : 2;
         var addrs = [0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9];
-        var sets = [[], []], trace = [], tick = 0, waiting = false, req = 0, missAt = 0, count = 0, hits = 0, misses = 0;
+        var sets = [[], []], trace = [], tick = 0, waiting = false, busy = false, req = 0, missAt = 0, resolved = 0, hits = 0, misses = 0;
         for (var s = 0; s < 2; s++) for (var w = 0; w < ways; w++) sets[s].push({ addr: null, lastUsed: 0 });
         // Pre-warm Set 0 & Set 1 with initial addresses
         sets[0][0] = { addr: 0x2, lastUsed: 1 }; sets[0][1] = { addr: 0x4, lastUsed: 2 };
@@ -41,11 +41,22 @@ GAMES.l1 = {
         var traceEl = mk(arena, "div", "mono", "");
         traceEl.style.cssText = "font-size:11px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:8px;padding:5px 10px;width:100%;text-align:center;";
         var msg = mk(arena, "div", "cmsg", "");
+        msg.style.minHeight = "28px";
         var setsWrap = mk(arena, "div", "", "");
         setsWrap.style.cssText = "display:flex;flex-direction:column;gap:8px;width:100%;";
 
         function hex(a) { return "0x" + a.toString(16).toUpperCase(); }
         function setOf(a) { return a & 1; }
+        // First 5 outcomes stay spacious; after that ~12% faster so the round still builds pace
+        function pace(ms) { return Math.round(ms * (resolved > 5 ? 0.88 : 1)); }
+        function scheduleAsk(baseMs) {
+            busy = true;
+            g.after(pace(baseMs), function () {
+                busy = false;
+                msg.innerHTML = "";
+                ask();
+            });
+        }
         function render() {
             traceEl.innerHTML = "RECENT TRACE (old → new): " + trace.slice(-6).map(function (a) { return "<b>" + hex(a) + "</b>"; }).join(" · ");
             setsWrap.innerHTML = "";
@@ -66,7 +77,7 @@ GAMES.l1 = {
             g.info("Ways: " + ways + " · Hits " + hits + " · Miss " + misses + " (" + rate + "%)");
         }
         function ask() {
-            count++;
+            if (waiting || busy) return;
             var hotPool = [0x1, 0x2, 0x3, 0x4, 0x5, 0x6];
             req = (Math.random() < 0.72) ? hotPool[rand(0, hotPool.length - 1)] : addrs[rand(0, addrs.length - 1)];
             var sIdx = setOf(req);
@@ -74,21 +85,22 @@ GAMES.l1 = {
             var found = -1;
             for (var w = 0; w < ways; w++) if (sets[sIdx][w].addr === req) found = w;
             if (found !== -1) {
-                hits++; tick++;
+                hits++; tick++; resolved++;
                 sets[sIdx][found].lastUsed = tick;
                 trace.push(req);
                 g.good(12, "HIT ⚡ Set " + sIdx + " Way " + found, "l1_lru");
-                msg.innerHTML = "";
+                msg.innerHTML = "<b style='color:#16a34a'>HIT!</b> " + hex(req) + " already in Set " + sIdx + " Way " + found;
                 render();
-                g.after(Math.max(950, 1750 - count * 22), ask);
+                // Dwell past toast/pop so the next request does not overlap feedback
+                scheduleAsk(1850);
             } else {
                 misses++; waiting = true; missAt = Date.now();
-                msg.innerHTML = "<b style='color:#d24b4b'>MISS!</b> Place " + hex(req) + " into the right Set (empty or LRU way)!";
+                msg.innerHTML = "<b style='color:#d24b4b'>MISS!</b> Place " + hex(req) + " into the right Set (empty or least recently used way)!";
                 render();
             }
         }
         function pickSlot(sIdx, wIdx, forced) {
-            if (!waiting) return;
+            if (!waiting || busy) return;
             var needSet = setOf(req);
             if (!forced && sIdx !== needSet) {
                 g.bad("Wrong Set! " + hex(req) + " mod 2 = Set " + needSet, "l1_lru");
@@ -103,19 +115,24 @@ GAMES.l1 = {
             if (forced) {
                 g.bad("Too slow! Missed Set " + needSet + " deadline", "l1_lru");
                 wIdx = bestIdx;
+                msg.innerHTML = "<b style='color:#b45309'>TIME!</b> Auto-placed into Set " + needSet;
             } else if (wIdx === bestIdx || targetSet[wIdx].lastUsed === targetSet[bestIdx].lastUsed) {
-                g.good(14, "Mapped Set " + needSet + " & evicted LRU!", "l1_lru");
+                g.good(14, "Mapped Set " + needSet + " & evicted least recently used!", "l1_lru");
+                msg.innerHTML = "<b style='color:#16a34a'>PLACED!</b> " + hex(req) + " → Set " + needSet;
             } else {
-                g.bad("Not LRU in Set " + needSet + "! Check Recent Trace.", "l1_lru");
+                g.bad("Not the least recently used in Set " + needSet + "! Check Recent Trace.", "l1_lru");
+                msg.innerHTML = "<b style='color:#d24b4b'>Wrong way.</b> Needed empty or least recently used in Set " + needSet;
             }
             tick++;
+            resolved++;
             targetSet[wIdx] = { addr: req, lastUsed: tick };
             trace.push(req);
-            waiting = false; msg.innerHTML = ""; render();
-            g.after(850, ask);
+            waiting = false;
+            render();
+            scheduleAsk(1750);
         }
-        g.every(100, function () { if (waiting && Date.now() - missAt > 4200) pickSlot(setOf(req), 0, true); });
+        g.every(100, function () { if (waiting && !busy && Date.now() - missAt > pace(6000)) pickSlot(setOf(req), 0, true); });
         render();
-        g.after(600, ask);
+        g.after(900, ask);
     }
 };
