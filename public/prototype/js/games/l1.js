@@ -39,21 +39,24 @@ GAMES.l1 = {
 
         var asked = mk(arena, "div", "asked", "");
         var traceEl = mk(arena, "div", "mono", "");
-        traceEl.style.cssText = "font-size:11px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:8px;padding:5px 10px;width:100%;text-align:center;";
+        traceEl.style.cssText = "font-size:11px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:8px;padding:5px 10px;width:100%;text-align:center;flex:0 0 auto;";
         var msg = mk(arena, "div", "cmsg", "");
-        msg.style.minHeight = "28px";
         var setsWrap = mk(arena, "div", "", "");
-        setsWrap.style.cssText = "display:flex;flex-direction:column;gap:8px;width:100%;";
+        setsWrap.style.cssText = "display:flex;flex-direction:column;gap:10px;width:100%;flex:1 1 auto;min-height:0;";
 
         function hex(a) { return "0x" + a.toString(16).toUpperCase(); }
         function setOf(a) { return a & 1; }
+        function setMsg(html, kind) {
+            msg.className = "cmsg" + (kind ? " " + kind : "");
+            msg.innerHTML = html || "";
+        }
         // First 5 outcomes stay spacious; after that ~12% faster so the round still builds pace
         function pace(ms) { return Math.round(ms * (resolved > 5 ? 0.88 : 1)); }
         function scheduleAsk(baseMs) {
             busy = true;
             g.after(pace(baseMs), function () {
                 busy = false;
-                msg.innerHTML = "";
+                setMsg("", "");
                 ask();
             });
         }
@@ -88,14 +91,14 @@ GAMES.l1 = {
                 hits++; tick++; resolved++;
                 sets[sIdx][found].lastUsed = tick;
                 trace.push(req);
-                g.good(12, "HIT ⚡ Set " + sIdx + " Way " + found, "l1_lru");
-                msg.innerHTML = "<b style='color:#16a34a'>HIT!</b> " + hex(req) + " already in Set " + sIdx + " Way " + found;
+                // Score/pop only — in-flow banner carries the hit text so it does not cover the request
+                g.good(12, "", "l1_lru");
+                setMsg("<b>HIT!</b> " + hex(req) + " already in Set " + sIdx + " Way " + found, "hit");
                 render();
-                // Dwell past toast/pop so the next request does not overlap feedback
-                scheduleAsk(1850);
+                scheduleAsk(2100);
             } else {
                 misses++; waiting = true; missAt = Date.now();
-                msg.innerHTML = "<b style='color:#d24b4b'>MISS!</b> Place " + hex(req) + " into the right Set (empty or least recently used way)!";
+                setMsg("<b>MISS!</b> Place " + hex(req) + " into the right Set (empty or least recently used way)!", "miss");
                 render();
             }
         }
@@ -104,6 +107,7 @@ GAMES.l1 = {
             var needSet = setOf(req);
             if (!forced && sIdx !== needSet) {
                 g.bad("Wrong Set! " + hex(req) + " mod 2 = Set " + needSet, "l1_lru");
+                setMsg("<b>Wrong Set!</b> " + hex(req) + " belongs in Set " + needSet, "miss");
                 return;
             }
             var targetSet = sets[needSet], emptyIdx = -1, lruIdx = 0;
@@ -115,13 +119,13 @@ GAMES.l1 = {
             if (forced) {
                 g.bad("Too slow! Missed Set " + needSet + " deadline", "l1_lru");
                 wIdx = bestIdx;
-                msg.innerHTML = "<b style='color:#b45309'>TIME!</b> Auto-placed into Set " + needSet;
+                setMsg("<b>TIME!</b> Auto-placed into Set " + needSet, "warn");
             } else if (wIdx === bestIdx || targetSet[wIdx].lastUsed === targetSet[bestIdx].lastUsed) {
-                g.good(14, "Mapped Set " + needSet + " & evicted least recently used!", "l1_lru");
-                msg.innerHTML = "<b style='color:#16a34a'>PLACED!</b> " + hex(req) + " → Set " + needSet;
+                g.good(14, "", "l1_lru");
+                setMsg("<b>PLACED!</b> " + hex(req) + " → Set " + needSet + " (least recently used / empty way)", "ok");
             } else {
                 g.bad("Not the least recently used in Set " + needSet + "! Check Recent Trace.", "l1_lru");
-                msg.innerHTML = "<b style='color:#d24b4b'>Wrong way.</b> Needed empty or least recently used in Set " + needSet;
+                setMsg("<b>Wrong way.</b> Needed empty or least recently used in Set " + needSet, "miss");
             }
             tick++;
             resolved++;
@@ -129,10 +133,11 @@ GAMES.l1 = {
             trace.push(req);
             waiting = false;
             render();
-            scheduleAsk(1750);
+            scheduleAsk(2100);
         }
         g.every(100, function () { if (waiting && !busy && Date.now() - missAt > pace(6000)) pickSlot(setOf(req), 0, true); });
         render();
+        setMsg("Waiting for the first CPU request…", "");
         g.after(900, ask);
     }
 };

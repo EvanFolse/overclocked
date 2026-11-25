@@ -1904,7 +1904,7 @@ button.upg:disabled {
     background: linear-gradient(180deg, #ffffff, #eef4fa);
     border: 1px solid #dbe4ec;
     border-radius: 16px;
-    padding: 10px;
+    padding: 28px 10px 10px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -2539,17 +2539,18 @@ button.bigbtn:active {
     top: 8px;
     left: 50%;
     transform: translateX(-50%);
-    padding: 6px 14px;
+    padding: 7px 14px;
     border-radius: 999px;
     font-weight: 700;
     font-size: 12px;
     background: #1c2b3a;
     color: #fff;
     z-index: 4;
-    white-space: nowrap;
-    max-width: 94%;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.35;
+    max-width: 92%;
+    box-sizing: border-box;
 }
 
 .gtoast.good {
@@ -3096,7 +3097,8 @@ table.gantt td.fwd {
 
 .asked {
     font-size: 18px;
-    margin-top: 10px;
+    margin-top: 0;
+    flex: 0 0 auto;
 }
 
 .asked b {
@@ -3154,8 +3156,45 @@ table.gantt td.fwd {
 }
 
 .cmsg {
-    min-height: 24px;
+    min-height: 44px;
+    width: 100%;
+    box-sizing: border-box;
     font-size: 15px;
+    line-height: 1.4;
+    text-align: center;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: #f8fafc;
+    border: 1.5px solid #dbe4ec;
+    flex: 0 0 auto;
+}
+
+.cmsg:empty {
+    visibility: hidden;
+}
+
+.cmsg.hit {
+    background: #ecfdf5;
+    border-color: #86efac;
+    color: #166534;
+}
+
+.cmsg.miss {
+    background: #fef2f2;
+    border-color: #fca5a5;
+    color: #991b1b;
+}
+
+.cmsg.ok {
+    background: #ecfdf5;
+    border-color: #86efac;
+    color: #166534;
+}
+
+.cmsg.warn {
+    background: #fff7ed;
+    border-color: #fdba74;
+    color: #9a3412;
 }
 
 .sortcard {
