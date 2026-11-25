@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@600;700;800&family=Orbitron:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=21">
+    <link rel="stylesheet" href="style.css?v=25">
 </head>
 
 <body>
@@ -44,21 +44,18 @@
                     <div class="bot-head">
                         <div id="botFace" class="bot-avatar"></div>
                         <div>
-                            <div class="bot-name">CHIPBOT · AI TUTOR</div>
-                            <div class="bot-mood" id="botMoodLabel">Ready to build!</div>
+                            <div class="bot-name">CHIPBOT</div>
+                            <div class="bot-sub">Your CPU learning companion</div>
+                            <div class="bot-mood" id="botMoodLabel">Ready when you are</div>
                         </div>
                     </div>
                     <button type="button" class="ghost panel-close" onclick="toggleLeftPanel('bot')" title="Collapse">✕</button>
                 </div>
                 <div id="botBubble" class="bot-bubble">Open <b>MENU → STAGES</b> to build Stage 1, or ask me anything!</div>
-                <div class="bot-btns">
-                    <button id="btnConfusion" class="hidden" onclick="toggleDrawer('confusion')">⚖️ Fix Confusion</button>
-                    <button onclick="toggleDrawer('ask')">💬 Ask Bot</button>
-                    <button onclick="toggleDrawer('demo')">🎬 Watch Part Demo</button>
-                    <button onclick="botTip()">💡 Quick Hint</button>
-                    <button id="btnFault" class="hidden" onclick="runFaultTest()">🚨 Fault Test</button>
-                </div>
-                <div id="botDrawer" class="bot-drawer hidden"></div>
+                <div id="tutorBody" class="tutor-body"></div>
+                <!-- Hidden hooks kept for legacy callers / fault pulse helpers -->
+                <button id="btnConfusion" class="hidden" tabindex="-1" aria-hidden="true"></button>
+                <button id="btnFault" class="hidden" tabindex="-1" aria-hidden="true"></button>
             </div>
             <div id="benchCard" class="card left-panel collapsed"></div>
         </aside>
