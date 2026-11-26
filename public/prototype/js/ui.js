@@ -204,11 +204,22 @@ function renderProgress() {
 
 var settingsAdminOpen = false;
 var adminResetArmed = false;
+var adminSubTab = "progress"; // progress | speed | general | faults
 
 function toggleSettingsAdmin() {
     settingsAdminOpen = !settingsAdminOpen;
     if (!settingsAdminOpen) adminResetArmed = false;
     renderSettings();
+}
+
+function setAdminSubTab( whichtab ) {
+    adminSubTab = whichtab;
+    adminResetArmed = false;
+    renderSettings();
+}
+
+function adminSubTabBtn(id, label) {
+    return "<button type='button' class='admin-subtab" + (adminSubTab === id ? " on" : "") + "' onclick=\"setAdminSubTab('" + id + "')\">" + label + "</button>";
 }
 
 function renderSettings() {
@@ -218,18 +229,48 @@ function renderSettings() {
     h += "<div class='part'><b>Sound effects</b><div class='muted'>Beeps for hits and misses in minigames.</div><button class='btn' onclick='toggleSound()'>" + (game.sound ? "Sound is ON (click to turn off)" : "Sound is OFF (click to turn on)") + "</button></div>";
     h += "<div class='part'><b>Save</b><div class='muted'>Saves automatically under <code>" + SAVE_KEY + "</code>.</div></div>";
     h += "<div class='part'><b>Reset progress</b><div class='muted'>Deletes your chip, ops, and stage progress.</div><button class='btn' style='background:#c94a4a' onclick='resetGame()'>" + (resetArmed ? "Click again to DELETE everything" : "Reset game") + "</button></div>";
-    h += "<div class='part settings-admin'><b>Admin</b><div class='muted'>Instructor / demo tools stay tucked away here.</div>";
+    h += "<div class='part settings-admin'><b>Admin</b><div class='muted'>Instructor / demo tools for presentations.</div>";
     h += "<button class='btn' onclick='toggleSettingsAdmin()'>" + (settingsAdminOpen ? "Hide admin features" : "Open admin features") + "</button>";
     if (settingsAdminOpen) {
         h += "<div class='settings-admin-panel'>";
-        h += "<div class='settings-admin-block'><b>Showcase / grading</b><div class='muted'>Open all 5 stages so reviewers can jump around.</div><button class='btn' style='background:#0ea5e9' onclick='unlockAllStages()'>Unlock all 5 stages</button><button class='ghost' onclick='relockStages()'>Re-lock stages</button></div>";
-        h += "<div class='settings-admin-block'><b>Full unlock</b><div class='muted'>Max every part, open all stages, and grant ★★★ on each module.</div><button class='btn' style='background:#7c3aed' onclick='unlockEverything()'>Unlock all parts &amp; progress</button></div>";
-        h += "<div class='settings-admin-block'><b>Fault testing</b><div class='muted'>Spawn a random fault on an installed part. Click the broken part on the chip to clear it.</div><button class='btn' style='background:#d97706' onclick='adminTriggerRandomFault()'>Trigger random fault</button>" + (activeFault ? "<div class='muted' style='margin-top:6px'>Active: " + activeFault.symptom + "</div>" : "") + "</div>";
-        h += "<div class='settings-admin-block'><b>Admin reset</b><div class='muted'>Same wipe as above — kept here for quick demo teardown.</div><button class='btn' style='background:#c94a4a' onclick='adminResetGame()'>" + (adminResetArmed ? "Click again to DELETE everything" : "Reset progress") + "</button></div>";
+        h += "<div class='admin-subtabs'>" +
+            adminSubTabBtn("progress", "Progress snapshots") +
+            adminSubTabBtn("speed", "Speed Testing") +
+            adminSubTabBtn("general", "General") +
+            adminSubTabBtn("faults", "Faults") +
+            "</div>";
+        h += "<div class='settings-admin-body'>" + renderAdminSubBody() + "</div>";
         h += "</div>";
     }
     h += "</div>";
     el("rbody").innerHTML = h;
+}
+
+function renderAdminSubBody() {
+    if (adminSubTab === "speed") {
+        return "<div class='settings-admin-block'><b>Speed Testing demos</b><div class='muted'>Max the CPU and stages, but leave Speed Testing unclaimed so you can run and claim the missions live.</div>" +
+            "<button class='btn' style='background:#6366f1' onclick='unlockEverythingExceptSpeedTests()'>Unlock all except Speed Tests</button></div>";
+    }
+    if (adminSubTab === "faults") {
+        return "<div class='settings-admin-block'><b>Fault testing</b><div class='muted'>Spawn a random fault on an installed part. Click the broken part on the chip to clear it.</div>" +
+            "<button class='btn' style='background:#d97706' onclick='adminTriggerRandomFault()'>Trigger random fault</button>" +
+            (activeFault ? "<div class='muted' style='margin-top:6px'>Active: " + activeFault.symptom + "</div>" : "") + "</div>";
+    }
+    if (adminSubTab === "general") {
+        return "<div class='settings-admin-block'><b>Showcase / grading</b><div class='muted'>Open all 5 stages so reviewers can jump around.</div>" +
+            "<button class='btn' style='background:#0ea5e9' onclick='unlockAllStages()'>Unlock all 5 stages</button>" +
+            "<button class='ghost' onclick='relockStages()'>Re-lock stages</button></div>" +
+            "<div class='settings-admin-block'><b>Full unlock</b><div class='muted'>Max every part, open all stages, grant ★★★, and mark Speed Tests passed.</div>" +
+            "<button class='btn' style='background:#7c3aed' onclick='unlockEverything()'>Unlock all parts &amp; progress</button></div>" +
+            "<div class='settings-admin-block'><b>Admin reset</b><div class='muted'>Wipe progress for a clean demo restart.</div>" +
+            "<button class='btn' style='background:#c94a4a' onclick='adminResetGame()'>" + (adminResetArmed ? "Click again to DELETE everything" : "Reset progress") + "</button></div>";
+    }
+    // progress snapshots (default)
+    return "<div class='settings-admin-block'><b>Presentation snapshots</b><div class='muted'>Jump to a mid-game or late-game CPU so you can compare the experience while presenting. Speed Tests stay unclaimed.</div></div>" +
+        "<div class='settings-admin-block'><b>Mid-game</b><div class='muted'>Stages 1–4 completed. Stage 5 is open with early FPU/Multi-core. Good mid-campaign demo point.</div>" +
+        "<button class='btn' style='background:#0284c7' onclick=\"applyProgressSnapshot('mid')\">Load mid-game snapshot</button></div>" +
+        "<div class='settings-admin-block'><b>Late-game</b><div class='muted'>All 5 stages complete with a near-max CPU. Use this for the end-of-game contrast.</div>" +
+        "<button class='btn' style='background:#0f766e' onclick=\"applyProgressSnapshot('late')\">Load late-game snapshot</button></div>";
 }
 
 function adminResetGame() {
@@ -259,7 +300,8 @@ function applyTheme() {
 function applyMotion() { applyTheme(); }
 function toggleSound() { game.sound = !game.sound; renderRight(); }
 
-function unlockEverything() {
+function applyFullUnlock(opts) {
+    opts = opts || {};
     for (var i = 0; i < PARTS.length; i++) {
         var k = PARTS[i].key;
         game.parts[k].on = true;
@@ -272,15 +314,89 @@ function unlockEverything() {
         game.seenStages[s] = true;
     }
     if (!game.benchPassed) game.benchPassed = {};
-    for (var b = 0; b < BENCH_MISSIONS.length; b++) game.benchPassed[BENCH_MISSIONS[b].id] = true;
+    if (opts.includeBench) {
+        for (var b = 0; b < BENCH_MISSIONS.length; b++) game.benchPassed[BENCH_MISSIONS[b].id] = true;
+    } else {
+        // Leave Speed Testing unclaimed (and clear any prior pass flags for a clean try)
+        game.benchPassed = {};
+    }
     game.cp = Math.max(game.cp, 50000);
     game.finaleShown = false;
     save();
     kickAnim();
     applyTheme();
     renderAll();
-    toast("🚀 Full unlock complete. Every part is maxed.");
-    BOT.say("🚀 <b>Full unlock:</b> all parts, stages, and stars are ready for demos!", "party", "good");
+}
+
+function unlockEverything() {
+    applyFullUnlock({ includeBench: true });
+    toast("Full unlock complete. Every part is maxed, including Speed Tests.");
+    BOT.say("<b>Full unlock:</b> all parts, stages, stars, and Speed Tests are ready for demos!", "party", "good");
+}
+
+function unlockEverythingExceptSpeedTests() {
+    applyFullUnlock({ includeBench: false });
+    toast("Unlocked all parts and stages. Speed Tests are still open to play.");
+    BOT.say("<b>Demo unlock:</b> parts and stages are maxed. Speed Testing is still yours to beat!", "party", "good");
+}
+
+function setPartProgress(key, on, level, stars) {
+    var p = game.parts[key];
+    if (!p) return;
+    p.on = !!on;
+    p.level = on ? Math.max(1, Math.min(5, level || 1)) : 1;
+    p.h = on ? heightOf(p.level) : 0;
+    game.stars[key] = on ? Math.max(0, Math.min(3, stars || 0)) : 0;
+}
+
+function applyProgressSnapshot(kind) {
+    // Reset part/stage state, then apply a presentation-friendly mid or late snapshot.
+    for (var i = 0; i < PARTS.length; i++) setPartProgress(PARTS[i].key, false, 1, 0);
+    game.benchPassed = {};
+    game.benchBaseline = {};
+    game.finaleShown = false;
+    overclockOn = false;
+
+    if (kind === "late") {
+        // Late-game: all stages complete, near-max hardware (Speed Tests still open)
+        setPartProgress("cu", true, 5, 3);
+        setPartProgress("alu", true, 5, 3);
+        setPartProgress("regs", true, 5, 3);
+        setPartProgress("clock", true, 5, 3);
+        setPartProgress("pipe", true, 5, 3);
+        setPartProgress("decoder", true, 5, 3);
+        setPartProgress("l1", true, 5, 3);
+        setPartProgress("l2", true, 4, 3);
+        setPartProgress("fpu", true, 4, 3);
+        setPartProgress("cores", true, 4, 3);
+        game.stages = ["passed", "passed", "passed", "passed", "passed"];
+        game.seenStages = [true, true, true, true, true];
+        game.cp = Math.max(game.cp, 35000);
+        toast("Late-game snapshot loaded. All stages complete; Speed Tests are still open.");
+        BOT.say("<b>Late-game demo:</b> full campaign CPU ready. Compare this with mid-game!", "party", "good");
+    } else {
+        // Mid-game: Stages 1–4 completed, Stage 5 just opening
+        setPartProgress("cu", true, 4, 3);
+        setPartProgress("alu", true, 4, 3);
+        setPartProgress("regs", true, 4, 3);
+        setPartProgress("clock", true, 4, 2);
+        setPartProgress("pipe", true, 3, 2);
+        setPartProgress("decoder", true, 3, 2);
+        setPartProgress("l1", true, 3, 2);
+        setPartProgress("l2", true, 2, 2);
+        setPartProgress("fpu", true, 1, 1);
+        setPartProgress("cores", true, 1, 1);
+        game.stages = ["passed", "passed", "passed", "passed", "open"];
+        game.seenStages = [true, true, true, true, true];
+        game.cp = Math.max(game.cp, 18000);
+        toast("Mid-game snapshot loaded. Stages 1–4 complete; Stage 5 is open.");
+        BOT.say("<b>Mid-game demo:</b> through Stage 4 with Stage 5 just opening. Great contrast vs late-game!", "happy", "good");
+    }
+
+    save();
+    kickAnim();
+    applyTheme();
+    renderAll();
 }
 
 function resetGame() {
@@ -288,6 +404,7 @@ function resetGame() {
     resetArmed = false;
     adminResetArmed = false;
     settingsAdminOpen = false;
+    adminSubTab = "progress";
     try { localStorage.removeItem(SAVE_KEY); } catch (e) { }
     if (G) stopGameTimers(G);
     G = null; view = null; activeFault = null; game = newGame();
