@@ -11,11 +11,11 @@ function openWelcome() {
         "<div class='w-flow'>" +
         "<div class='w-card seq' style='animation-delay:0.35s'><span class='w-badge' style='background:#0ea5e9;color:#fff;'>1 · MINI GAMES</span><p>Complete 10 interactive modules to unlock and mount each CPU part.</p></div>" +
         "<div class='w-arrow seq' style='animation-delay:0.42s'>›</div>" +
-        "<div class='w-card seq' style='animation-delay:0.5s'><span class='w-badge' style='background:#6366f1;color:#fff;'>2 · COMPUTE</span><p>Press <b>EXECUTE</b> to earn <b>Compute</b> (ops), the currency you spend on upgrades. Open <b>Instruction Lab</b> to watch paths on the CPU.</p></div>" +
+        "<div class='w-card seq' style='animation-delay:0.5s'><span class='w-badge' style='background:#6366f1;color:#fff;'>2 · OPS</span><p>Time the needle in <b>green</b> and press <b>EXECUTE</b> (or Space) to earn <b>ops</b> (operations a second). Later, <b>Overclock</b> makes it faster with a green-hit bonus.</p></div>" +
         "<div class='w-arrow seq' style='animation-delay:0.58s'>›</div>" +
-        "<div class='w-card seq' style='animation-delay:0.65s'><span class='w-badge' style='background:#f59e0b;color:#111;'>3 · FAULTS</span><p>Respond to hardware alerts by clicking the failing component for bonus Compute.</p></div>" +
+        "<div class='w-card seq' style='animation-delay:0.65s'><span class='w-badge' style='background:#f59e0b;color:#111;'>3 · FAULTS</span><p>When a fault pops up, read the symptom and click the broken part on the chip for bonus ops.</p></div>" +
         "<div class='w-arrow seq' style='animation-delay:0.72s'>›</div>" +
-        "<div class='w-card seq' style='animation-delay:0.8s'><span class='w-badge' style='background:#10b981;color:#fff;'>4 · MASTERY</span><p>Spend Compute to upgrade parts, then check your CPU in <b>Speed Tests</b> (optional) for bonus Compute.</p></div>" +
+        "<div class='w-card seq' style='animation-delay:0.8s'><span class='w-badge' style='background:#10b981;color:#fff;'>4 · MASTERY</span><p>Spend ops to upgrade parts, then check your CPU in <b>Speed Tests</b> (optional) for bonus ops.</p></div>" +
         "</div>" +
         "<button class='w-start seq' style='animation-delay:0.95s' onclick='closeWelcome()'>▶ START BUILDING</button>";
 }
@@ -25,8 +25,16 @@ function closeWelcome() {
     game.seenWelcome = true; save();
     setTimeout(function () {
         scr.classList.add("hidden");
-        if (!game.seenStages[0]) openHub(0);
-        else if (!menuOpen && partsOn() === 0) { tab = "stages"; toggleMenu(); }
+        if (!game.seenStages[0]) {
+            stageNudge = true;
+            tab = "stages";
+            if (!menuOpen) toggleMenu();
+            else renderRight();
+            if (typeof BOT !== "undefined") BOT.say("Click <b>1 · KNOW CPU</b> to open your first stage briefing!", "happy", "");
+        } else if (!menuOpen && partsOn() === 0) {
+            tab = "stages";
+            toggleMenu();
+        }
     }, 360);
 }
 

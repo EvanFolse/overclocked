@@ -63,8 +63,10 @@ setInterval(function () {
 }, 60);
 
 setInterval(function () {
-    if (installedCount() >= 2 && !activeFault && !G && !overlaysOpen()) triggerFault();
-}, 50000);
+    if (installedCount() < 2 || activeFault || G || overlaysOpen()) return;
+    if (Math.random() >= 0.33) return; // ~33% chance each minute
+    triggerFault();
+}, 60000);
 
 setInterval(save, 5000);
 

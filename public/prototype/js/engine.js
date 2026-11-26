@@ -9,6 +9,7 @@ function stopGameTimers(g) { if (!g) return; for (var i = 0; i < g.ids.length; i
 
 function openHub(i) {
     if (game.stages[i] === "locked") { toast("Build every part in the previous stage first."); return; }
+    if (stageNudge) stageNudge = false;
     if (G) { stopGameTimers(G); G = null; }
     view = { type: "hub", stage: i };
     if (!menuOpen) toggleMenu(); else renderRight();
@@ -81,7 +82,7 @@ function bindKeyAccordions(root) {
 function showIntro() {
     var g = G, def = g.def, P = PART[g.key], ov = mk(g.arena, "div", "overlay" + (def.menuIntro ? " menu-intro" : "") + (def.menuIntroFit ? " menu-intro-fit" : ""), "");
     var line = game.parts[g.key].on
-        ? "Earn Compute (ops) &amp; higher stars!"
+        ? "Earn ops &amp; higher stars!"
         : "Earn ★ to build <b>" + P.name + "</b>! (needs " + MIN_BUILD_ACC + "% accuracy)";
     var topCls = "introTop";
     if (def.menuIntro) topCls += " introTop--menu";

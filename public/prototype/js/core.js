@@ -1,7 +1,7 @@
 // core.js: game state, newGame(), helpers, CHIP_ERAS, TIME IT + ADD/LW/BEQ tracer
 // ---------------------------------------------------------
 var SAVE_KEY = "overclockedMergedV1Save", FB_KEY = "overclockedFeedbackList";
-var game = newGame(), tab = "stages", menuOpen = false, learnOpen = "", selected = "", hot = "", G = null, view = null;
+var game = newGame(), tab = "stages", menuOpen = false, learnOpen = "", selected = "", hot = "", G = null, view = null, stageNudge = false;
 var activeFault = null, shownCp = 0, animOn = false, lastAfford = "", resetArmed = false;
 var execInst = "ADD", traceTimers = [], demoTimers = [], fbDraft = { stars: 0, stage: "", issues: [] };
 var lastEraId = "bare", eraReady = false, overclockOn = false;
@@ -310,13 +310,15 @@ function timingZone(pos) {
     return "red";
 }
 function hitTiming() {
-    // TIME IT bar removed from the main screen; Execute still awards Compute from CPU power.
     if (timing.locked || (typeof overlaysOpen === 'function' && overlaysOpen())) return;
     timing.locked = true;
-    var btn = el("runBtn");
+    var bar = el("timingBar"), btn = el("runBtn");
+    if (bar) bar.classList.add("locked");
     if (btn) btn.disabled = true;
 
-    var mult = 1.0, tag = "", l1HitRoll;
+    var zone = timingZone(timing.pos);
+    var mult = (zone === "green") ? 1.25 : 0.75;
+    var tag = "", l1HitRoll;
     if (execInst === "LW") {
         var hit = lvl("l1") > 0 && Math.random() < l1HitRate(); l1HitRoll = hit;
         if (hit) { mult *= 1.35; tag = " ⚡L1 HIT"; }
@@ -325,30 +327,34 @@ function hitTiming() {
         var flushChance = Math.max(0.04, 0.28 - (lvl("cu") + lvl("pipe")) * 0.03);
         if (Math.random() < flushChance) { mult *= 0.75; tag = " 🧹FLUSH"; }
         else { mult *= 1.20; tag = " 🎯PRED"; }
-    } else {
-        mult = 1.15;
+    }
+    if (overclockOn && lvl("clock") > 0 && zone === "green") {
+        mult *= 1.15;
+        tag += " 🔥OC";
     }
     var v = Math.round(clickPower() * mult * 100) / 100;
     gainCp(v);
-    beep(640, 60);
+    if (zone === "green") beep(640, 60);
+    else beep(280, 50);
 
     var wrap = el("chipWrap"), f = document.createElement("div");
     f.className = "float";
-    f.style.color = "#137a57";
+    f.style.color = (zone === "green") ? "#137a57" : (zone === "yellow" ? "#a56a00" : "#b04545");
     f.innerHTML = "+" + v + " <small style='font-size:12px'>" + mult.toFixed(2) + "×" + tag + "</small>";
     f.style.left = (38 + Math.random() * 24) + "%";
     f.style.top = (30 + Math.random() * 20) + "%";
     wrap.appendChild(f);
     setTimeout(function () { if (f.parentNode) f.parentNode.removeChild(f); }, 950);
 
-    // Path demo lives in Instruction Lab; Execute keeps a light flash so Compute stays tied to the chip
+    // Path demo lives in Instruction Lab; green EXECUTE still flashes the chip when unlocked
     if (instrLabUnlocked(execInst)) traceExecPath(l1HitRoll);
 
     setTimeout(function () {
         placeGreenSpot();
         timing.locked = false;
+        if (bar) bar.classList.remove("locked");
         if (btn) btn.disabled = false;
-    }, 180);
+    }, zone === "green" ? 220 : 160);
 }
 
 function toggleOverclock() {
@@ -358,10 +364,10 @@ function toggleOverclock() {
     placeGreenSpot();
     renderHud();
     if (overclockOn) {
-        BOT.say("🔥 <b>OVERCLOCK ON!</b> 1.5× speed, hotter die &amp; tighter setup window! That's the Power Wall—why CPUs add Multi-core.", "party", "warn");
+        BOT.say("🔥 <b>OVERCLOCK ON!</b> Faster needle, tighter green window, and a <b>+15% ops bonus</b> on green hits. That's the Power Wall: why real CPUs add Multi-core.", "party", "warn");
         beep(700, 90);
     } else {
-        BOT.say("Overclock OFF · nominal clock &amp; wider setup margin restored.", "idle", "");
+        BOT.say("Overclock OFF. Normal speed and a wider green window are back.", "idle", "");
         beep(420, 70);
     }
 }

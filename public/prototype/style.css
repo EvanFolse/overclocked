@@ -118,6 +118,39 @@ body::before {
     transition: transform 0.15s, box-shadow 0.15s;
 }
 
+.stagecard-wrap.nudge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 7px;
+}
+
+.stagecard-wrap.nudge .stagecard {
+    flex: 1;
+    margin-top: 0;
+}
+
+.stagecard.nudged {
+    border-color: #ef4444;
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.28), 0 0 16px rgba(239, 68, 68, 0.45);
+}
+
+.stage-nudge-arrow {
+    flex: 0 0 auto;
+    color: #ef4444;
+    font-size: 22px;
+    line-height: 1;
+    text-shadow: 0 0 8px rgba(239, 68, 68, 0.95), 0 0 18px rgba(239, 68, 68, 0.7);
+    animation: stageNudgeBounce 0.85s ease-in-out infinite;
+    pointer-events: none;
+    user-select: none;
+}
+
+@keyframes stageNudgeBounce {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.38); }
+}
+
 .stagecard:hover {
     transform: translateX(3px);
     box-shadow: 0 6px 18px rgba(74, 71, 200, 0.18);
@@ -664,15 +697,87 @@ body.dark .tutor-fault-card {
     width: 100%;
     max-width: 740px;
     margin: 6px 0;
-    padding: 10px 14px;
+    padding: 12px 14px;
     border-radius: 12px;
     border: 2px solid #f59e0b;
     background: #fffbeb;
     font-size: 13px;
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
+    gap: 12px;
+    line-height: 1.4;
+}
+
+.fault-banner-main {
+    min-width: 0;
+    flex: 1;
+}
+
+.fault-banner-title {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: #b45309;
+    margin-bottom: 4px;
+}
+
+.fault-banner-symptom {
+    font-size: 14px;
+    font-weight: 650;
+    color: #1f2937;
+}
+
+.fault-banner-help {
+    margin-top: 4px;
+    font-size: 12px;
+    color: #92400e;
+}
+
+.fault-banner-close {
+    flex: 0 0 auto;
+    padding: 2px 8px !important;
+}
+
+body.dark #faultBanner {
+    background: #431407;
+    border-color: #f59e0b;
+}
+
+body.dark .fault-banner-symptom {
+    color: #ffedd5;
+}
+
+body.dark .fault-banner-help {
+    color: #fdba74;
+}
+
+.settings-admin-panel {
+    margin-top: 10px;
+    display: flex;
+    flex-direction: column;
     gap: 10px;
+    padding: 10px;
+    border-radius: 12px;
+    border: 1px dashed #cbd5e1;
+    background: #f8fafc;
+}
+
+.settings-admin-block {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.settings-admin-block .btn,
+.settings-admin-block .ghost {
+    align-self: flex-start;
+}
+
+body.dark .settings-admin-panel {
+    background: #0f172a;
+    border-color: #475569;
 }
 
 #chipWrap {
@@ -822,15 +927,24 @@ body.dark .tutor-fault-card {
 }
 
 #finaleBtn {
+    margin-top: auto;
+    align-self: stretch;
     background: linear-gradient(135deg, #6366f1, #0ea5e9);
     color: #fff;
     border: 0;
     border-radius: 999px;
-    padding: 11px 18px;
-    font-size: 13.5px;
+    padding: 10px 12px;
+    font-size: 12px;
     font-weight: 700;
+    line-height: 1.25;
     cursor: pointer;
     box-shadow: 0 8px 20px rgba(74, 71, 200, 0.32);
+    white-space: normal;
+    text-align: center;
+}
+
+#finaleBtn.hidden {
+    display: none !important;
 }
 
 #stats {

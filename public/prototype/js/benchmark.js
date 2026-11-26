@@ -192,7 +192,7 @@ function renderBenchModal(animatePixels) {
         "<div class='part' style='margin:6px 0;background:#f8fafc;'>" +
         "<div class='mono' style='font-size:12px;font-weight:800;color:#1e293b'>Time = IC (" + ev.ic.toFixed(1) + ") × CPI (" + ev.totalCpi.toFixed(2) + ") × T (" + ev.cycleNs.toFixed(1) + " ns) = <span style='color:" + (meets ? "#059669" : "#d97706") + "'>" + formatNs(ev.timeNs) + " " + (ev.timeNs < 1000 ? m.unit : "") + "</span></div>" +
         "<div class='bench-bar'>" +
-        "<div style='width:" + ev.compPct + "%;background:#22b585' title='Compute'>CPU " + ev.compPct + "%</div>" +
+        "<div style='width:" + ev.compPct + "%;background:#22b585' title='CPU work'>CPU " + ev.compPct + "%</div>" +
         "<div style='width:" + ev.hazPct + "%;background:#f59e0b' title='Hazards'>HAZ " + ev.hazPct + "%</div>" +
         "<div style='width:" + ev.memPct + "%;background:#ef4444' title='Memory'>MEM " + ev.memPct + "%</div>" +
         "</div>" +

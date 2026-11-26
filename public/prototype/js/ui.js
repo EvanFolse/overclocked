@@ -12,7 +12,12 @@ function renderStages() {
     for (var i = 0; i < STAGES.length; i++) {
         var st = game.stages[i];
         var sub = st === "open" ? ((i === 0 && !game.parts.cu.on) ? "Open · play to build!" : "Open · play challenges") : st === "passed" ? "Complete ✓ · replay / debrief" : "Locked";
-        h += "<div class='stagecard " + st + "' onclick='openHub(" + i + ")'><div class='t'>" + (i + 1) + " · " + STAGES[i].name + "</div><div class='s'>" + sub + "</div></div>";
+        var card = "<div class='stagecard " + st + (stageNudge && i === 0 ? " nudged" : "") + "' onclick='openHub(" + i + ")'><div class='t'>" + (i + 1) + " · " + STAGES[i].name + "</div><div class='s'>" + sub + "</div></div>";
+        if (stageNudge && i === 0) {
+            h += "<div class='stagecard-wrap nudge'><span class='stage-nudge-arrow' aria-hidden='true'>➜</span>" + card + "</div>";
+        } else {
+            h += card;
+        }
     }
     el("rbody").innerHTML = h;
 }
@@ -24,7 +29,8 @@ function renderLeft() {
 function renderHud() {
     var era = checkEra(true);
     var m = cpuMetrics();
-    el("cps").innerHTML = "+" + m.opsPerSec.toFixed(1) + " ops/sec" + (overclockOn && lvl("clock") > 0 ? " (🔥 OC)" : "");
+    el("cps").innerHTML = "+" + m.opsPerSec.toFixed(1) + " ops/s" + (overclockOn && lvl("clock") > 0 ? " (🔥 OC)" : "");
+    if (el("cps")) el("cps").title = "ops = operations a second";
     if (el("ironLine")) el("ironLine").textContent = m.opsPerSec > 0 ? ("CLK " + (m.mhz >= 1000 ? (m.mhz / 1000).toFixed(1) + " GHz" : m.mhz + " MHz") + " · CPI " + m.cpiEff.toFixed(2) + " · L1 " + m.l1Hit + "% · " + m.cores + "C · " + (game.archChoices.isa || "risc").toUpperCase()) : "Build Stage 1 to start CPU formula";
     var ob = el("ocBtn"); if (ob) { ob.classList.toggle("hidden", lvl("clock") <= 0); ob.classList.toggle("on", overclockOn); ob.innerHTML = overclockOn ? "🔥 OVERCLOCK: ON" : "🔥 OVERCLOCK: OFF"; }
     el("build").innerHTML = era.short + " · BUILD LEVEL " + totalLevels();
@@ -53,14 +59,15 @@ function clickPart(key) {
             if (activeFault.firstTry) { game.right++; game.objStats[stIdx].hits++; }
             var reward = Math.max(60, Math.round(totalCps() * 8 + 60));
             gainCp(reward); setHot(key);
-            toast("✅ Repaired " + PART[key].short + "! +" + fmt(reward) + " ops");
-            BOT.hit(activeFault.cKey, "✅ Repaired <b>" + PART[key].name + "</b>! " + activeFault.why);
+            toast("Repaired " + PART[key].name + "! +" + fmt(reward) + " ops");
+            BOT.hit(activeFault.cKey, "Repaired <b>" + PART[key].name + "</b>. " + activeFault.why);
             activeFault = null; refreshDiagUi(); renderHud();
-            if (menuOpen && !view && tab === "progress") renderRight();
+            if (menuOpen && !view && (tab === "progress" || tab === "settings")) renderRight();
+            if (typeof renderBot === "function" && leftPanel === "bot") renderBot();
         } else {
             activeFault.firstTry = false; game.objStats[stIdx].misses++;
             var hint = (activeFault.wrong && activeFault.wrong[key]) || (PART[key].name + ": " + PART[key].what);
-            toast("❌ Not " + PART[key].short + "!");
+            toast("Not the " + PART[key].short + ". Read the symptom again.");
             BOT.miss(activeFault.cKey, hint);
             beep(180, 140);
         }
@@ -110,7 +117,7 @@ function partThumb(P) {
 }
 
 function renderUpgrades() {
-    var h = "<h2 class='h'>UPGRADES</h2><p class='muted'>Spend Compute (ops) to level up hardware. Higher module stars unlock Lv 3–5 (★→Lv2, ★★→Lv4, ★★★→Lv5).</p>", cnt = 0;
+    var h = "<h2 class='h'>UPGRADES</h2><p class='muted'>Spend <b>ops</b> (operations a second) to level up hardware. Higher module stars unlock Lv 3–5 (★→Lv2, ★★→Lv4, ★★★→Lv5).</p>", cnt = 0;
     for (var g = 1; g <= 5; g++) {
         var part = "";
         for (var i = 0; i < PARTS.length; i++) {
@@ -118,7 +125,7 @@ function renderUpgrades() {
             cnt++;
             var p = game.parts[P.key], cap = maxLevelFor(P.key);
             var next = (p.level < 5) ? "Next: " + P.levels[p.level] + " (" + P.levelNotes[p.level] + ")" : "MAX: " + P.levels[4];
-            var rate = "+" + partCps(P.key).toFixed(1) + "/sec";
+            var rate = "+" + partCps(P.key).toFixed(1) + " ops/s";
             part += "<div class='upg-card" + (selected === P.key ? " sel" : "") + "'>" +
                 "<div class='upg-thumb'>" + partThumb(P) + "</div>" +
                 "<div class='upg-info'><span class='nm'>" + P.name + "</span><span class='lv'>Lv " + p.level + "/" + cap + " · " + starsText(P.key) + "</span>" +
@@ -127,7 +134,7 @@ function renderUpgrades() {
                 "<div class='upg-buy'>";
             if (p.level >= 5) part += "<span class='maxmark'>MAX</span>";
             else if (p.level >= cap) part += "<button class='upg cap' onclick=\"openGame('" + P.key + "','upgrades')\">Need " + needStarFor(p.level + 1) + "</button>";
-            else { var cost = upCost(P.key); part += "<button class='upg" + (game.cp >= cost ? " can" : "") + "' onclick=\"buyUpgrade('" + P.key + "')\">" + fmt(cost) + "</button>"; }
+            else { var cost = upCost(P.key); part += "<button class='upg" + (game.cp >= cost ? " can" : "") + "' onclick=\"buyUpgrade('" + P.key + "')\">" + fmt(cost) + " ops</button>"; }
             part += "<div class='upg-rate'>" + rate + "</div></div></div>";
         }
         if (part !== "") h += "<div class='label upg-stage'>" + TAGS[g - 1] + "</div>" + part;
@@ -140,7 +147,7 @@ function buyUpgrade(key) {
     var p = game.parts[key], cap = maxLevelFor(key);
     if (p.level >= cap) { toast("Earn " + needStarFor(p.level + 1) + " in " + GAMES[key].title + " to unlock Lv " + (p.level + 1) + "!"); return; }
     var cost = upCost(key);
-    if (game.cp < cost) { toast("Not enough Compute (ops) yet! Press EXECUTE or play a stage."); return; }
+    if (game.cp < cost) { toast("Not enough ops yet! Press EXECUTE or play a stage."); return; }
     game.cp -= cost; p.level++; kickAnim(); renderHud(); renderStats(); renderRight();
     BOT.say("Upgraded <b>" + PART[key].name + "</b> to Lv " + p.level + ": " + PART[key].levelNotes[p.level - 1], "happy", "good");
 }
@@ -190,9 +197,18 @@ function renderProgress() {
     h += "<div class='part'><b>Course Objective Accuracy</b><div class='muted' style='font-size:11px;margin-bottom:8px'>Evidence across all 5 COD objectives:</div>";
     for (var ob = 0; ob < 5; ob++) { var st = game.objStats[ob] || { hits: 0, misses: 0 }, tot = st.hits + st.misses, pct = tot > 0 ? Math.round((st.hits / tot) * 100) : 0; h += "<div style='font-size:12px;display:flex;justify-content:space-between;'><span>" + STAGES[ob].objTitle + "</span><b class='mono'>" + (tot > 0 ? pct + "% (" + st.hits + "/" + tot + ")" : "—") + "</b></div><div class='bar'><div style='width:" + pct + "%'></div></div>"; }
     var topCk = topConfusionKey(); if (topCk) h += "<div style='margin-top:6px;font-size:12px;color:#b45309'><b>Top Weak Spot:</b> " + CONFUSIONS[topCk].title + " <button class='ghost' style='margin-left:6px;padding:2px 8px;' onclick=\"openConfusionKey('" + topCk + "')\">⚖️ Review</button></div>";
-    h += "</div><div class='part'><b>Total Compute earned (ops)</b><div class='mono' style='font-size:20px;color:#1f9d73'>" + fmt(game.earned) + "</div></div>";
-    h += "<div class='part'><b>Next goal</b><div class='muted'>" + next + "</div>" + (allStagesPassed() ? "<button class='btn' style='margin-top:6px' onclick='openEvolution(false)'>🏆 View CPU Evolution &amp; Feedback</button>" : "") + "</div>";
+    h += "</div><div class='part'><b>Total ops earned</b><div class='muted'>ops = operations a second</div><div class='mono' style='font-size:20px;color:#1f9d73'>" + fmt(game.earned) + "</div></div>";
+    h += "<div class='part'><b>Next goal</b><div class='muted'>" + next + "</div>" + (allStagesPassed() ? "<button class='btn' style='margin-top:6px' onclick='openEvolution(false)'>🏆 Game Completion | Feedback</button>" : "") + "</div>";
     el("rbody").innerHTML = h;
+}
+
+var settingsAdminOpen = false;
+var adminResetArmed = false;
+
+function toggleSettingsAdmin() {
+    settingsAdminOpen = !settingsAdminOpen;
+    if (!settingsAdminOpen) adminResetArmed = false;
+    renderSettings();
 }
 
 function renderSettings() {
@@ -200,11 +216,35 @@ function renderSettings() {
     h += "<div class='part'><b>Appearance</b><div class='muted'>Switch between light and dark mode for the builder UI.</div><button class='btn' onclick='toggleDarkMode()'>" + (game.dark ? "Dark mode is ON (click for light)" : "Dark mode is OFF (click for dark)") + "</button></div>";
     h += "<div class='part'><b>Reduce motion</b><div class='muted'>Turns off floating chip, glowing wires and rising animations.</div><button class='btn' onclick='toggleReduce()'>" + (game.reduce ? "Motion is OFF (click to turn on)" : "Motion is ON (click to turn off)") + "</button></div>";
     h += "<div class='part'><b>Sound effects</b><div class='muted'>Beeps for hits and misses in minigames.</div><button class='btn' onclick='toggleSound()'>" + (game.sound ? "Sound is ON (click to turn off)" : "Sound is OFF (click to turn on)") + "</button></div>";
-    h += "<div class='part'><b>Showcase / Grading Mode</b><div class='muted'>Unlock all 5 stages right away so instructors or reviewers can play any stage in any order.</div><button class='btn' style='background:#0ea5e9' onclick='unlockAllStages()'>🎓 Unlock All 5 Stages</button><button class='ghost' onclick='relockStages()'>🔒 Re-lock Stages</button></div>";
-    h += "<div class='part'><b>Full unlock</b><div class='muted'>Install every CPU part at max level, open all stages, and grant ★★★ on each module. Useful for demos and testing.</div><button class='btn' style='background:#7c3aed' onclick='unlockEverything()'>🚀 Unlock All Parts &amp; Progress</button></div>";
     h += "<div class='part'><b>Save</b><div class='muted'>Saves automatically under <code>" + SAVE_KEY + "</code>.</div></div>";
-    h += "<div class='part'><b>Reset everything</b><div class='muted'>Deletes your chip, Compute and stage progress.</div><button class='btn' style='background:#c94a4a' onclick='resetGame()'>" + (resetArmed ? "Click again to DELETE everything" : "Reset game") + "</button></div>";
+    h += "<div class='part'><b>Reset progress</b><div class='muted'>Deletes your chip, ops, and stage progress.</div><button class='btn' style='background:#c94a4a' onclick='resetGame()'>" + (resetArmed ? "Click again to DELETE everything" : "Reset game") + "</button></div>";
+    h += "<div class='part settings-admin'><b>Admin</b><div class='muted'>Instructor / demo tools stay tucked away here.</div>";
+    h += "<button class='btn' onclick='toggleSettingsAdmin()'>" + (settingsAdminOpen ? "Hide admin features" : "Open admin features") + "</button>";
+    if (settingsAdminOpen) {
+        h += "<div class='settings-admin-panel'>";
+        h += "<div class='settings-admin-block'><b>Showcase / grading</b><div class='muted'>Open all 5 stages so reviewers can jump around.</div><button class='btn' style='background:#0ea5e9' onclick='unlockAllStages()'>Unlock all 5 stages</button><button class='ghost' onclick='relockStages()'>Re-lock stages</button></div>";
+        h += "<div class='settings-admin-block'><b>Full unlock</b><div class='muted'>Max every part, open all stages, and grant ★★★ on each module.</div><button class='btn' style='background:#7c3aed' onclick='unlockEverything()'>Unlock all parts &amp; progress</button></div>";
+        h += "<div class='settings-admin-block'><b>Fault testing</b><div class='muted'>Spawn a random fault on an installed part. Click the broken part on the chip to clear it.</div><button class='btn' style='background:#d97706' onclick='adminTriggerRandomFault()'>Trigger random fault</button>" + (activeFault ? "<div class='muted' style='margin-top:6px'>Active: " + activeFault.symptom + "</div>" : "") + "</div>";
+        h += "<div class='settings-admin-block'><b>Admin reset</b><div class='muted'>Same wipe as above — kept here for quick demo teardown.</div><button class='btn' style='background:#c94a4a' onclick='adminResetGame()'>" + (adminResetArmed ? "Click again to DELETE everything" : "Reset progress") + "</button></div>";
+        h += "</div>";
+    }
+    h += "</div>";
     el("rbody").innerHTML = h;
+}
+
+function adminResetGame() {
+    if (!adminResetArmed) {
+        adminResetArmed = true;
+        renderRight();
+        setTimeout(function () {
+            adminResetArmed = false;
+            if (!G && !view && tab === "settings" && menuOpen && settingsAdminOpen) renderRight();
+        }, 4000);
+        return;
+    }
+    adminResetArmed = false;
+    resetArmed = true;
+    resetGame();
 }
 
 function toggleReduce() { game.reduce = !game.reduce; save(); applyTheme(); renderRight(); }
@@ -245,10 +285,14 @@ function unlockEverything() {
 
 function resetGame() {
     if (!resetArmed) { resetArmed = true; renderRight(); setTimeout(function () { resetArmed = false; if (!G && !view && tab === "settings" && menuOpen) renderRight(); }, 4000); return; }
-    resetArmed = false; try { localStorage.removeItem(SAVE_KEY); } catch (e) { }
+    resetArmed = false;
+    adminResetArmed = false;
+    settingsAdminOpen = false;
+    try { localStorage.removeItem(SAVE_KEY); } catch (e) { }
     if (G) stopGameTimers(G);
     G = null; view = null; activeFault = null; game = newGame();
     overclockOn = false; selected = ""; hot = ""; tab = "stages"; learnOpen = ""; shownCp = 0; lastEraId = "bare";
+    stageNudge = false;
     if (menuOpen) toggleMenu();
     BOT.say("Fresh silicon ready! Open <b>MENU → STAGES</b> to begin.", "idle", "");
     applyMotion(); renderAll(); openWelcome();

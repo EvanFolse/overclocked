@@ -36,7 +36,7 @@ var BOT = {
 var LEARN_CATS = [
     { id: "start", icon: "🚀", title: "Getting Started", desc: "How the game works", ids: ["what", "menu", "instr", "bar"] },
     { id: "parts", icon: "🧩", title: "CPU Components", desc: "What each part does · demos", ids: ["cu", "alu", "regs", "clock", "pipe", "decoder", "l1", "l2", "fpu", "cores"], demos: true },
-    { id: "perf", icon: "⚡", title: "Computer Performance", desc: "Compute, timing, and eras", ids: ["instr", "bar", "eras"] },
+    { id: "perf", icon: "⚡", title: "Computer Performance", desc: "Ops, timing, and eras", ids: ["instr", "bar", "eras"] },
     { id: "hist", icon: "📜", title: "Chip History", desc: "From 4004 to multi-core", ids: ["eras", "era4004", "era6502", "era8086", "era386", "eraPentium", "era64", "eraModern"] }
 ];
 
@@ -178,9 +178,9 @@ function tutorSay(key) {
 }
 
 function botTip() {
-    if (activeFault) { BOT.say("Read the fault symptom above the chip: math (ALU), opcode (DEC), order (CU), timing (CLK), operands (REG), or RAM speed (L1)?", "think", "warn"); return; }
+    if (activeFault) { BOT.say("Fault up: <b>" + activeFault.symptom + "</b> Think simple: no math answer = ALU, wrong order = Control Unit, missing numbers = Registers, out of sync = Clock, can't read the instruction = Decoder, waiting on RAM = L1.", "think", "warn"); return; }
     if (G && CONFUSIONS[BOT.lastCKey]) { BOT.say(CONFUSIONS[BOT.lastCKey].hint1, "think", ""); return; }
-    for (var i = 0; i < 5; i++) if (game.stages[i] === "open") { BOT.say("Tip: Open <b>MENU → STAGES</b> and play <b>Stage " + (i + 1) + " · " + STAGES[i].name + "</b>. Press <b>EXECUTE</b> for Compute, or open <b>Instruction Lab</b> to watch paths!", "idle", ""); return; }
+    for (var i = 0; i < 5; i++) if (game.stages[i] === "open") { BOT.say("Tip: Open <b>MENU → STAGES</b> and play <b>Stage " + (i + 1) + " · " + STAGES[i].name + "</b>. Press <b>EXECUTE</b> for ops, or open <b>Instruction Lab</b> to watch paths!", "idle", ""); return; }
     BOT.say("All 5 CPU models built! Check <b>PROGRESS</b> or view your <b>5-Stage CPU Evolution</b>.", "happy", "good");
 }
 
@@ -311,10 +311,10 @@ function renderTutorHint() {
 
 function renderTutorDiagnose() {
     var h = tutorBack("ChipBot", "home") + "<div class='tutor-section-title'>Diagnose Chip</div>";
-    h += "<p class='tutor-lead'>You'll get a symptom, then click the failing part on the 3D chip. Correct repairs earn Compute.</p>";
+    h += "<p class='tutor-lead'>Read the symptom, then click the broken part on the 3D chip. A correct repair earns ops.</p>";
     if (activeFault) {
-        h += "<div class='tutor-fault-card'><b>Active fault</b><div>" + activeFault.symptom + "</div><div class='muted' style='margin-top:6px'>Click the failing 3D part, or dismiss from the banner above the chip.</div></div>";
-        h += "<div class='tutor-fault-hint'><b>Hint</b><div>Match the symptom to the unit: math → ALU, opcode bits → Decoder, order/control → CU, timing/sync → Clock, active operands → Registers, slow RAM loops → L1.</div></div>";
+        h += "<div class='tutor-fault-card'><b>Active fault</b><div>" + activeFault.symptom + "</div><div class='muted' style='margin-top:6px'>Click that part on the chip, or dismiss the banner above it.</div></div>";
+        h += "<div class='tutor-fault-hint'><b>How to match it</b><div>No math answer = ALU. Wrong order = Control Unit. Numbers go missing = Registers. Out of sync = Clock. Only one instruction at a time = Pipeline. Can't tell ADD from LOAD = Decoder. Waiting on slow RAM = L1. L1 missed and no backup = L2. Decimal math stuck = FPU. Many jobs in one line = Multi-core.</div></div>";
     } else if (installedCount() < 2) {
         h += "<div class='tutor-empty'>Build at least two CPU parts first, then come back to practice diagnosis.</div>";
     } else {

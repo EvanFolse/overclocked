@@ -30,7 +30,7 @@ GAMES.l1 = {
     start: function (g, arena) {
         var ways = (lvl("l1") >= 3) ? 3 : 2;
         var addrs = [0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9];
-        var sets = [[], []], trace = [], tick = 0, waiting = false, busy = false, req = 0, missAt = 0, resolved = 0, hits = 0, misses = 0;
+        var sets = [[], []], trace = [], tick = 0, waiting = false, busy = false, req = 0, resolved = 0, hits = 0, misses = 0;
         for (var s = 0; s < 2; s++) for (var w = 0; w < ways; w++) sets[s].push({ addr: null, lastUsed: 0 });
         // Pre-warm Set 0 & Set 1 with initial addresses
         sets[0][0] = { addr: 0x2, lastUsed: 1 }; sets[0][1] = { addr: 0x4, lastUsed: 2 };
@@ -73,7 +73,7 @@ GAMES.l1 = {
                     var btn = mk(row, "button", "cslot" + (waiting ? " pick" : ""), (sl.addr === null ? "—<small>empty</small>" : hex(sl.addr) + "<small>Way " + wIdx + "</small>"));
                     btn.style.fontSize = "19px";
                     btn.style.padding = "9px 4px";
-                    btn.onclick = function () { pickSlot(sIdx, wIdx, false); };
+                    btn.onclick = function () { pickSlot(sIdx, wIdx); };
                 })(si, wi);
             }
             var tot = hits + misses, rate = tot ? Math.round((hits / tot) * 100) : 0;
@@ -115,15 +115,15 @@ GAMES.l1 = {
                 render();
                 scheduleAsk(2100);
             } else {
-                misses++; waiting = true; missAt = Date.now();
-                setMsg("<b>MISS!</b> Place " + hex(req) + " into the right Set (empty or least recently used way)!", "miss");
+                misses++; waiting = true;
+                setMsg("<b>MISS!</b> Place " + hex(req) + " into the right Set (empty or least recently used way). Take your time; the round clock still ticks.", "miss");
                 render();
             }
         }
-        function pickSlot(sIdx, wIdx, forced) {
+        function pickSlot(sIdx, wIdx) {
             if (!waiting || busy) return;
             var needSet = setOf(req);
-            if (!forced && sIdx !== needSet) {
+            if (sIdx !== needSet) {
                 g.bad("Wrong Set! " + hex(req) + " mod 2 = Set " + needSet, "l1_lru");
                 setMsg("<b>Wrong Set!</b> " + hex(req) + " belongs in Set " + needSet, "miss");
                 return;
@@ -134,11 +134,7 @@ GAMES.l1 = {
                 if (targetSet[w].lastUsed < targetSet[lruIdx].lastUsed) lruIdx = w;
             }
             var bestIdx = (emptyIdx !== -1) ? emptyIdx : lruIdx;
-            if (forced) {
-                g.bad("Too slow! Missed Set " + needSet + " deadline", "l1_lru");
-                wIdx = bestIdx;
-                setMsg("<b>TIME!</b> Auto-placed into Set " + needSet, "warn");
-            } else if (wIdx === bestIdx || targetSet[wIdx].lastUsed === targetSet[bestIdx].lastUsed) {
+            if (wIdx === bestIdx || targetSet[wIdx].lastUsed === targetSet[bestIdx].lastUsed) {
                 g.good(14, "", "l1_lru");
                 setMsg("<b>PLACED!</b> " + hex(req) + " → Set " + needSet + " (least recently used / empty way)", "ok");
             } else {
@@ -153,7 +149,6 @@ GAMES.l1 = {
             render();
             scheduleAsk(2100);
         }
-        g.every(100, function () { if (waiting && !busy && Date.now() - missAt > pace(6000)) pickSlot(setOf(req), 0, true); });
         render();
         setMsg("Waiting for the first CPU request…", "");
         g.after(900, ask);

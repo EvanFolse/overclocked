@@ -503,29 +503,59 @@ function refreshDiagUi() {
     var fb = el("faultBanner"); if (!fb) return;
     if (activeFault) {
         fb.classList.remove("hidden");
-        fb.innerHTML = "<span><b style='color:#b45309'>🚨 FAULT:</b> " + activeFault.symptom + "</span><span style='display:flex;gap:8px;align-items:center;'><span class='mono' style='color:#4a47c8;font-size:11px;font-weight:700;white-space:nowrap'>CLICK 3D PART</span><button class='ghost' style='padding:2px 7px;' onclick='dismissFault()'>✕</button></span>";
+        fb.innerHTML = "<div class='fault-banner-main'><div class='fault-banner-title'>Fault detected</div><div class='fault-banner-symptom'>" + activeFault.symptom + "</div><div class='fault-banner-help'>Click the broken part on the 3D chip to repair it.</div></div><button class='ghost fault-banner-close' onclick='dismissFault()' title='Dismiss'>✕</button>";
     } else fb.classList.add("hidden");
 }
 
 function dismissFault() {
     activeFault = null;
     refreshDiagUi();
-    BOT.say("Fault alert dismissed—keep building or press EXECUTE for Compute!", "idle", "");
+    BOT.say("Fault dismissed. Keep building, or open Tutor → Diagnose Chip to practice again.", "idle", "");
 }
 
 function runFaultTest() {
     if (installedCount() < 2) { toast("Build at least 2 CPU parts first!"); return; }
-    if (activeFault) { BOT.say("🚨 Fault already active above the chip: <b>" + activeFault.symptom + "</b> — click the failing 3D part!", "alert", "warn"); beep(300, 90); return; }
+    if (activeFault) {
+        BOT.say("A fault is already up: <b>" + activeFault.symptom + "</b> Click the broken part on the chip.", "alert", "warn");
+        beep(300, 90);
+        return;
+    }
     triggerFault();
 }
 
-function triggerFault() {
-    if (activeFault) return;
+function triggerFault(opts) {
+    opts = opts || {};
+    if (activeFault && !opts.force) return false;
     var pool = FAULTS.filter(function (f) { return game.parts[f.need] && game.parts[f.need].on; });
-    if (pool.length < 2) return;
-    activeFault = pool[rand(0, pool.length - 1)];
-    activeFault.firstTry = true;
+    var minPool = opts.force ? 1 : 2;
+    if (pool.length < minPool) {
+        if (opts.force) toast("Install at least one CPU part before testing faults.");
+        return false;
+    }
+    var pick = pool[rand(0, pool.length - 1)];
+    // Clone so firstTry / state never mutates the shared FAULTS table
+    activeFault = {
+        ans: pick.ans,
+        need: pick.need,
+        cKey: pick.cKey,
+        symptom: pick.symptom,
+        why: pick.why,
+        wrong: pick.wrong || {},
+        firstTry: true
+    };
     refreshDiagUi();
-    BOT.say("🚨 Fault alert! Read the symptom above the chip and click the failing 3D component.", "alert", "warn");
+    BOT.say("Fault alert! Read the symptom above the chip, then click the broken 3D part.", "alert", "warn");
     beep(300, 120);
+    if (typeof renderBot === "function" && leftPanel === "bot") renderBot();
+    return true;
+}
+
+function adminTriggerRandomFault() {
+    if (typeof G !== "undefined" && G) { toast("Close the minigame first, then trigger a fault."); return; }
+    if (installedCount() < 1) { toast("Install at least one CPU part first."); return; }
+    var ok = triggerFault({ force: true });
+    if (ok) {
+        toast("Random fault started. Check the banner above the chip.");
+        if (typeof renderRight === "function" && menuOpen && tab === "settings") renderRight();
+    }
 }

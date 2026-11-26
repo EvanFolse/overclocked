@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@600;700;800&family=Orbitron:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=35">
+    <link rel="stylesheet" href="style.css?v=39">
 </head>
 
 <body>
@@ -69,15 +69,16 @@
             </div>
             <div id="benchCard" class="card left-panel collapsed"></div>
             <div id="labCard" class="card left-panel collapsed"></div>
+            <button id="finaleBtn" class="hidden" onclick="openEvolution(false)" title="View game completion and leave feedback">🏆 Game Completion | Feedback</button>
         </aside>
 
         <main id="center">
             <div class="center-top">
                 <div></div>
                 <div id="hudTop">
-                    <div class="label">COMPUTE</div>
+                    <div class="label">OPS</div>
                     <div id="cp">0</div>
-                    <div id="cps">+0.0 ops/sec</div>
+                    <div id="cps" title="operations a second">+0.0 ops/s</div>
                     <div id="ironLine" class="era" style="margin-top:2px;"></div>
                 </div>
                 <div style="display:flex;justify-content:flex-end;">
@@ -96,20 +97,23 @@
             <div class="label" id="build">Empty board · BUILD LEVEL 0</div>
 
             <div id="timingWrap">
-                <!-- Hidden timing hooks kept so legacy helpers / overclock width math stay safe -->
-                <div id="timingBar" class="hidden" aria-hidden="true">
+                <div id="timingBar" onclick="hitTiming()" title="Click or press Space when the needle is in green">
                     <div id="timingYellowL"></div>
                     <div id="timingYellowR"></div>
                     <div id="timingGreen"></div>
                     <div id="timingNeedle"></div>
                 </div>
+                <div id="timingLegend">
+                    <span class="g"><b>GREEN</b> 1.25×</span>
+                    <span class="y"><b>OTHER</b> 0.75×</span>
+                    <span><b>SPACE</b> or <b>EXECUTE</b></span>
+                </div>
                 <div id="traceReadout" class="hidden" aria-hidden="true"></div>
                 <div class="actionRow">
-                    <button id="runBtn" onclick="hitTiming()" title="Earn Compute from your CPU. Open Instruction Lab to watch the path.">⚡ EXECUTE <span id="execName">ADD</span> <span id="clickVal">+1</span></button>
+                    <button id="runBtn" onclick="hitTiming()" title="Hit green on the timing bar for a 1.25× ops bonus. Overclock (after Clock) makes it faster but tighter.">⚡ EXECUTE <span id="execName">ADD</span> <span id="clickVal">+1</span></button>
                     <button id="ocBtn" class="hidden" onclick="toggleOverclock()">🔥 OVERCLOCK: OFF</button>
-                    <button id="finaleBtn" class="hidden" onclick="openEvolution(false)">🏆 CPU Evolution &amp; Feedback</button>
                 </div>
-                <div class="exec-hint muted">Tip: open <b>Instruction Lab</b> on the left to watch how ADD, LW, and BEQ move through your CPU.</div>
+                <div class="exec-hint muted">Tip: time the needle in <b>green</b> for bonus ops. After Stage 2, turn on <b>Overclock</b> for a faster (tighter) window. Open <b>Instruction Lab</b> to watch paths.</div>
             </div>
 
             <div id="stats"></div>
@@ -174,27 +178,27 @@
     <div id="benchModal" class="modal-bg hidden"></div>
     <div id="toast"></div>
 
-    <script src="js/content.js"></script>
-    <script src="js/core.js?v=35"></script>
+    <script src="js/content.js?v=39"></script>
+    <script src="js/core.js?v=40"></script>
     <script src="js/theater.js"></script>
-    <script src="js/welcome.js"></script>
+    <script src="js/welcome.js?v=40"></script>
     <script src="js/feedback.js"></script>
-    <script src="js/bot.js?v=34"></script>
-    <script src="js/chip.js?v=27"></script>
-    <script src="js/ui.js"></script>
-    <script src="js/engine.js?v=32"></script>
+    <script src="js/bot.js?v=38"></script>
+    <script src="js/chip.js?v=37"></script>
+    <script src="js/ui.js?v=40"></script>
+    <script src="js/engine.js?v=39"></script>
     <script src="js/games/cu.js"></script>
     <script src="js/games/alu.js"></script>
     <script src="js/games/regs.js"></script>
     <script src="js/games/clock.js"></script>
     <script src="js/games/pipe.js"></script>
     <script src="js/games/decoder.js"></script>
-    <script src="js/games/l1.js?v=31"></script>
+    <script src="js/games/l1.js?v=38"></script>
     <script src="js/games/l2.js?v=31"></script>
     <script src="js/games/fpu.js"></script>
     <script src="js/games/cores.js"></script>
     <script src="js/benchmark.js"></script>
-    <script src="js/main.js"></script>
+    <script src="js/main.js?v=38"></script>
 </body>
 
 </html>
