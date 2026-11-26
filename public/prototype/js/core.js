@@ -130,20 +130,80 @@ function playPartDemo(key) {
     beep(560, 80);
 }
 
-function setExecInst(inst) {
+var INSTR_LAB = {
+    ADD: {
+        title: "ADD",
+        blurb: "Add two register values.",
+        needs: ["cu", "alu", "regs"],
+        needLabel: "Control Unit, ALU, and Registers (Stage 1)"
+    },
+    LW: {
+        title: "LW",
+        blurb: "Load data from memory.",
+        needs: ["cu", "alu", "regs", "l1"],
+        needLabel: "Control Unit, ALU, Registers, and L1 Cache (Stages 1 & 4)"
+    },
+    BEQ: {
+        title: "BEQ",
+        blurb: "Branch if two values are equal.",
+        needs: ["cu", "alu", "regs"],
+        needLabel: "Control Unit, ALU, and Registers (Stage 1)"
+    }
+};
+
+function instrLabUnlocked(inst) {
+    var info = INSTR_LAB[inst];
+    if (!info) return false;
+    for (var i = 0; i < info.needs.length; i++) {
+        if (!game.parts[info.needs[i]] || !game.parts[info.needs[i]].on) return false;
+    }
+    return true;
+}
+
+function setExecInst(inst, opts) {
+    opts = opts || {};
+    if (!INSTR_LAB[inst]) return;
     execInst = inst;
-    ["ADD", "LW", "BEQ"].forEach(function (k) { el("inst_" + k).className = "inst-pill" + (k === inst ? " on" : ""); });
-    el("execName").textContent = inst;
+    ["ADD", "LW", "BEQ"].forEach(function (k) {
+        var pill = el("inst_" + k);
+        if (pill) pill.className = "inst-pill" + (k === inst ? " on" : "");
+    });
+    if (el("execName")) el("execName").textContent = inst;
     if (typeof placeGreenSpot === "function") placeGreenSpot();
     var hints = {
         ADD: "ADD path: CU → DEC → REG → ALU → REG (skips Cache!)",
         LW: game.parts.l1.on ? "LW path: CU → DEC → REG → ALU → ⚡ L1 Cache → REG" : "LW path: CU → DEC → REG → ALU → 🐢 Slow RAM (no L1 yet!)",
         BEQ: "BEQ path: CU → DEC → REG → ALU (cmp) → CU/PC"
     };
-    el("traceReadout").textContent = hints[inst];
+    if (el("traceReadout")) el("traceReadout").textContent = hints[inst];
+    if (el("labTrace")) el("labTrace").textContent = hints[inst];
+    if (typeof renderInstructionLab === "function") renderInstructionLab();
+    if (opts.play) runInstructionDemo(inst);
+}
+
+function runInstructionDemo(inst) {
+    if (!instrLabUnlocked(inst)) {
+        var info = INSTR_LAB[inst];
+        toast("Build " + info.needLabel + " to unlock " + inst + ".");
+        if (typeof renderInstructionLab === "function") renderInstructionLab();
+        if (el("labTrace")) el("labTrace").textContent = "Locked: build " + info.needLabel + " first.";
+        return;
+    }
+    execInst = inst;
+    labOpenInst = inst;
+    if (el("execName")) el("execName").textContent = inst;
+    if (typeof placeGreenSpot === "function") placeGreenSpot();
+    if (typeof leftPanel !== "undefined" && leftPanel !== "lab" && typeof openLeftPanel === "function") openLeftPanel("lab");
+    else if (typeof renderInstructionLab === "function") renderInstructionLab();
+    traceExecPath();
 }
 
 function l1HitRate() { var lv = lvl("l1"); return lv > 0 ? [0, 0.72, 0.80, 0.88, 0.93, 0.96][lv] : 0; }
+
+function setTraceText(msg) {
+    if (el("labTrace")) el("labTrace").textContent = msg;
+    if (el("traceReadout")) el("traceReadout").textContent = msg;
+}
 
 function traceExecPath(l1HitOverride) {
     if (activeFault) return;
@@ -159,7 +219,10 @@ function traceExecPath(l1HitOverride) {
     var steps = rawPaths[execInst].filter(function (p) { return game.parts[p[0]] && game.parts[p[0]].on; });
     for (var t = 0; t < traceTimers.length; t++) clearTimeout(traceTimers[t]);
     traceTimers = [];
-    if (steps.length === 0) { el("traceReadout").textContent = "Open MENU → STAGES to build Stage 1 and watch the 3D path light up!"; return; }
+    if (steps.length === 0) {
+        setTraceText("Build Stage 1 parts first, then watch the path light up on your CPU.");
+        return;
+    }
     var labels = [];
     steps.forEach(function (pair, idx) {
         traceTimers.push(setTimeout(function () {
@@ -167,13 +230,52 @@ function traceExecPath(l1HitOverride) {
             labels.push(PART[pair[0]].short + "(" + pair[1] + ")");
             var suffix = "";
             if (execInst === "LW" && idx === steps.length - 1) {
-                if (!hasL1) suffix = " → 🐢 Slow RAM! (Need L1)";
-                else if (!l1Hit && !game.parts.l2.on) suffix = " → 🐢 L1 Miss → Slow RAM!";
+                if (!hasL1) suffix = " → Slow RAM (need L1)";
+                else if (!l1Hit && !game.parts.l2.on) suffix = " → L1 miss → Slow RAM";
             }
-            el("traceReadout").textContent = execInst + ": " + labels.join(" → ") + suffix;
+            setTraceText(execInst + ": " + labels.join(" → ") + suffix);
         }, idx * 240));
     });
     traceTimers.push(setTimeout(function () { hot = ""; drawChip(); }, steps.length * 240 + 350));
+}
+
+var labOpenInst = "";
+
+function toggleLabDrop(inst) {
+    labOpenInst = (labOpenInst === inst) ? "" : inst;
+    renderInstructionLab();
+}
+
+function renderInstructionLab() {
+    var card = el("labCard");
+    if (!card) return;
+    var h = "<div class='panel-head'><div class='bench-head'><span class='bot-name'>INSTRUCTION LAB</span></div><button type='button' class='ghost panel-close' onclick='closeInstructionLab()' title='Collapse'>✕</button></div>";
+    h += "<p class='lab-intro'>Want to see how computers execute instructions? Open a dropdown and watch the path on your CPU.</p>";
+    h += "<div class='lab-list'>";
+    ["ADD", "LW", "BEQ"].forEach(function (k) {
+        var info = INSTR_LAB[k], unlocked = instrLabUnlocked(k), open = labOpenInst === k, on = execInst === k;
+        h += "<div class='lab-drop" + (open ? " open" : "") + (on ? " on" : "") + (unlocked ? "" : " locked") + "'>";
+        h += "<button type='button' class='lab-drop-head' onclick=\"toggleLabDrop('" + k + "')\">";
+        h += "<span><b>" + info.title + "</b> <small>" + info.blurb + "</small></span>";
+        h += "<span class='lab-drop-meta'>" + (unlocked ? "" : "<span class='lab-lock'>Locked</span>") + "<span class='lab-chev' aria-hidden='true'></span></span>";
+        h += "</button>";
+        h += "<div class='lab-drop-body'>";
+        if (unlocked) {
+            h += "<button type='button' class='btn lab-play' onclick=\"runInstructionDemo('" + k + "')\">" + (on ? "↻ Replay path" : "▶ Watch path") + "</button>";
+        } else {
+            h += "<div class='lab-lock-note'>Needs " + info.needLabel + ".</div>";
+        }
+        h += "</div></div>";
+    });
+    h += "</div>";
+    h += "<div id='labTrace' class='lab-trace'>Select an unlocked instruction to light its path on the CPU.</div>";
+    card.innerHTML = h;
+}
+
+function closeInstructionLab() {
+    leftPanel = "";
+    labOpenInst = "";
+    if (typeof applyLeftPanels === "function") applyLeftPanels();
 }
 
 function timingSpeed() {
@@ -208,15 +310,13 @@ function timingZone(pos) {
     return "red";
 }
 function hitTiming() {
+    // TIME IT bar removed from the main screen; Execute still awards Compute from CPU power.
     if (timing.locked || (typeof overlaysOpen === 'function' && overlaysOpen())) return;
     timing.locked = true;
-    var bar = el("timingBar"), btn = el("runBtn");
-    if (bar) bar.classList.add("locked");
+    var btn = el("runBtn");
     if (btn) btn.disabled = true;
 
-    var zone = timingZone(timing.pos);
-    var mult = (zone === "green") ? 1.25 : 0.75;
-    var tag = "", l1HitRoll;
+    var mult = 1.0, tag = "", l1HitRoll;
     if (execInst === "LW") {
         var hit = lvl("l1") > 0 && Math.random() < l1HitRate(); l1HitRoll = hit;
         if (hit) { mult *= 1.35; tag = " ⚡L1 HIT"; }
@@ -225,28 +325,30 @@ function hitTiming() {
         var flushChance = Math.max(0.04, 0.28 - (lvl("cu") + lvl("pipe")) * 0.03);
         if (Math.random() < flushChance) { mult *= 0.75; tag = " 🧹FLUSH"; }
         else { mult *= 1.20; tag = " 🎯PRED"; }
+    } else {
+        mult = 1.15;
     }
     var v = Math.round(clickPower() * mult * 100) / 100;
     gainCp(v);
-    if (zone === "green") beep(640, 60);
+    beep(640, 60);
 
     var wrap = el("chipWrap"), f = document.createElement("div");
     f.className = "float";
-    f.style.color = (zone === "green") ? "#137a57" : (zone === "yellow" ? "#a56a00" : "#b04545");
+    f.style.color = "#137a57";
     f.innerHTML = "+" + v + " <small style='font-size:12px'>" + mult.toFixed(2) + "×" + tag + "</small>";
     f.style.left = (38 + Math.random() * 24) + "%";
     f.style.top = (30 + Math.random() * 20) + "%";
     wrap.appendChild(f);
     setTimeout(function () { if (f.parentNode) f.parentNode.removeChild(f); }, 950);
 
-    traceExecPath(l1HitRoll);
+    // Path demo lives in Instruction Lab; Execute keeps a light flash so Compute stays tied to the chip
+    if (instrLabUnlocked(execInst)) traceExecPath(l1HitRoll);
 
     setTimeout(function () {
         placeGreenSpot();
         timing.locked = false;
-        if (bar) bar.classList.remove("locked");
         if (btn) btn.disabled = false;
-    }, zone === "green" ? 220 : 160);
+    }, 180);
 }
 
 function toggleOverclock() {

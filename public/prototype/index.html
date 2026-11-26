@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@600;700;800&family=Orbitron:wght@600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css?v=29">
+    <link rel="stylesheet" href="style.css?v=35">
 </head>
 
 <body>
@@ -38,6 +38,16 @@
                     </span>
                     <span class="dock-label">Speed Testing</span>
                 </button>
+                <button type="button" id="btnLabDock" class="dock-btn" onclick="toggleLeftPanel('lab')" title="Instruction Lab" aria-label="Open Instruction Lab" aria-expanded="false">
+                    <span class="dock-lab" aria-hidden="true">
+                        <svg viewBox="0 0 48 48" width="28" height="28">
+                            <rect x="8" y="10" width="32" height="28" rx="6" fill="#0f172a" stroke="#a78bfa" stroke-width="2.5"/>
+                            <path d="M16 20h16M16 26h12M16 32h8" fill="none" stroke="#c4b5fd" stroke-width="2.4" stroke-linecap="round"/>
+                            <circle cx="34" cy="32" r="3" fill="#8b5cf6"/>
+                        </svg>
+                    </span>
+                    <span class="dock-label">Instruction Lab</span>
+                </button>
             </div>
             <div id="botCard" class="card left-panel collapsed">
                 <div class="panel-head">
@@ -58,6 +68,7 @@
                 <button id="btnFault" class="hidden" tabindex="-1" aria-hidden="true"></button>
             </div>
             <div id="benchCard" class="card left-panel collapsed"></div>
+            <div id="labCard" class="card left-panel collapsed"></div>
         </aside>
 
         <main id="center">
@@ -85,29 +96,20 @@
             <div class="label" id="build">Empty board · BUILD LEVEL 0</div>
 
             <div id="timingWrap">
-                <div class="inst-pills">
-                    <span class="mono" style="font-size:10px;color:var(--muted);">PICK AN INSTRUCTION:</span>
-                    <button id="inst_ADD" class="inst-pill on" title="Adds two registers. Uses the ALU, skips memory." onclick="setExecInst('ADD')">ADD R1,R2,R3</button>
-                    <button id="inst_LW" class="inst-pill" title="Loads a value from memory. Fast if it is in cache, slow if not." onclick="setExecInst('LW')">LW R1,[0x40]</button>
-                    <button id="inst_BEQ" class="inst-pill" title="Branch if equal. Compares two registers, then may jump." onclick="setExecInst('BEQ')">BEQ R1,R2,L1</button>
-                </div>
-                <div id="traceReadout">Pick an instruction, then hit green on TIME IT. The glowing path shows which CPU parts it uses.</div>
-                <div id="timingBar" onclick="hitTiming()" title="Click or press Space when the needle is in green">
+                <!-- Hidden timing hooks kept so legacy helpers / overclock width math stay safe -->
+                <div id="timingBar" class="hidden" aria-hidden="true">
                     <div id="timingYellowL"></div>
                     <div id="timingYellowR"></div>
                     <div id="timingGreen"></div>
                     <div id="timingNeedle"></div>
                 </div>
-                <div id="timingLegend">
-                    <span class="g"><b>GREEN</b> 1.25× (HW-linked)</span>
-                    <span class="y"><b>OTHER</b> 0.75×</span>
-                    <span><b>SPACE</b> or <b>EXECUTE</b></span>
-                </div>
+                <div id="traceReadout" class="hidden" aria-hidden="true"></div>
                 <div class="actionRow">
-                    <button id="runBtn" onclick="hitTiming()">⚡ EXECUTE <span id="execName">ADD</span> <span id="clickVal">+1</span></button>
+                    <button id="runBtn" onclick="hitTiming()" title="Earn Compute from your CPU. Open Instruction Lab to watch the path.">⚡ EXECUTE <span id="execName">ADD</span> <span id="clickVal">+1</span></button>
                     <button id="ocBtn" class="hidden" onclick="toggleOverclock()">🔥 OVERCLOCK: OFF</button>
                     <button id="finaleBtn" class="hidden" onclick="openEvolution(false)">🏆 CPU Evolution &amp; Feedback</button>
                 </div>
+                <div class="exec-hint muted">Tip: open <b>Instruction Lab</b> on the left to watch how ADD, LW, and BEQ move through your CPU.</div>
             </div>
 
             <div id="stats"></div>
@@ -173,22 +175,22 @@
     <div id="toast"></div>
 
     <script src="js/content.js"></script>
-    <script src="js/core.js"></script>
+    <script src="js/core.js?v=35"></script>
     <script src="js/theater.js"></script>
     <script src="js/welcome.js"></script>
     <script src="js/feedback.js"></script>
-    <script src="js/bot.js"></script>
+    <script src="js/bot.js?v=34"></script>
     <script src="js/chip.js?v=27"></script>
     <script src="js/ui.js"></script>
-    <script src="js/engine.js"></script>
+    <script src="js/engine.js?v=32"></script>
     <script src="js/games/cu.js"></script>
     <script src="js/games/alu.js"></script>
     <script src="js/games/regs.js"></script>
     <script src="js/games/clock.js"></script>
     <script src="js/games/pipe.js"></script>
     <script src="js/games/decoder.js"></script>
-    <script src="js/games/l1.js"></script>
-    <script src="js/games/l2.js"></script>
+    <script src="js/games/l1.js?v=31"></script>
+    <script src="js/games/l2.js?v=31"></script>
     <script src="js/games/fpu.js"></script>
     <script src="js/games/cores.js"></script>
     <script src="js/benchmark.js"></script>

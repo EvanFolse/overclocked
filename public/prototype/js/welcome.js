@@ -11,7 +11,7 @@ function openWelcome() {
         "<div class='w-flow'>" +
         "<div class='w-card seq' style='animation-delay:0.35s'><span class='w-badge' style='background:#0ea5e9;color:#fff;'>1 · MINI GAMES</span><p>Complete 10 interactive modules to unlock and mount each CPU part.</p></div>" +
         "<div class='w-arrow seq' style='animation-delay:0.42s'>›</div>" +
-        "<div class='w-card seq' style='animation-delay:0.5s'><span class='w-badge' style='background:#6366f1;color:#fff;'>2 · TIMING</span><p>Hit the green zone on the timing bar to earn <b>Compute</b> (ops), the currency you spend on upgrades.</p></div>" +
+        "<div class='w-card seq' style='animation-delay:0.5s'><span class='w-badge' style='background:#6366f1;color:#fff;'>2 · COMPUTE</span><p>Press <b>EXECUTE</b> to earn <b>Compute</b> (ops), the currency you spend on upgrades. Open <b>Instruction Lab</b> to watch paths on the CPU.</p></div>" +
         "<div class='w-arrow seq' style='animation-delay:0.58s'>›</div>" +
         "<div class='w-card seq' style='animation-delay:0.65s'><span class='w-badge' style='background:#f59e0b;color:#111;'>3 · FAULTS</span><p>Respond to hardware alerts by clicking the failing component for bonus Compute.</p></div>" +
         "<div class='w-arrow seq' style='animation-delay:0.72s'>›</div>" +

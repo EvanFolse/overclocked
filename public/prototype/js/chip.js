@@ -510,7 +510,7 @@ function refreshDiagUi() {
 function dismissFault() {
     activeFault = null;
     refreshDiagUi();
-    BOT.say("Fault alert dismissed—keep building or hit green on TIME IT!", "idle", "");
+    BOT.say("Fault alert dismissed—keep building or press EXECUTE for Compute!", "idle", "");
 }
 
 function runFaultTest() {

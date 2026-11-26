@@ -1009,12 +1009,35 @@ button.upg:disabled {
 .rhead {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
+    gap: 10px 12px;
+    flex-wrap: wrap;
     font-family: ui-monospace, Menlo, monospace;
     font-size: 12px;
     letter-spacing: 2px;
     color: var(--indigo);
     font-weight: 700;
+    line-height: 1.3;
+}
+
+.rhead > span {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding-top: 4px;
+}
+
+.rhead-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    flex: 0 0 auto;
+    margin-left: auto;
+}
+
+.rhead-actions .ghost {
+    margin: 0 !important;
 }
 
 .bar {
@@ -2055,6 +2078,109 @@ button.upg:disabled {
 
 .overlay.menu-intro .otitle {
     letter-spacing: 3px;
+}
+
+/* Memory Sorter (and any menuIntroFit game): keep Play visible, pack the brief */
+.overlay.menu-intro-fit {
+    min-height: 0;
+}
+
+.overlay.menu-intro-fit .introTop--menu {
+    flex: 1 1 auto;
+    gap: 4px;
+    padding: 6px 8px 2px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.overlay.menu-intro-fit .bigicon {
+    font-size: 18px;
+}
+
+.overlay.menu-intro-fit .otitle {
+    font-size: 12px;
+    letter-spacing: 2px;
+}
+
+.overlay.menu-intro-fit .oabout--menu {
+    font-size: 10.5px;
+    line-height: 1.3;
+    max-width: none;
+    text-align: left;
+}
+
+.overlay.menu-intro-fit .okey--menu > b {
+    font-size: 10px;
+    letter-spacing: 1px;
+}
+
+.overlay.menu-intro-fit .introBottom {
+    padding: 5px 8px 7px;
+    gap: 3px;
+}
+
+.overlay.menu-intro-fit .ostars {
+    font-size: 10px;
+}
+
+.overlay.menu-intro-fit .bigbtn {
+    padding: 8px 18px;
+    font-size: 13px;
+}
+
+.msort-tiers {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin-top: 4px;
+}
+
+.msort-tier {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 5px 8px;
+    border: 1px solid #dbe4ec;
+    border-radius: 8px;
+    background: #f8fafc;
+}
+
+.msort-n {
+    flex: 0 0 auto;
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    background: #4a47c8;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1px;
+}
+
+.msort-tier b {
+    font-size: 12px;
+}
+
+.msort-tier div {
+    font-size: 11px;
+    line-height: 1.25;
+    color: var(--ink);
+    min-width: 0;
+}
+
+.msort-tier small {
+    display: block;
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 1px;
+}
+
+body.dark .msort-tier {
+    background: #1e293b;
+    border-color: #334155;
 }
 
 .oabout--menu {
@@ -3534,7 +3660,51 @@ body {
 }
 
 #app.menu-open #right {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+/* Menu tabs (Settings, Upgrades, Parts Lab, …): let content grow so the panel scrolls */
+#rbody {
+    flex: 0 0 auto;
+    min-height: 0;
     display: block;
+}
+
+/* Active minigame: fill remaining height and keep the intro/play surface contained */
+#app.menu-open #right:has(#rbody .arena) {
+    overflow: hidden;
+}
+
+#rbody:has(.arena) {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+#rbody .arena {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+}
+
+#gameBotBar {
+    flex: 0 0 auto;
+}
+
+/* Free vertical space so pre-play briefs (and Play) fit without scrolling */
+#rbody:has(.overlay) #gameBotBar {
+    display: none;
+}
+
+#rbody:has(.overlay) .gbar {
+    display: none;
 }
 
 .center-top {
@@ -3584,6 +3754,10 @@ body {
     justify-content: space-between;
     align-items: center;
     gap: 10px;
+    flex: 0 0 auto;
+    padding-bottom: 8px;
+    margin-bottom: 0;
+    border-bottom: 1px solid #e2e8f0;
 }
 
 #menuClose {
@@ -3593,12 +3767,19 @@ body {
     padding: 5px 10px;
     cursor: pointer;
     font-size: 12px;
+    flex: 0 0 auto;
 }
 
 #tabs {
     flex-wrap: wrap;
     gap: 10px 12px;
-    margin: 10px 0 14px;
+    margin: 0;
+    flex: 0 0 auto;
+}
+
+#tabs[style*="display: none"],
+#tabs.hidden {
+    margin: 0;
 }
 
 #chipWrap {
@@ -3937,13 +4118,21 @@ body {
         display: none;
     }
     #app.menu-open #right {
-        display: block;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
         position: fixed;
         top: 0;
         right: 0;
         width: min(420px, 100vw);
         height: 100dvh;
         z-index: 40;
+        overflow-x: hidden;
+        overflow-y: auto;
+    }
+
+    #app.menu-open #right:has(#rbody .arena) {
+        overflow: hidden;
     }
 }
 
@@ -4065,6 +4254,215 @@ body.overclock-on .trace.live.path {
 
 #btnBenchDock.on .dock-label {
     color: #0284c7;
+}
+
+#btnLabDock {
+    border-color: #ddd6fe;
+    background: linear-gradient(180deg, #ffffff, #f5f3ff);
+}
+
+#btnLabDock.on {
+    border-color: #8b5cf6;
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.22), 0 8px 20px rgba(50, 80, 120, 0.14);
+}
+
+#btnLabDock.on .dock-label {
+    color: #6d28d9;
+}
+
+.dock-lab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 36px;
+    pointer-events: none;
+}
+
+.exec-hint {
+    font-size: 11px;
+    text-align: center;
+    margin-top: 4px;
+    line-height: 1.35;
+}
+
+#labCard {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-height: 0;
+    max-height: min(42vh, 320px);
+    overflow: auto;
+    border: 1.5px solid #ddd6fe;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(245, 243, 255, 0.92));
+    padding: 10px;
+}
+
+/* ID rule was overriding .left-panel.collapsed and leaving a stray border line */
+#labCard.collapsed {
+    display: none !important;
+    border: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    background: none !important;
+}
+
+.lab-intro {
+    font-size: 11px;
+    line-height: 1.35;
+    color: var(--ink);
+    margin: 0 0 2px;
+}
+
+.lab-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.lab-drop {
+    border: 1.5px solid #ddd6fe;
+    background: #fff;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.lab-drop.on {
+    border-color: #8b5cf6;
+}
+
+.lab-drop.locked {
+    opacity: 0.85;
+    background: #f8fafc;
+    border-color: #e2e8f0;
+}
+
+.lab-drop-head {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 9px;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+}
+
+.lab-drop-head b {
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: var(--indigo);
+}
+
+.lab-drop-head small {
+    display: block;
+    font-size: 10.5px;
+    color: var(--muted);
+    font-weight: 500;
+    letter-spacing: 0;
+    margin-top: 1px;
+}
+
+.lab-drop-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+}
+
+.lab-chev {
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid #94a3b8;
+    border-bottom: 2px solid #94a3b8;
+    transform: rotate(45deg);
+    transition: transform 0.15s;
+    margin-top: -3px;
+}
+
+.lab-drop.open .lab-chev {
+    transform: rotate(-135deg);
+    margin-top: 3px;
+}
+
+.lab-drop-body {
+    display: none;
+    padding: 0 9px 8px;
+}
+
+.lab-drop.open .lab-drop-body {
+    display: block;
+}
+
+.lab-play {
+    width: 100%;
+    padding: 6px 10px;
+    font-size: 11.5px;
+}
+
+.lab-lock {
+    font-size: 9px;
+    font-weight: 800;
+    color: #b45309;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+}
+
+.lab-lock-note {
+    font-size: 10.5px;
+    color: #92400e;
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-radius: 8px;
+    padding: 6px 7px;
+    line-height: 1.3;
+}
+
+.lab-trace {
+    margin-top: 2px;
+    font-family: ui-monospace, Menlo, monospace;
+    font-size: 10.5px;
+    line-height: 1.35;
+    color: var(--indigo);
+    background: #eef2ff;
+    border: 1px solid #c7d2fe;
+    border-radius: 8px;
+    padding: 6px 8px;
+}
+
+body.dark #labCard {
+    background: linear-gradient(180deg, #1e1b4b, #0f172a);
+    border-color: #5b21b6;
+}
+
+body.dark .lab-drop {
+    background: #0f172a;
+    border-color: #4c1d95;
+}
+
+body.dark .lab-drop.locked {
+    background: #0f172a;
+    border-color: #334155;
+}
+
+body.dark .lab-trace {
+    background: #1e1b4b;
+    border-color: #5b21b6;
+    color: #ddd6fe;
+}
+
+body.dark .lab-lock-note {
+    background: #431407;
+    border-color: #9a3412;
+    color: #fdba74;
+}
+
+body.dark #btnLabDock {
+    background: linear-gradient(180deg, #1e1b4b, #0f172a);
+    border-color: #5b21b6;
 }
 
 .dock-btn.dock-ping {
@@ -4287,6 +4685,10 @@ body.dark button.upg.cap {
 
 body.dark .bar {
     background: #243044;
+}
+
+body.dark #menuHead {
+    border-bottom-color: #334155;
 }
 
 body.dark .rhead,

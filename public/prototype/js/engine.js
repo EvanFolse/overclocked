@@ -18,8 +18,8 @@ function openHub(i) {
 function closeHub() { view = null; tab = "stages"; renderRight(); }
 
 function renderHub() {
-    var i = view.stage, st = STAGES[i], db = game.stages[i] === "passed" ? "<button class='ghost' style='margin-right:6px' onclick='openStageDebrief(" + i + ")'>📊 Debrief</button>" : "";
-    var h = "<div class='rhead'><span>STAGE " + (i + 1) + " · " + st.name.toUpperCase() + "</span><div>" + db + "<button class='ghost' style='margin-right:6px' onclick='openBrief(" + i + ",false)'>🤖 Brief</button><button class='ghost' onclick='closeHub()'>✕</button></div></div><p class='muted' style='margin-top:12px'>" + st.blurb + "</p>";
+    var i = view.stage, st = STAGES[i], db = game.stages[i] === "passed" ? "<button class='ghost' onclick='openStageDebrief(" + i + ")'>📊 Debrief</button>" : "";
+    var h = "<div class='rhead'><span>STAGE " + (i + 1) + " · " + st.name.toUpperCase() + "</span><div class='rhead-actions'>" + db + "<button class='ghost' onclick='openBrief(" + i + ",false)'>🤖 Brief</button><button class='ghost' onclick='closeHub()'>✕</button></div></div><p class='muted' style='margin-top:12px'>" + st.blurb + "</p>";
     for (var j = 0; j < st.parts.length; j++) {
         var key = st.parts[j], P = PART[key], on = game.parts[key].on;
         h += "<div class='part'><div class='top'><div><span class='swatch' style='background:" + P.color + "'></span><span class='nm'>" + GAMES[key].icon + " " + GAMES[key].title + "</span></div><span class='mono'>" + starsText(key) + "</span></div><div class='muted'>" + (on ? P.name + " built (max Lv " + maxLevelFor(key) + ")" : "Earn ★ to build " + P.name) + "</div><button class='btn' onclick=\"openGame('" + key + "','hub')\">▶ " + (on ? "Play" : "Play to build") + "</button></div>";
@@ -34,7 +34,7 @@ function openGame(key, back) {
     makeApi(G);
     if (!menuOpen) { menuOpen = true; el("app").classList.add("menu-open"); el("menuToggle").innerHTML = "MENU ✓"; }
     el("tabs").style.display = "none";
-    var h = "<div class='rhead'><span>" + def.icon + " " + def.title + "</span><button class='ghost' onclick='quitGame()'>✕ Quit</button></div><div class='gbar'><div id='gTime'></div></div><div class='gstats'><span>SCORE <b id='gScore'>0</b></span><span id='gCombo'></span><span id='gInfo'></span></div><div id='gameKey' class='gkey hidden'></div><div id='gameBotBar'></div><div id='arena' class='arena'></div>";
+    var h = "<div class='rhead'><span>" + def.icon + " " + def.title + "</span><div class='rhead-actions'><button class='ghost' onclick='quitGame()'>✕ Quit</button></div></div><div class='gbar'><div id='gTime'></div></div><div class='gstats'><span>SCORE <b id='gScore'>0</b></span><span id='gCombo'></span><span id='gInfo'></span></div><div id='gameKey' class='gkey hidden'></div><div id='gameBotBar'></div><div id='arena' class='arena'></div>";
     el("rbody").innerHTML = h;
     G.arena = el("arena");
     BOT.say("Module: <b>" + PART[key].name + "</b>. Build combos and aim for ≥70% accuracy!", "idle", "");
@@ -79,7 +79,7 @@ function bindKeyAccordions(root) {
 }
 
 function showIntro() {
-    var g = G, def = g.def, P = PART[g.key], ov = mk(g.arena, "div", "overlay" + (def.menuIntro ? " menu-intro" : ""), "");
+    var g = G, def = g.def, P = PART[g.key], ov = mk(g.arena, "div", "overlay" + (def.menuIntro ? " menu-intro" : "") + (def.menuIntroFit ? " menu-intro-fit" : ""), "");
     var line = game.parts[g.key].on
         ? "Earn Compute (ops) &amp; higher stars!"
         : "Earn ★ to build <b>" + P.name + "</b>! (needs " + MIN_BUILD_ACC + "% accuracy)";

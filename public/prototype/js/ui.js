@@ -140,7 +140,7 @@ function buyUpgrade(key) {
     var p = game.parts[key], cap = maxLevelFor(key);
     if (p.level >= cap) { toast("Earn " + needStarFor(p.level + 1) + " in " + GAMES[key].title + " to unlock Lv " + (p.level + 1) + "!"); return; }
     var cost = upCost(key);
-    if (game.cp < cost) { toast("Not enough Compute (ops) yet! Hit green on TIME IT or play a stage."); return; }
+    if (game.cp < cost) { toast("Not enough Compute (ops) yet! Press EXECUTE or play a stage."); return; }
     game.cp -= cost; p.level++; kickAnim(); renderHud(); renderStats(); renderRight();
     BOT.say("Upgraded <b>" + PART[key].name + "</b> to Lv " + p.level + ": " + PART[key].levelNotes[p.level - 1], "happy", "good");
 }

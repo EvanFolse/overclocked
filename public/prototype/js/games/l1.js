@@ -79,10 +79,28 @@ GAMES.l1 = {
             var tot = hits + misses, rate = tot ? Math.round((hits / tot) * 100) : 0;
             g.info("Ways: " + ways + " · Hits " + hits + " · Miss " + misses + " (" + rate + "%)");
         }
+        function cachedAddrs() {
+            var out = [], si, wi;
+            for (si = 0; si < 2; si++) for (wi = 0; wi < ways; wi++) {
+                if (sets[si][wi].addr !== null) out.push(sets[si][wi].addr);
+            }
+            return out;
+        }
+        function missCandidates() {
+            var have = {}, list = cachedAddrs(), i, out = [];
+            for (i = 0; i < list.length; i++) have[list[i]] = true;
+            for (i = 0; i < addrs.length; i++) if (!have[addrs[i]]) out.push(addrs[i]);
+            return out;
+        }
         function ask() {
             if (waiting || busy) return;
-            var hotPool = [0x1, 0x2, 0x3, 0x4, 0x5, 0x6];
-            req = (Math.random() < 0.72) ? hotPool[rand(0, hotPool.length - 1)] : addrs[rand(0, addrs.length - 1)];
+            var hitsNow = cachedAddrs(), missNow = missCandidates();
+            // Aim for ~50% misses so players keep placing / swapping, not watching auto-hits
+            var wantMiss = Math.random() < 0.5;
+            if (wantMiss && missNow.length) req = missNow[rand(0, missNow.length - 1)];
+            else if (!wantMiss && hitsNow.length) req = hitsNow[rand(0, hitsNow.length - 1)];
+            else if (missNow.length) req = missNow[rand(0, missNow.length - 1)];
+            else req = hitsNow[rand(0, hitsNow.length - 1)];
             var sIdx = setOf(req);
             asked.innerHTML = "CPU requests: <b>" + hex(req) + "</b>";
             var found = -1;

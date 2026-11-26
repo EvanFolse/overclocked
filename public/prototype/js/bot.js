@@ -3,7 +3,7 @@
 // ---------------------------------------------------------
 var chatLog = [{ who: "bot", text: "Hey! Open <b>MENU → STAGES</b> to build Stage 1, or ask me anything." }];
 var chatBusy = false;
-var leftPanel = ""; // "" | "bot" | "bench"
+var leftPanel = ""; // "" | "bot" | "bench" | "lab"
 
 var BOT = {
     mood: "idle",
@@ -52,10 +52,11 @@ function openLeftPanel(which) {
 }
 
 function applyLeftPanels() {
-    var bot = el("botCard"), bench = el("benchCard");
-    var btnBot = el("btnBotDock"), btnBench = el("btnBenchDock");
+    var bot = el("botCard"), bench = el("benchCard"), lab = el("labCard");
+    var btnBot = el("btnBotDock"), btnBench = el("btnBenchDock"), btnLab = el("btnLabDock");
     if (bot) bot.classList.toggle("collapsed", leftPanel !== "bot");
     if (bench) bench.classList.toggle("collapsed", leftPanel !== "bench");
+    if (lab) lab.classList.toggle("collapsed", leftPanel !== "lab");
     if (btnBot) {
         btnBot.classList.toggle("on", leftPanel === "bot");
         btnBot.setAttribute("aria-expanded", leftPanel === "bot" ? "true" : "false");
@@ -66,8 +67,14 @@ function applyLeftPanels() {
         btnBench.setAttribute("aria-expanded", leftPanel === "bench" ? "true" : "false");
         if (leftPanel === "bench") btnBench.classList.remove("dock-ping");
     }
+    if (btnLab) {
+        btnLab.classList.toggle("on", leftPanel === "lab");
+        btnLab.setAttribute("aria-expanded", leftPanel === "lab" ? "true" : "false");
+        if (leftPanel === "lab") btnLab.classList.remove("dock-ping");
+    }
     if (leftPanel === "bot") renderBot();
     if (leftPanel === "bench" && typeof renderBenchList === "function") renderBenchList();
+    if (leftPanel === "lab" && typeof renderInstructionLab === "function") renderInstructionLab();
 }
 
 function topConfusionKey() {
@@ -173,7 +180,7 @@ function tutorSay(key) {
 function botTip() {
     if (activeFault) { BOT.say("Read the fault symptom above the chip: math (ALU), opcode (DEC), order (CU), timing (CLK), operands (REG), or RAM speed (L1)?", "think", "warn"); return; }
     if (G && CONFUSIONS[BOT.lastCKey]) { BOT.say(CONFUSIONS[BOT.lastCKey].hint1, "think", ""); return; }
-    for (var i = 0; i < 5; i++) if (game.stages[i] === "open") { BOT.say("Tip: Open <b>MENU → STAGES</b> and play <b>Stage " + (i + 1) + " · " + STAGES[i].name + "</b>. Time your <b>EXECUTE</b> bar on green for 1.25×!", "idle", ""); return; }
+    for (var i = 0; i < 5; i++) if (game.stages[i] === "open") { BOT.say("Tip: Open <b>MENU → STAGES</b> and play <b>Stage " + (i + 1) + " · " + STAGES[i].name + "</b>. Press <b>EXECUTE</b> for Compute, or open <b>Instruction Lab</b> to watch paths!", "idle", ""); return; }
     BOT.say("All 5 CPU models built! Check <b>PROGRESS</b> or view your <b>5-Stage CPU Evolution</b>.", "happy", "good");
 }
 
