@@ -1,0 +1,19 @@
+- title: "Overclocked: CPU Builder"
+  authors:
+    - "Bruce Brown"
+    - "Evan Folse"
+    - "Jacob Wear"
+    - "Gary Ye"
+  topic: "CPU Design and Performance"
+  description: >
+    Build a 3D CPU one part at a time. Play 10 mini games on the control unit,
+    ALU, registers, clock, decoder, pipeline, caches, floating point and
+    multi-core scheduling to unlock parts, earn Compute, repair hardware
+    faults, and test your CPU on real workloads in Speed Tests.
+  learning_objective: >
+    Identify pipeline hazards and choose forwarding, a stall or a flush;
+    predict cache hits and misses under LRU replacement; explain how CPU parts
+    and design choices change run time using Time = IC x CPI x cycle time; and
+    describe how serial work limits multi-core speedup (Amdahl's law).
+  game_url: "/games/overclocked/"
+  thumbnail: "/games/overclocked/thumbnail.png"
