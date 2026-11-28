@@ -20,11 +20,12 @@ After playing, the player should be able to:
 
 ## How to play
 
-1. **Mini games.** Open the menu and play the 10 modules. Passing a module (★ score and ≥ 70% accuracy) unlocks and mounts that CPU part on the 3D chip.
-2. **Timing.** Pick an instruction (`ADD`, `LW`, or `BEQ`), then hit the green zone on the timing bar (`Space` or **EXECUTE**). You earn **Compute** (ops), the currency you spend on upgrades, and the chip lights up the path that instruction takes.
+1. **Mini games.** Open the menu and play the 10 modules across 5 stages. Passing a module (★ score and ≥ 70% accuracy) unlocks and mounts that CPU part on the 3D chip.
+2. **Timing.** Hit the green zone on the timing bar (`Space` or **EXECUTE**) to earn **Compute** (ops), the currency you spend on upgrades. Open **Instruction Lab** on the left dock, pick `ADD`, `LW`, or `BEQ`, and press **Watch path** to see the route that instruction takes through the chip.
 3. **Faults.** Every so often a hardware alert appears above the chip. Click the failing 3D component to repair it and earn bonus Compute.
-4. **Upgrade.** Spend Compute to upgrade parts. Higher levels also require stars earned in that part's mini game.
+4. **Upgrade.** Spend Compute to upgrade parts. Higher levels also require stars earned in that part's mini game. After Stage 2 you can turn on **Overclock** (higher clock speed, tighter timing window).
 5. **Speed Tests (optional).** Open **Speed Testing** on the left dock to check how fast your CPU runs real jobs (camera burst, browser tabs, big data scan). Upgrade bottleneck parts and beat the target time for bonus Compute.
+6. **Stuck?** Open **Tutor** on the left dock for hints. When all 5 stages are complete, **Game Completion | Feedback** shows your CPU's evolution and a short feedback form.
 
 **Reviewers:** `MENU → SETTINGS → Showcase / Grading Mode` unlocks all 5 stages so you can play any stage in any order. `Full unlock` (also in Settings) is for demos and testing only: it installs every part at max level and cannot be undone except with **Reset game**, so use a fresh browser window if you want to keep your own progress.
 
@@ -60,7 +61,7 @@ After playing, the player should be able to:
 
 | Member      | Contributions |
 |-------------|---|
-| Gary Ye      | ChipBot tutor, stage briefing and mastery donut charts, initial welcome screen, hardware fault diagnosis, Speed Tests benchmarks, end-of-game feedback form, carry and signed overflow flags in the ALU mini game (*Bit Flip*), and merging team modules into the integrated build,design the small part demo,and initial README |
+| Gary Ye | ChipBot tutor, stage briefing and mastery donut charts, initial welcome screen, hardware fault diagnosis, Speed Tests benchmarks, end-of-game feedback form, carry and signed overflow flags in the ALU mini game (*Bit Flip*), the Part Demo, the initial README, and merging team modules into the integrated build. |
 | Evan        |  |
 | Jacob       |  |
 | Bruce Brown |  |
